@@ -23,6 +23,7 @@ public:
 	void process(void);
 	void get_node_from_id(int, amsl_navigation_msgs::Node&);
 	double pi_2_pi(double);
+	void initialize(void);
 
 private:
 	double HZ;
@@ -45,6 +46,9 @@ private:
 	amsl_navigation_msgs::NodeEdgeMap map;
 	amsl_navigation_msgs::Edge estimated_edge;
 	bool map_subscribed;
+	Eigen::Vector3d last_pose;
+	Eigen::Vector3d current_pose;
+	bool init_flag;
 };
 
 int main(int argc, char** argv)
@@ -70,6 +74,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("INIT_YAW", INIT_YAW, {0.0});
 
 	map_subscribed = false;
+	init_flag = true;
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -94,6 +99,9 @@ void NodeEdgeLocalizer::process(void)
 	ros::Rate loop_rate(HZ);
 	while(ros::ok()){
 		if(map_subscribed){
+			if(init_flag){
+				initialize();
+			}
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
@@ -113,4 +121,17 @@ void NodeEdgeLocalizer::get_node_from_id(int id, amsl_navigation_msgs::Node& nod
 double NodeEdgeLocalizer::pi_2_pi(double angle)
 {
 	return atan2(sin(angle), cos(angle));
+}
+
+void NodeEdgeLocalizer::initialize(void)
+{
+	estimated_edge.node0_id = INIT_NODE0_ID;	
+	estimated_edge.node1_id = INIT_NODE1_ID;	
+	estimated_edge.progress = INIT_PROGRESS;
+	amsl_navigation_msgs::Node node0;
+	get_node_from_id(estimated_edge.node0_id, node0);
+	amsl_navigation_msgs::Node node1;
+	get_node_from_id(estimated_edge.node1_id, node1);
+	estimated_edge.distance = (node0.point.x - node1.point.x) * (node0.point.x - node1.point.x) + (node0.point.y - node1.point.y) * (node0.point.y - node1.point.y); 
+	init_flag = false;
 }
