@@ -26,7 +26,9 @@ public:
 	void initialize(void);
 	double get_curvature_from_trajectory(std::vector<Eigen::Vector3d>&);
 	double get_angle_from_trajectory(std::vector<Eigen::Vector3d>&);
-	void caluculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
+	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
+	void calculate_affine_tranformation(void);
+	void get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >&, Eigen::Vector3d&);
 
 private:
 	double HZ;
@@ -56,6 +58,8 @@ private:
 	std::vector<Eigen::Vector3d> trajectory;
 	// estimated edges from odom 
 	std::vector<std::vector<Eigen::Vector3d> > trajectories;
+	// correct odom to edge
+	Eigen::Affine2d correct_odom;
 };
 
 int main(int argc, char** argv)
@@ -99,6 +103,7 @@ void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapCons
 
 void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
+	// Unimplemented
 }
 
 void NodeEdgeLocalizer::process(void)
@@ -147,7 +152,7 @@ double NodeEdgeLocalizer::get_curvature_from_trajectory(std::vector<Eigen::Vecto
 {
 	Eigen::Vector2d eigen_values;
 	Eigen::Matrix2d eigen_vectors;
-	caluculate_pca(traj, eigen_values, eigen_vectors);
+	calculate_pca(traj, eigen_values, eigen_vectors);
 	double min_value = (eigen_values(0) < eigen_values(1)) ? eigen_values(0) : eigen_values(1); 
 	double curvature = min_value / (eigen_values(0) + eigen_values(1));
 	return curvature;
@@ -157,14 +162,14 @@ double NodeEdgeLocalizer::get_angle_from_trajectory(std::vector<Eigen::Vector3d>
 {
 	Eigen::Vector2d eigen_values;
 	Eigen::Matrix2d eigen_vectors;
-	caluculate_pca(traj, eigen_values, eigen_vectors);
+	calculate_pca(traj, eigen_values, eigen_vectors);
 	double larger_index = (eigen_values(0) > eigen_values(1)) ? 0 : 1; 
 	Eigen::Vector2d larger_vector = eigen_vectors.col(larger_index);
 	double angle = atan2(larger_vector(1), larger_vector(0));
 	return angle;
 }
 
-void NodeEdgeLocalizer::caluculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen::Vector2d& eigen_values, Eigen::Matrix2d& eigen_vectors)
+void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen::Vector2d& eigen_values, Eigen::Matrix2d& eigen_vectors)
 {
 	// principal component analysis
 	double size = traj.size();
@@ -190,4 +195,15 @@ void NodeEdgeLocalizer::caluculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen
 	Eigen::EigenSolver<Eigen::Matrix2d> es(cov_mat);
 	eigen_values = es.eigenvalues().real();
 	eigen_vectors = es.eigenvectors().real();
+}
+
+void NodeEdgeLocalizer::calculate_affine_tranformation(void)
+{
+	Eigen::Vector3d intersection_point;
+	get_intersection_from_trajectories(trajectories, intersection_point);
+}
+
+void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >& trajectories, Eigen::Vector3d& intersection_point)
+{
+	// unimplemented
 }
