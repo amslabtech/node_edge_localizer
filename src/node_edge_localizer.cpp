@@ -25,6 +25,8 @@ public:
 	double pi_2_pi(double);
 	void initialize(void);
 	double get_curvature_from_trajectory(std::vector<Eigen::Vector3d>&);
+	double get_angle_from_trajectory(std::vector<Eigen::Vector3d>&);
+	void caluculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
 
 private:
 	double HZ;
@@ -143,6 +145,27 @@ void NodeEdgeLocalizer::initialize(void)
 
 double NodeEdgeLocalizer::get_curvature_from_trajectory(std::vector<Eigen::Vector3d>& traj)
 {
+	Eigen::Vector2d eigen_values;
+	Eigen::Matrix2d eigen_vectors;
+	caluculate_pca(traj, eigen_values, eigen_vectors);
+	double min_value = (eigen_values(0) < eigen_values(1)) ? eigen_values(0) : eigen_values(1); 
+	double curvature = min_value / (eigen_values(0) + eigen_values(1));
+	return curvature;
+}
+
+double NodeEdgeLocalizer::get_angle_from_trajectory(std::vector<Eigen::Vector3d>& traj)
+{
+	Eigen::Vector2d eigen_values;
+	Eigen::Matrix2d eigen_vectors;
+	caluculate_pca(traj, eigen_values, eigen_vectors);
+	double larger_index = (eigen_values(0) > eigen_values(1)) ? 0 : 1; 
+	Eigen::Vector2d larger_vector = eigen_vectors.col(larger_index);
+	double angle = atan2(larger_vector(1), larger_vector(0));
+	return angle;
+}
+
+void NodeEdgeLocalizer::caluculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen::Vector2d& eigen_values, Eigen::Matrix2d& eigen_vectors)
+{
 	// principal component analysis
 	double size = traj.size();
 	double ave_x = 0;
@@ -165,9 +188,6 @@ double NodeEdgeLocalizer::get_curvature_from_trajectory(std::vector<Eigen::Vecto
 	cov_mat << sigma_xx, sigma_xy,
 			   sigma_xy, sigma_yy; 
 	Eigen::EigenSolver<Eigen::Matrix2d> es(cov_mat);
-	Eigen::Vector2d eigen_values = es.eigenvalues().real();
-	Eigen::Matrix2d eigen_vectors = es.eigenvectors().real();
-	double min_value = (eigen_values(0) < eigen_values(1)) ? eigen_values(0) : eigen_values(1); 
-	double curvature = min_value / (eigen_values(0) + eigen_values(1));
-	return curvature;
+	eigen_values = es.eigenvalues().real();
+	eigen_vectors = es.eigenvectors().real();
 }
