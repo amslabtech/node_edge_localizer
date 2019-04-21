@@ -24,6 +24,7 @@ public:
 	void get_node_from_id(int, amsl_navigation_msgs::Node&);
 	double pi_2_pi(double);
 	void initialize(void);
+	double get_curvature_from_trajectory(std::vector<Eigen::Vector3d>&);
 
 private:
 	double HZ;
@@ -49,6 +50,10 @@ private:
 	Eigen::Vector3d last_pose;
 	Eigen::Vector3d current_pose;
 	bool init_flag;
+	// estimated edge(line) from odom 
+	std::vector<Eigen::Vector3d> trajectory;
+	// estimated edges from odom 
+	std::vector<std::vector<Eigen::Vector3d> > trajectories;
 };
 
 int main(int argc, char** argv)
@@ -134,4 +139,35 @@ void NodeEdgeLocalizer::initialize(void)
 	get_node_from_id(estimated_edge.node1_id, node1);
 	estimated_edge.distance = (node0.point.x - node1.point.x) * (node0.point.x - node1.point.x) + (node0.point.y - node1.point.y) * (node0.point.y - node1.point.y); 
 	init_flag = false;
+}
+
+double NodeEdgeLocalizer::get_curvature_from_trajectory(std::vector<Eigen::Vector3d>& traj)
+{
+	// principal component analysis
+	double size = traj.size();
+	double ave_x = 0;
+	double ave_y = 0;
+	for(auto& point : traj){
+		ave_x += point(0);	
+		ave_y += point(1);	
+	}
+	ave_x /= size;
+	ave_y /= size;
+	double sigma_xx = 0;
+	double sigma_xy = 0;
+	double sigma_yy = 0;
+	for(auto& point : traj){
+		sigma_xx += (point(0) - ave_x) * (point(0) - ave_x); 
+		sigma_xy += (point(0) - ave_x) * (point(1) - ave_y); 
+		sigma_yy += (point(1) - ave_y) * (point(1) - ave_y); 
+	}
+	Eigen::Matrix2d cov_mat;
+	cov_mat << sigma_xx, sigma_xy,
+			   sigma_xy, sigma_yy; 
+	Eigen::EigenSolver<Eigen::Matrix2d> es(cov_mat);
+	Eigen::Vector2d eigen_values = es.eigenvalues().real();
+	Eigen::Matrix2d eigen_vectors = es.eigenvectors().real();
+	double min_value = (eigen_values(0) < eigen_values(1)) ? eigen_values(0) : eigen_values(1); 
+	double curvature = min_value / (eigen_values(0) + eigen_values(1));
+	return curvature;
 }
