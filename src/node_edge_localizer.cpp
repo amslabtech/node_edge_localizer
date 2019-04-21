@@ -27,8 +27,9 @@ public:
 	double get_curvature_from_trajectory(std::vector<Eigen::Vector3d>&);
 	double get_angle_from_trajectory(std::vector<Eigen::Vector3d>&);
 	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
-	void calculate_affine_tranformation(void);
-	void get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >&, Eigen::Vector3d&);
+	void calculate_affine_tranformation(Eigen::Affine3d&);
+	void get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >&, Eigen::Vector3d&, int);
+	double get_angle_from_lines(Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&);
 
 private:
 	double HZ;
@@ -59,7 +60,7 @@ private:
 	// estimated edges from odom 
 	std::vector<std::vector<Eigen::Vector3d> > trajectories;
 	// correct odom to edge
-	Eigen::Affine2d correct_odom;
+	Eigen::Affine3d correct_odom;
 };
 
 int main(int argc, char** argv)
@@ -197,13 +198,39 @@ void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen:
 	eigen_vectors = es.eigenvectors().real();
 }
 
-void NodeEdgeLocalizer::calculate_affine_tranformation(void)
+void NodeEdgeLocalizer::calculate_affine_tranformation(Eigen::Affine3d& affine_transformation)
 {
-	Eigen::Vector3d intersection_point;
-	get_intersection_from_trajectories(trajectories, intersection_point);
+	// It represents B(i) in paper
+	Eigen::Vector3d intersection_point_i;
+	get_intersection_from_trajectories(trajectories, intersection_point_i, 0);
+	// It represents B(i-1) in paper
+	Eigen::Vector3d intersection_point_i_1;
+	get_intersection_from_trajectories(trajectories, intersection_point_i_1, 1);
+	// It represents N(i) in paper
+	Eigen::Vector3d map_node_point_i;
+	// It represents N(i-1) in paper
+	Eigen::Vector3d map_node_point_i_1;
+
+	double theta = get_angle_from_lines(intersection_point_i, intersection_point_i_1, map_node_point_i, map_node_point_i_1);
+
+	Eigen::Translation<double, 3> t1(intersection_point_i - map_node_point_i);
+	Eigen::Translation<double, 3> t2(-intersection_point_i);
+	Eigen::Matrix3d rotation;
+	rotation = Eigen::AngleAxisd(theta, Eigen::Vector3d::UnitZ());
+	affine_transformation = t1 * rotation * t2;
 }
 
-void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >& trajectories, Eigen::Vector3d& intersection_point)
+void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >& trajectories, Eigen::Vector3d& intersection_point, int step)
 {
+	// last intersetcion if step is 0  
 	// unimplemented
+}
+
+double NodeEdgeLocalizer::get_angle_from_lines(Eigen::Vector3d& line0_p0, Eigen::Vector3d& line0_p1, Eigen::Vector3d& line1_p0, Eigen::Vector3d& line1_p1)
+{
+	double v0_x = line0_p0(0) - line0_p1(0);
+	double v0_y = line0_p0(1) - line0_p1(1);
+	double v1_x = line1_p0(0) - line1_p1(0);
+	double v1_y = line1_p0(1) - line1_p1(1);
+	return acos((v0_x * v1_x + v0_y * v1_y) / (sqrt(v0_x * v0_x + v0_y * v0_y) * sqrt(v1_x * v1_x + v1_y * v1_y)));
 }
