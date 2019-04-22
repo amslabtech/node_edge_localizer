@@ -5,6 +5,7 @@
 			<param name="INIT_NODE1_ID" value="1" type="int"/>
 			<param name="INIT_PROGRESS" value="0.0" type="double"/>
 			<param name="INIT_YAW" value="0.0" type="double"/>
+			<param name="CURVATURE_THRESHOLD" value="0.01" type="double"/>
 	</node>
 
 </launch>

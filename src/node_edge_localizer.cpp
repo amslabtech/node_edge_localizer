@@ -41,6 +41,7 @@ private:
 	int INIT_NODE1_ID;
 	double INIT_PROGRESS;
 	double INIT_YAW;
+	double CURVATURE_THRESHOLD;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -89,6 +90,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("INIT_NODE1_ID", INIT_NODE1_ID, {1});
 	private_nh.param("INIT_PROGRESS", INIT_PROGRESS, {0.0});
 	private_nh.param("INIT_YAW", INIT_YAW, {0.0});
+	private_nh.param("CURVATURE_THRESHOLD", CURVATURE_THRESHOLD, {0.01});
 
 	map_subscribed = false;
 	init_flag = true;
@@ -99,6 +101,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "INIT_NODE1_ID: " << INIT_NODE1_ID << std::endl;
 	std::cout << "INIT_PROGRESS: " << INIT_PROGRESS << std::endl;
 	std::cout << "INIT_YAW: " << INIT_YAW << std::endl;
+	std::cout << "CURVATURE_THRESHOLD: " << CURVATURE_THRESHOLD << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
