@@ -34,6 +34,7 @@ public:
 	double get_distance_from_trajectory(std::vector<Eigen::Vector3d>&);
 	double square(double);
 	int get_index_from_id(int);
+	double calculate_trajectory_curvature(void);
 
 private:
 	double HZ;
@@ -42,6 +43,7 @@ private:
 	double INIT_PROGRESS;
 	double INIT_YAW;
 	double CURVATURE_THRESHOLD;
+	int POSE_NUM_PCA;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -91,6 +93,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("INIT_PROGRESS", INIT_PROGRESS, {0.0});
 	private_nh.param("INIT_YAW", INIT_YAW, {0.0});
 	private_nh.param("CURVATURE_THRESHOLD", CURVATURE_THRESHOLD, {0.01});
+	private_nh.param("POSE_NUM_PCA", POSE_NUM_PCA, {37});
 
 	map_subscribed = false;
 	init_flag = true;
@@ -102,6 +105,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "INIT_PROGRESS: " << INIT_PROGRESS << std::endl;
 	std::cout << "INIT_YAW: " << INIT_YAW << std::endl;
 	std::cout << "CURVATURE_THRESHOLD: " << CURVATURE_THRESHOLD << std::endl;
+	std::cout << "POSE_NUM_PCA: " << POSE_NUM_PCA << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -129,6 +133,9 @@ void NodeEdgeLocalizer::process(void)
 		if(map_subscribed){
 			if(init_flag){
 				initialize();
+			}
+			if(calculate_trajectory_curvature() > CURVATURE_THRESHOLD){
+
 			}
 		}
 		ros::spinOnce();
@@ -284,4 +291,56 @@ int NodeEdgeLocalizer::get_index_from_id(int id)
 		i++;
 	}
 	return -1;
+}
+
+double NodeEdgeLocalizer::calculate_trajectory_curvature(void)
+{
+	static int count = 0;
+	double x_ave = 0.0;
+	double y_ave = 0.0;
+	static std::vector<Eigen::Vector3d> pose_buffer;
+	pose_buffer.resize(POSE_NUM_PCA);
+
+	// sequential calculation
+	static double x_sum = 0.0;
+	static double y_sum = 0.0;
+	static double xx_sum = 0.0;
+	static double yy_sum = 0.0;
+	static double xy_sum = 0.0;
+
+	// remove old data
+	x_sum -= pose_buffer[count](0);
+	y_sum -= pose_buffer[count](1);
+	xx_sum -= square(pose_buffer[count](0));
+	yy_sum -= square(pose_buffer[count](1));
+	xy_sum -= pose_buffer[count](0) * pose_buffer[count](1);
+
+	// update buffer
+	pose_buffer[count] = estimated_pose;
+
+	// add new data
+	x_sum += pose_buffer[count](0);
+	y_sum += pose_buffer[count](1);
+	xx_sum += square(pose_buffer[count](0));
+	yy_sum += square(pose_buffer[count](1));
+	xy_sum += pose_buffer[count](0) * pose_buffer[count](1);
+
+	x_ave = x_sum / (double)POSE_NUM_PCA;
+	y_ave = y_sum / (double)POSE_NUM_PCA;
+
+	double covariance = xy_sum / (double)POSE_NUM_PCA - x_ave * y_ave; 
+	Eigen::Matrix2d covariance_matrix; 
+	covariance_matrix << xx_sum / POSE_NUM_PCA - x_ave * x_ave, covariance,
+					     covariance, yy_sum / POSE_NUM_PCA - y_ave * y_ave;
+
+	Eigen::EigenSolver<Eigen::Matrix2d> es(covariance_matrix);
+	Eigen::Vector2d values = es.eigenvalues().real();
+
+	double curvature = 100;
+	if(values(0) + values(1)){
+		curvature = (values(0) < values(1) ? values(0) : values(1)) / (values(0) + values(1));
+	}
+	count = (count + 1) % POSE_NUM_PCA;
+
+	return curvature;
 }
