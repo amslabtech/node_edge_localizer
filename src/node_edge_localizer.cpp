@@ -26,6 +26,7 @@ public:
 	void initialize(void);
 	double get_curvature_from_trajectory(std::vector<Eigen::Vector3d>&);
 	double get_angle_from_trajectory(std::vector<Eigen::Vector3d>&);
+	void get_slope_from_trajectory(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&);
 	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
 	void calculate_affine_tranformation(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >&, Eigen::Vector3d&, int);
@@ -168,6 +169,17 @@ double NodeEdgeLocalizer::get_angle_from_trajectory(std::vector<Eigen::Vector3d>
 	Eigen::Vector2d larger_vector = eigen_vectors.col(larger_index);
 	double angle = atan2(larger_vector(1), larger_vector(0));
 	return angle;
+}
+
+void NodeEdgeLocalizer::get_slope_from_trajectory(std::vector<Eigen::Vector3d>& traj, Eigen::Vector2d& slope)
+{
+	Eigen::Vector2d eigen_values;
+	Eigen::Matrix2d eigen_vectors;
+	calculate_pca(traj, eigen_values, eigen_vectors);
+	double larger_index = (eigen_values(0) > eigen_values(1)) ? 0 : 1; 
+	Eigen::Vector2d larger_vector = eigen_vectors.col(larger_index);
+	// the first principal component
+	slope = larger_vector;
 }
 
 void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen::Vector2d& eigen_values, Eigen::Matrix2d& eigen_vectors)
