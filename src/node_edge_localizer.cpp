@@ -44,6 +44,8 @@ private:
 	double INIT_YAW;
 	double CURVATURE_THRESHOLD;
 	int POSE_NUM_PCA;
+	int MIN_LINE_SIZE;
+	double MIN_LINE_LENGTH;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -69,6 +71,9 @@ private:
 	// correct odom to edge
 	Eigen::Affine3d odom_correction;
 	double yaw_correction;
+	double yaw;
+	double last_yaw;
+	bool first_edge_flag;
 };
 
 int main(int argc, char** argv)
@@ -94,9 +99,14 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("INIT_YAW", INIT_YAW, {0.0});
 	private_nh.param("CURVATURE_THRESHOLD", CURVATURE_THRESHOLD, {0.01});
 	private_nh.param("POSE_NUM_PCA", POSE_NUM_PCA, {37});
+	private_nh.param("MIN_LINE_SIZE", MIN_LINE_SIZE, {80});
+	private_nh.param("MIN_LINE_LENGTH", MIN_LINE_LENGTH, {8.6});
 
 	map_subscribed = false;
 	init_flag = true;
+	yaw = 0.0;
+	last_yaw = 0.0;
+	first_edge_flag = true;
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -106,6 +116,8 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "INIT_YAW: " << INIT_YAW << std::endl;
 	std::cout << "CURVATURE_THRESHOLD: " << CURVATURE_THRESHOLD << std::endl;
 	std::cout << "POSE_NUM_PCA: " << POSE_NUM_PCA << std::endl;
+	std::cout << "MIN_LINE_SIZE: " << MIN_LINE_SIZE << std::endl;
+	std::cout << "MIN_LINE_LENGTH: " << MIN_LINE_LENGTH << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -129,13 +141,52 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 void NodeEdgeLocalizer::process(void)
 {
 	ros::Rate loop_rate(HZ);
+	
 	while(ros::ok()){
 		if(map_subscribed){
 			if(init_flag){
 				initialize();
 			}
 			if(calculate_trajectory_curvature() > CURVATURE_THRESHOLD){
-
+				if(trajectory.size() > MIN_LINE_SIZE){
+					static Eigen::Vector2d last_slope;
+					if(!first_edge_flag){
+						Eigen::Vector2d slope;
+						get_slope_from_trajectory(trajectory, slope);
+						double diff_angle = acos(slope.dot(last_slope));
+						if(diff_angle > M_PI / 2.0){
+							diff_angle = M_PI - diff_angle;
+						}
+						if(diff_angle > M_PI / 5.5){
+							if(get_distance_from_trajectory(trajectory) > 3.0){
+								if(diff_angle > M_PI / 3.5 || get_distance_from_trajectory(trajectory) > MIN_LINE_LENGTH){
+									trajectories.push_back(trajectory);
+									last_slope = slope;
+								}else{
+									std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
+									get_slope_from_trajectory(trajectories.back(), last_slope);
+								}
+							}
+						}else{
+							// standard?
+							std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
+							get_slope_from_trajectory(trajectories.back(), last_slope);
+							last_yaw = yaw;
+						}
+					}else{
+						if(get_distance_from_trajectory(trajectory) > MIN_LINE_LENGTH){
+							get_slope_from_trajectory(trajectory, last_slope);
+							trajectories.push_back(trajectory);
+							last_yaw = yaw;
+							first_edge_flag = false;
+						}
+					}
+				}else{
+					// maybe robot is turning
+				}
+				trajectory.clear();
+			}else{
+				trajectory.push_back(estimated_pose);
 			}
 		}
 		ros::spinOnce();
