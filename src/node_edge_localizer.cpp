@@ -33,6 +33,7 @@ public:
 	double get_angle_from_lines(Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&);
 	double get_distance_from_trajectory(std::vector<Eigen::Vector3d>&);
 	double square(double);
+	int get_index_from_id(int);
 
 private:
 	double HZ;
@@ -55,15 +56,16 @@ private:
 	amsl_navigation_msgs::NodeEdgeMap map;
 	amsl_navigation_msgs::Edge estimated_edge;
 	bool map_subscribed;
-	Eigen::Vector3d last_pose;
-	Eigen::Vector3d current_pose;
+	Eigen::Vector3d estimated_pose;
+	double estimated_yaw;
 	bool init_flag;
 	// estimated edge(line) from odom 
 	std::vector<Eigen::Vector3d> trajectory;
 	// estimated edges from odom 
 	std::vector<std::vector<Eigen::Vector3d> > trajectories;
 	// correct odom to edge
-	Eigen::Affine3d correct_odom;
+	Eigen::Affine3d odom_correction;
+	double yaw_correction;
 };
 
 int main(int argc, char** argv)
@@ -107,7 +109,13 @@ void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapCons
 
 void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
-	// Unimplemented
+	Eigen::Vector3d odom_pose;
+	odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
+	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.x,
+		         odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.y;
+
+	estimated_pose = odom_correction * estimated_pose;
+	estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
 }
 
 void NodeEdgeLocalizer::process(void)
@@ -260,4 +268,16 @@ double NodeEdgeLocalizer::get_distance_from_trajectory(std::vector<Eigen::Vector
 double NodeEdgeLocalizer::square(double value)
 {
 	return value * value;
+}
+
+int NodeEdgeLocalizer::get_index_from_id(int id)
+{
+	int i = 0;
+	for(auto n : map.nodes){
+		if(n.id == id){
+			return i;
+		}
+		i++;
+	}
+	return -1;
 }
