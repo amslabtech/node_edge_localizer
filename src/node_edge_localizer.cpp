@@ -114,8 +114,9 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.x,
 		         odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.y;
 
-	estimated_pose = odom_correction * estimated_pose;
+	estimated_pose = odom_correction * odom_pose;
 	estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
+	estimated_yaw = pi_2_pi(estimated_yaw);
 }
 
 void NodeEdgeLocalizer::process(void)
