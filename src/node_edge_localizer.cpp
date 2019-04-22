@@ -31,6 +31,8 @@ public:
 	void calculate_affine_tranformation(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >&, Eigen::Vector3d&, int);
 	double get_angle_from_lines(Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&);
+	double get_distance_from_trajectory(std::vector<Eigen::Vector3d>&);
+	double square(double);
 
 private:
 	double HZ;
@@ -245,4 +247,17 @@ double NodeEdgeLocalizer::get_angle_from_lines(Eigen::Vector3d& line0_p0, Eigen:
 	double v1_x = line1_p0(0) - line1_p1(0);
 	double v1_y = line1_p0(1) - line1_p1(1);
 	return acos((v0_x * v1_x + v0_y * v1_y) / (sqrt(v0_x * v0_x + v0_y * v0_y) * sqrt(v1_x * v1_x + v1_y * v1_y)));
+}
+
+double NodeEdgeLocalizer::get_distance_from_trajectory(std::vector<Eigen::Vector3d>& traj)
+{
+	Eigen::Vector3d p0 = *(traj.begin());
+	Eigen::Vector3d p1 = *(traj.end() - 1);
+	Eigen::Vector3d diff = p1 - p0;
+	return sqrt(square(diff(0)) + square(diff(1)));
+}
+
+double NodeEdgeLocalizer::square(double value)
+{
+	return value * value;
 }
