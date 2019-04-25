@@ -29,6 +29,7 @@ public:
 	void get_slope_from_trajectory(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&);
 	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
 	void calculate_affine_tranformation(Eigen::Affine3d&);
+	void calculate_affine_tranformation_tentatively(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >&, Eigen::Vector3d&, int);
 	double get_angle_from_lines(Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&);
 	double get_distance_from_trajectory(std::vector<Eigen::Vector3d>&);
@@ -283,6 +284,28 @@ void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen:
 }
 
 void NodeEdgeLocalizer::calculate_affine_tranformation(Eigen::Affine3d& affine_transformation)
+{
+	// It represents B(i) in paper
+	Eigen::Vector3d intersection_point_i;
+	get_intersection_from_trajectories(trajectories, intersection_point_i, 0);
+	// It represents B(i-1) in paper
+	Eigen::Vector3d intersection_point_i_1;
+	get_intersection_from_trajectories(trajectories, intersection_point_i_1, 1);
+	// It represents N(i) in paper
+	Eigen::Vector3d map_node_point_i;
+	// It represents N(i-1) in paper
+	Eigen::Vector3d map_node_point_i_1;
+
+	double theta = get_angle_from_lines(intersection_point_i, intersection_point_i_1, map_node_point_i, map_node_point_i_1);
+
+	Eigen::Translation<double, 3> t1(intersection_point_i - map_node_point_i);
+	Eigen::Translation<double, 3> t2(-intersection_point_i);
+	Eigen::Matrix3d rotation;
+	rotation = Eigen::AngleAxisd(theta, Eigen::Vector3d::UnitZ());
+	affine_transformation = t1 * rotation * t2;
+}
+
+void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine3d& affine_transformation)
 {
 	// It represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
