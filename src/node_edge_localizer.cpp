@@ -30,7 +30,7 @@ public:
 	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
 	void calculate_affine_tranformation(Eigen::Affine3d&);
 	void calculate_affine_tranformation_tentatively(Eigen::Affine3d&);
-	void get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >&, Eigen::Vector3d&, int);
+	void get_intersection_from_trajectories(std::vector<Eigen::Vector3d>&, std::vector<Eigen::Vector3d>&, Eigen::Vector3d&);
 	double get_angle_from_lines(Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&);
 	double get_distance_from_trajectory(std::vector<Eigen::Vector3d>&);
 	double square(double);
@@ -153,28 +153,33 @@ void NodeEdgeLocalizer::process(void)
 					static Eigen::Vector2d last_slope;
 					if(!first_edge_flag){
 						Eigen::Vector2d slope;
+						// get slope of current trajectory
 						get_slope_from_trajectory(trajectory, slope);
 						double diff_angle = acos(slope.dot(last_slope));
 						if(diff_angle > M_PI / 2.0){
 							diff_angle = M_PI - diff_angle;
 						}
 						if(diff_angle > M_PI / 5.5){
-							if(get_distance_from_trajectory(trajectory) > 3.0){
+							// maybe different line
+							if(get_distance_from_trajectory(trajectory) > MIN_LINE_LENGTH / 2.0){
 								if(diff_angle > M_PI / 3.5 || get_distance_from_trajectory(trajectory) > MIN_LINE_LENGTH){
+									// robot was turned
 									trajectories.push_back(trajectory);
 									last_slope = slope;
 								}else{
+									// NOT different line
 									std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
 									get_slope_from_trajectory(trajectories.back(), last_slope);
 								}
 							}
 						}else{
-							// standard?
+							// same line 
 							std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
 							get_slope_from_trajectory(trajectories.back(), last_slope);
 							last_yaw = yaw;
 						}
 					}else{
+						// first edge
 						if(get_distance_from_trajectory(trajectory) > MIN_LINE_LENGTH){
 							get_slope_from_trajectory(trajectory, last_slope);
 							trajectories.push_back(trajectory);
@@ -287,10 +292,10 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(Eigen::Affine3d& affine_t
 {
 	// It represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
-	get_intersection_from_trajectories(trajectories, intersection_point_i, 0);
+	//get_intersection_from_trajectories(trajectories, intersection_point_i, 0);
 	// It represents B(i-1) in paper
 	Eigen::Vector3d intersection_point_i_1;
-	get_intersection_from_trajectories(trajectories, intersection_point_i_1, 1);
+	//get_intersection_from_trajectories(trajectories, intersection_point_i_1, 1);
 	// It represents N(i) in paper
 	Eigen::Vector3d map_node_point_i;
 	// It represents N(i-1) in paper
@@ -309,10 +314,10 @@ void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine
 {
 	// It represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
-	get_intersection_from_trajectories(trajectories, intersection_point_i, 0);
+	//get_intersection_from_trajectories(trajectories, intersection_point_i);
 	// It represents B(i-1) in paper
 	Eigen::Vector3d intersection_point_i_1;
-	get_intersection_from_trajectories(trajectories, intersection_point_i_1, 1);
+	//get_intersection_from_trajectories(trajectories, intersection_point_i_1);
 	// It represents N(i) in paper
 	Eigen::Vector3d map_node_point_i;
 	// It represents N(i-1) in paper
@@ -327,10 +332,26 @@ void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine
 	affine_transformation = t1 * rotation * t2;
 }
 
-void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<std::vector<Eigen::Vector3d> >& trajectories, Eigen::Vector3d& intersection_point, int step)
+void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<Eigen::Vector3d>& trajectory_0, std::vector<Eigen::Vector3d>& trajectory_1, Eigen::Vector3d& intersection_point)
 {
-	// last intersetcion if step is 0  
-	// unimplemented
+	Eigen::Vector2d center_0, center_1, slope_0, slope_1;
+	double x1y2, x2y1, det;
+
+	get_slope_from_trajectory(trajectory_0, slope_0);
+	get_slope_from_trajectory(trajectory_1, slope_1);
+
+	x1y2 = slope_0(0) * slope_1(1);
+	x2y1 = slope_1(0) * slope_0(1);
+
+	det = x1y2 - x2y1;
+
+	if(fabs(det) < 1e-5){
+		intersection_point << 0, 0, 0;
+	}else{
+		intersection_point << -(x2y1 * center_0(0) - slope_0(0) * slope_1(0) * (center_0(1) - center_1(1) - x1y2 * center_1(0))) / det,
+		                       (x1y2 * center_0(1) - slope_0(1) * slope_1(1) * (center_0(0) - center_1(0) - x2y1 * center_1(1))) / det,
+		                      0.0;
+	}
 }
 
 double NodeEdgeLocalizer::get_angle_from_lines(Eigen::Vector3d& line0_p0, Eigen::Vector3d& line0_p1, Eigen::Vector3d& line1_p0, Eigen::Vector3d& line1_p1)
