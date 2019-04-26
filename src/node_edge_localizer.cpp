@@ -27,7 +27,9 @@ public:
 	double get_curvature_from_trajectory(std::vector<Eigen::Vector3d>&);
 	double get_angle_from_trajectory(std::vector<Eigen::Vector3d>&);
 	void get_slope_from_trajectory(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&);
+	void get_slope_and_center_from_trajectory(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Vector2d&);
 	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
+	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&, Eigen::Vector2d&);
 	void calculate_affine_tranformation(Eigen::Affine3d&);
 	void calculate_affine_tranformation_tentatively(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<Eigen::Vector3d>&, std::vector<Eigen::Vector3d>&, Eigen::Vector3d&);
@@ -260,6 +262,17 @@ void NodeEdgeLocalizer::get_slope_from_trajectory(std::vector<Eigen::Vector3d>& 
 	slope = larger_vector;
 }
 
+void NodeEdgeLocalizer::get_slope_and_center_from_trajectory(std::vector<Eigen::Vector3d>& traj, Eigen::Vector2d& slope, Eigen::Vector2d& center)
+{
+	Eigen::Vector2d eigen_values;
+	Eigen::Matrix2d eigen_vectors;
+	calculate_pca(traj, eigen_values, eigen_vectors, center);
+	double larger_index = (eigen_values(0) > eigen_values(1)) ? 0 : 1; 
+	Eigen::Vector2d larger_vector = eigen_vectors.col(larger_index);
+	// the first principal component
+	slope = larger_vector;
+}
+
 void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen::Vector2d& eigen_values, Eigen::Matrix2d& eigen_vectors)
 {
 	// principal component analysis
@@ -286,6 +299,35 @@ void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen:
 	Eigen::EigenSolver<Eigen::Matrix2d> es(cov_mat);
 	eigen_values = es.eigenvalues().real();
 	eigen_vectors = es.eigenvectors().real();
+}
+
+void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen::Vector2d& eigen_values, Eigen::Matrix2d& eigen_vectors, Eigen::Vector2d& center)
+{
+	// principal component analysis
+	double size = traj.size();
+	double ave_x = 0;
+	double ave_y = 0;
+	for(auto& point : traj){
+		ave_x += point(0);	
+		ave_y += point(1);	
+	}
+	ave_x /= size;
+	ave_y /= size;
+	double sigma_xx = 0;
+	double sigma_xy = 0;
+	double sigma_yy = 0;
+	for(auto& point : traj){
+		sigma_xx += (point(0) - ave_x) * (point(0) - ave_x); 
+		sigma_xy += (point(0) - ave_x) * (point(1) - ave_y); 
+		sigma_yy += (point(1) - ave_y) * (point(1) - ave_y); 
+	}
+	Eigen::Matrix2d cov_mat;
+	cov_mat << sigma_xx, sigma_xy,
+			   sigma_xy, sigma_yy; 
+	Eigen::EigenSolver<Eigen::Matrix2d> es(cov_mat);
+	eigen_values = es.eigenvalues().real();
+	eigen_vectors = es.eigenvectors().real();
+	center << ave_x, ave_y;
 }
 
 void NodeEdgeLocalizer::calculate_affine_tranformation(Eigen::Affine3d& affine_transformation)
@@ -335,23 +377,19 @@ void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine
 void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<Eigen::Vector3d>& trajectory_0, std::vector<Eigen::Vector3d>& trajectory_1, Eigen::Vector3d& intersection_point)
 {
 	Eigen::Vector2d center_0, center_1, slope_0, slope_1;
-	double x1y2, x2y1, det;
 
-	get_slope_from_trajectory(trajectory_0, slope_0);
-	get_slope_from_trajectory(trajectory_1, slope_1);
+	get_slope_and_center_from_trajectory(trajectory_0, slope_0, center_0);
+	get_slope_and_center_from_trajectory(trajectory_1, slope_1, center_1);
 
-	x1y2 = slope_0(0) * slope_1(1);
-	x2y1 = slope_1(0) * slope_0(1);
+	double a0 = slope_0(1) / slope_0(0);
+	double a1 = slope_1(1) / slope_1(0);
 
-	det = x1y2 - x2y1;
+	double c0 = -a0 * center_0(0) + center_0(1);
+	double c1 = -a1 * center_1(0) + center_1(1);
 
-	if(fabs(det) < 1e-5){
-		intersection_point << 0, 0, 0;
-	}else{
-		intersection_point << -(x2y1 * center_0(0) - slope_0(0) * slope_1(0) * (center_0(1) - center_1(1) - x1y2 * center_1(0))) / det,
-		                       (x1y2 * center_0(1) - slope_0(1) * slope_1(1) * (center_0(0) - center_1(0) - x2y1 * center_1(1))) / det,
-		                      0.0;
-	}
+	intersection_point << (-c1 + c0) / (a1 - a0),
+					      (-a0 * c1 + a1 * c0) / (a1 - a0);
+
 }
 
 double NodeEdgeLocalizer::get_angle_from_lines(Eigen::Vector3d& line0_p0, Eigen::Vector3d& line0_p1, Eigen::Vector3d& line1_p0, Eigen::Vector3d& line1_p1)
