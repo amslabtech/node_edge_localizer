@@ -56,6 +56,7 @@ private:
 	double MIN_LINE_LENGTH;
 	bool ENABLE_TF;
 	bool USE_ORIENTATION_Z_AS_YAW;
+	int PARTICLES_NUM;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -86,6 +87,7 @@ private:
 	bool first_edge_flag;
 	std::string robot_frame_id;
 	std::string odom_frame_id;
+	std::vector<NodeEdgeParticle> particles;
 };
 
 int main(int argc, char** argv)
@@ -116,6 +118,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("MIN_LINE_LENGTH", MIN_LINE_LENGTH, {8.6});
 	private_nh.param("ENABLE_TF", ENABLE_TF, {false});
 	private_nh.param("USE_ORIENTATION_Z_AS_YAW", USE_ORIENTATION_Z_AS_YAW, {false});
+	private_nh.param("PARTICLES_NUM", PARTICLES_NUM, {100});
 
 	map_subscribed = false;
 	init_flag = true;
@@ -136,6 +139,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "MIN_LINE_LENGTH: " << MIN_LINE_LENGTH << std::endl;
 	std::cout << "ENABLE_TF: " << ENABLE_TF << std::endl;
 	std::cout << "USE_ORIENTATION_Z_AS_YAW: " << USE_ORIENTATION_Z_AS_YAW << std::endl;
+	std::cout << "PARTICLES_NUM: " << PARTICLES_NUM << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
