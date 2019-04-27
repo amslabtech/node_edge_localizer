@@ -81,7 +81,6 @@ private:
 	// correct odom to edge
 	Eigen::Affine3d odom_correction;
 	double yaw_correction;
-	double yaw;
 	double last_yaw;
 	bool first_edge_flag;
 	std::string robot_frame_id;
@@ -119,7 +118,6 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 
 	map_subscribed = false;
 	init_flag = true;
-	yaw = 0.0;
 	last_yaw = 0.0;
 	first_edge_flag = true;
 	robot_frame_id = "base_link";
@@ -200,14 +198,14 @@ void NodeEdgeLocalizer::process(void)
 							// same line 
 							std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
 							get_slope_from_trajectory(trajectories.back(), last_slope);
-							last_yaw = yaw;
+							last_yaw = estimated_yaw;
 						}
 					}else{
 						// first edge
 						if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
 							get_slope_from_trajectory(trajectory, last_slope);
 							trajectories.push_back(trajectory);
-							last_yaw = yaw;
+							last_yaw = estimated_yaw;
 							first_edge_flag = false;
 						}
 					}
