@@ -34,7 +34,7 @@ public:
 	void calculate_affine_tranformation_tentatively(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<Eigen::Vector3d>&, std::vector<Eigen::Vector3d>&, Eigen::Vector3d&);
 	double get_angle_from_lines(Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&);
-	double get_distance_from_trajectory(std::vector<Eigen::Vector3d>&);
+	double get_length_of_trajectory(std::vector<Eigen::Vector3d>&);
 	double square(double);
 	int get_index_from_id(int);
 	double calculate_trajectory_curvature(void);
@@ -163,8 +163,8 @@ void NodeEdgeLocalizer::process(void)
 						}
 						if(diff_angle > M_PI / 5.5){
 							// maybe different line
-							if(get_distance_from_trajectory(trajectory) > MIN_LINE_LENGTH / 2.0){
-								if(diff_angle > M_PI / 3.5 || get_distance_from_trajectory(trajectory) > MIN_LINE_LENGTH){
+							if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH / 2.0){
+								if(diff_angle > M_PI / 3.5 || get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
 									// robot was turned
 									trajectories.push_back(trajectory);
 									last_slope = slope;
@@ -182,7 +182,7 @@ void NodeEdgeLocalizer::process(void)
 						}
 					}else{
 						// first edge
-						if(get_distance_from_trajectory(trajectory) > MIN_LINE_LENGTH){
+						if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
 							get_slope_from_trajectory(trajectory, last_slope);
 							trajectories.push_back(trajectory);
 							last_yaw = yaw;
@@ -402,7 +402,7 @@ double NodeEdgeLocalizer::get_angle_from_lines(Eigen::Vector3d& line0_p0, Eigen:
 	return acos((v0_x * v1_x + v0_y * v1_y) / (sqrt(v0_x * v0_x + v0_y * v0_y) * sqrt(v1_x * v1_x + v1_y * v1_y)));
 }
 
-double NodeEdgeLocalizer::get_distance_from_trajectory(std::vector<Eigen::Vector3d>& traj)
+double NodeEdgeLocalizer::get_length_of_trajectory(std::vector<Eigen::Vector3d>& traj)
 {
 	Eigen::Vector3d p0 = *(traj.begin());
 	Eigen::Vector3d p1 = *(traj.end() - 1);
