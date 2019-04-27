@@ -1,3 +1,5 @@
+#include <random>
+
 #include <ros/ros.h>
 
 #include <tf/tf.h>
@@ -45,6 +47,8 @@ public:
 	int get_index_from_id(int);
 	double calculate_trajectory_curvature(void);
 	void publish_pose(void);
+	void particle_filter(void);
+	void resampling(void);
 
 private:
 	double HZ;
@@ -178,6 +182,7 @@ void NodeEdgeLocalizer::process(void)
 			if(init_flag){
 				initialize();
 			}
+			particle_filter();
 			clustering_trajectories();
 		}
 		ros::spinOnce();
@@ -567,4 +572,85 @@ void NodeEdgeLocalizer::publish_pose(void)
 			std::cout << ex.what() << std::endl;
 		}
 	}
+}
+
+void NodeEdgeLocalizer::particle_filter(void)
+{
+	// unimplemented
+	static int resampling_count = 0;
+	static std::mt19937 mt{std::random_device{}()}; 
+	std::normal_distribution<> rand(0, 0.5);
+	
+	int unique_edge_index = -1;
+	bool unique_edge_flag = true;
+
+	// move particles
+	for(auto& p : particles){
+		double diff_linear = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1)) - p.moved_distance;	
+		p.move(diff_linear * (1 + rand(mt)), map.edges[p.current_edge_index].direction);
+	}
+
+	// evaluation
+	
+	// normalize weight
+	double max_weight = 0;
+	for(auto p : particles){
+		double w = p.weight;	
+		if(max_weight < w){
+			max_weight = w;
+		}
+	}
+	for(auto& p : particles){
+		p.weight /= max_weight;
+	}
+
+	for(auto p : particles){
+		if(unique_edge_flag && ((p.current_edge_index != particles[0].current_edge_index) || p.near_node_flag)){
+			// not unique if at least one particle on an edge different from p[0].
+			unique_edge_flag = false;	
+		}
+	}
+
+	if(unique_edge_flag){
+		// inappropriate
+		unique_edge_index = particles[0].current_edge_index;
+	}
+
+	// resampling
+	if(resampling_count % 3 == 0){
+		resampling();
+		resampling_count = 0;
+	}
+	resampling_count++;
+}
+
+void NodeEdgeLocalizer::resampling(void)
+{
+	static std::mt19937 mt{std::random_device{}()}; 
+	static std::vector<NodeEdgeParticle> copied_particles(PARTICLES_NUM);
+
+	double prob = 0.0;
+	double t = 0.0;
+	double weight_sum = 0.0;
+	for(auto p : particles){
+		weight_sum += p.weight;
+	}
+
+	std::uniform_real_distribution<> rand(0.0, weight_sum);
+
+	for(int j=0;j<PARTICLES_NUM;j++){
+		prob = 0.0;
+		t = rand(mt);
+		for(auto p : particles){
+			prob += p.weight;	
+			if(t <= prob){
+				copied_particles[j] = p;	
+				break;
+			}
+		}
+	}
+
+	std::copy(copied_particles.begin(), copied_particles.end(), particles.begin());
+
+	copied_particles.clear();
 }
