@@ -334,10 +334,10 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(Eigen::Affine3d& affine_t
 {
 	// It represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
-	//get_intersection_from_trajectories(trajectories, intersection_point_i, 0);
+	get_intersection_from_trajectories(*(trajectories.end() - 2), *(trajectories.end() - 1), intersection_point_i);
 	// It represents B(i-1) in paper
 	Eigen::Vector3d intersection_point_i_1;
-	//get_intersection_from_trajectories(trajectories, intersection_point_i_1, 1);
+	get_intersection_from_trajectories(*(trajectories.end() - 3), *(trajectories.end() - 2), intersection_point_i_1);
 	// It represents N(i) in paper
 	Eigen::Vector3d map_node_point_i;
 	// It represents N(i-1) in paper
@@ -354,6 +354,7 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(Eigen::Affine3d& affine_t
 
 void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine3d& affine_transformation)
 {
+	// unimplemented
 	// It represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
 	//get_intersection_from_trajectories(trajectories, intersection_point_i);
