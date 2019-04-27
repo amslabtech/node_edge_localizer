@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 
 #include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 
 #include <geometry_msgs/PoseStamped.h>
@@ -40,6 +41,7 @@ public:
 	double square(double);
 	int get_index_from_id(int);
 	double calculate_trajectory_curvature(void);
+	void publish_pose(void);
 
 private:
 	double HZ;
@@ -51,17 +53,19 @@ private:
 	int POSE_NUM_PCA;
 	int MIN_LINE_SIZE;
 	double MIN_LINE_LENGTH;
+	bool ENABLE_TF;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
 
 	ros::Publisher pose_pub;
 	ros::Publisher edge_pub;
+	ros::Publisher odom_pub;
 	ros::Subscriber map_sub;
 	ros::Subscriber odom_sub;
 
 	tf::TransformListener listener;
-	tf::StampedTransform transform;
+	tf::TransformBroadcaster broadcaster;
 
 	amsl_navigation_msgs::NodeEdgeMap map;
 	amsl_navigation_msgs::Edge estimated_edge;
@@ -79,6 +83,8 @@ private:
 	double yaw;
 	double last_yaw;
 	bool first_edge_flag;
+	std::string robot_frame_id;
+	std::string odom_frame_id;
 };
 
 int main(int argc, char** argv)
@@ -96,6 +102,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	odom_sub = nh.subscribe("/odom/complement", 1 ,&NodeEdgeLocalizer::odom_callback, this);
 	pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/estimated_pose/pose", 1);
 	edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
+	odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/odom", 1);
 
 	private_nh.param("HZ", HZ, {50});
 	private_nh.param("INIT_NODE0_ID", INIT_NODE0_ID, {0});
@@ -106,12 +113,15 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("POSE_NUM_PCA", POSE_NUM_PCA, {37});
 	private_nh.param("MIN_LINE_SIZE", MIN_LINE_SIZE, {80});
 	private_nh.param("MIN_LINE_LENGTH", MIN_LINE_LENGTH, {8.6});
+	private_nh.param("ENABLE_TF", ENABLE_TF, {false});
 
 	map_subscribed = false;
 	init_flag = true;
 	yaw = 0.0;
 	last_yaw = 0.0;
 	first_edge_flag = true;
+	robot_frame_id = "base_link";
+	odom_frame_id = "odom";
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -123,6 +133,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "POSE_NUM_PCA: " << POSE_NUM_PCA << std::endl;
 	std::cout << "MIN_LINE_SIZE: " << MIN_LINE_SIZE << std::endl;
 	std::cout << "MIN_LINE_LENGTH: " << MIN_LINE_LENGTH << std::endl;
+	std::cout << "ENABLE_TF: " << ENABLE_TF << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -141,6 +152,8 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	estimated_pose = odom_correction * odom_pose;
 	estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
 	estimated_yaw = pi_2_pi(estimated_yaw);
+	robot_frame_id = msg->child_frame_id;
+	odom_frame_id = msg->header.frame_id;
 }
 
 void NodeEdgeLocalizer::process(void)
@@ -479,4 +492,32 @@ double NodeEdgeLocalizer::calculate_trajectory_curvature(void)
 	count = (count + 1) % POSE_NUM_PCA;
 
 	return curvature;
+}
+
+void NodeEdgeLocalizer::publish_pose(void)
+{
+	nav_msgs::Odometry odom;
+	odom.header.frame_id = map.header.frame_id;
+	odom.header.stamp = ros::Time::now();
+	odom.child_frame_id = robot_frame_id;
+	odom.pose.pose.position.x = estimated_pose(0);
+	odom.pose.pose.position.y = estimated_pose(1);
+	odom.pose.pose.position.z = estimated_pose(2);
+	odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(estimated_yaw);
+
+	odom_pub.publish(odom);
+
+	if(ENABLE_TF){
+		try{
+			tf::Transform map_to_robot;
+			tf::poseMsgToTF(odom.pose.pose, map_to_robot);
+			tf::Stamped<tf::Pose> robot_to_map(map_to_robot.inverse(), odom.header.stamp, robot_frame_id);
+			tf::Stamped<tf::Pose> odom_to_map;
+			listener.transformPose(odom.header.frame_id, robot_to_map, odom_to_map);
+
+			broadcaster.sendTransform(tf::StampedTransform(odom_to_map.inverse(), odom.header.stamp, map.header.frame_id, odom.header.frame_id));
+		}catch(tf::TransformException ex){
+			std::cout << ex.what() << std::endl;
+		}
+	}
 }
