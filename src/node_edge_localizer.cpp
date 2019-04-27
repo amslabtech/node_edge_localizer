@@ -26,6 +26,8 @@ public:
 	void process(void);
 	void clustering_trajectories(void);
 	void get_node_from_id(int, amsl_navigation_msgs::Node&);
+	void get_edge_from_node_id(int, int, amsl_navigation_msgs::Edge&);
+	int get_edge_index_from_node_id(int, int);
 	double pi_2_pi(double);
 	void initialize(void);
 	double get_curvature_from_trajectory(std::vector<Eigen::Vector3d>&);
@@ -126,6 +128,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	first_edge_flag = true;
 	robot_frame_id = "base_link";
 	odom_frame_id = "odom";
+	particles.resize(PARTICLES_NUM);
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -242,6 +245,27 @@ void NodeEdgeLocalizer::get_node_from_id(int id, amsl_navigation_msgs::Node& nod
 	}
 }
 
+void NodeEdgeLocalizer::get_edge_from_node_id(int node0_id, int node1_id, amsl_navigation_msgs::Edge& edge)
+{
+	for(auto e : map.edges){
+		if(e.node0_id == node0_id && e.node1_id == node1_id){
+			edge = e;
+			return;
+		}
+	}
+}
+
+int NodeEdgeLocalizer::get_edge_index_from_node_id(int node0_id, int node1_id)
+{
+	int index = 0;
+	for(auto e : map.edges){
+		if(e.node0_id == node0_id && e.node1_id == node1_id){
+			return index;
+		}
+		index++;
+	}
+}
+
 double NodeEdgeLocalizer::pi_2_pi(double angle)
 {
 	return atan2(sin(angle), cos(angle));
@@ -249,14 +273,22 @@ double NodeEdgeLocalizer::pi_2_pi(double angle)
 
 void NodeEdgeLocalizer::initialize(void)
 {
-	estimated_edge.node0_id = INIT_NODE0_ID;	
-	estimated_edge.node1_id = INIT_NODE1_ID;	
+	get_edge_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID, estimated_edge);
 	estimated_edge.progress = INIT_PROGRESS;
 	amsl_navigation_msgs::Node node0;
 	get_node_from_id(estimated_edge.node0_id, node0);
-	amsl_navigation_msgs::Node node1;
-	get_node_from_id(estimated_edge.node1_id, node1);
-	estimated_edge.distance = (node0.point.x - node1.point.x) * (node0.point.x - node1.point.x) + (node0.point.y - node1.point.y) * (node0.point.y - node1.point.y); 
+	estimated_pose(0) = node0.point.x + estimated_edge.distance * estimated_edge.progress * cos(estimated_edge.direction);
+	estimated_pose(1) = node0.point.y + estimated_edge.distance * estimated_edge.progress * sin(estimated_edge.direction);
+	estimated_yaw = INIT_YAW;
+	int edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	for(auto& p : particles){
+		p.move(estimated_edge.distance * estimated_edge.progress, estimated_edge.direction);
+		p.last_node_x = node0.point.x;
+		p.last_node_y = node0.point.y;
+		p.weight = 1.0 / (double)PARTICLES_NUM;
+		p.current_edge_index = edge_index; 
+		p.last_edge_index = edge_index; 
+	}
 	init_flag = false;
 }
 
