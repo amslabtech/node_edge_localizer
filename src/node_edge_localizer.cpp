@@ -54,6 +54,7 @@ private:
 	int MIN_LINE_SIZE;
 	double MIN_LINE_LENGTH;
 	bool ENABLE_TF;
+	bool USE_ORIENTATION_Z_AS_YAW;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -114,6 +115,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("MIN_LINE_SIZE", MIN_LINE_SIZE, {80});
 	private_nh.param("MIN_LINE_LENGTH", MIN_LINE_LENGTH, {8.6});
 	private_nh.param("ENABLE_TF", ENABLE_TF, {false});
+	private_nh.param("USE_ORIENTATION_Z_AS_YAW", USE_ORIENTATION_Z_AS_YAW, {false});
 
 	map_subscribed = false;
 	init_flag = true;
@@ -134,6 +136,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "MIN_LINE_SIZE: " << MIN_LINE_SIZE << std::endl;
 	std::cout << "MIN_LINE_LENGTH: " << MIN_LINE_LENGTH << std::endl;
 	std::cout << "ENABLE_TF: " << ENABLE_TF << std::endl;
+	std::cout << "USE_ORIENTATION_Z_AS_YAW: " << USE_ORIENTATION_Z_AS_YAW << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -150,7 +153,11 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 		         odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.y;
 
 	estimated_pose = odom_correction * odom_pose;
-	estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
+	if(!USE_ORIENTATION_Z_AS_YAW){
+		estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
+	}else{
+		estimated_yaw = msg->pose.pose.orientation.z + yaw_correction + INIT_YAW;
+	}
 	estimated_yaw = pi_2_pi(estimated_yaw);
 	robot_frame_id = msg->child_frame_id;
 	odom_frame_id = msg->header.frame_id;

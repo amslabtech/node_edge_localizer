@@ -10,6 +10,7 @@
 			<param name="MIN_LINE_SIZE" value="80" type="int"/>
 			<param name="MIN_LINE_LENGTH" value="8.6" type="double"/>
 			<param name="ENABLE_TF" value="false" type="bool"/>
+			<param name="USE_ORIENTATION_Z_AS_YAW" value="false" type="bool"/>
 	</node>
 
 </launch>
