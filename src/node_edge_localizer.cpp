@@ -7,6 +7,7 @@
 #include <tf/transform_listener.h>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Odometry.h>
 
 #include "Eigen/Dense"
@@ -47,6 +48,7 @@ public:
 	int get_index_from_id(int);
 	double calculate_trajectory_curvature(void);
 	void publish_pose(void);
+	void publish_particles(void);
 	void particle_filter(void);
 	void resampling(void);
 
@@ -70,6 +72,7 @@ private:
 	ros::Publisher pose_pub;
 	ros::Publisher edge_pub;
 	ros::Publisher odom_pub;
+	ros::Publisher particles_pub;
 	ros::Subscriber map_sub;
 	ros::Subscriber odom_sub;
 
@@ -112,6 +115,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/estimated_pose/pose", 1);
 	edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
 	odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/odom", 1);
+	particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);
 
 	private_nh.param("HZ", HZ, {50});
 	private_nh.param("INIT_NODE0_ID", INIT_NODE0_ID, {0});
@@ -572,6 +576,23 @@ void NodeEdgeLocalizer::publish_pose(void)
 			std::cout << ex.what() << std::endl;
 		}
 	}
+}
+
+void NodeEdgeLocalizer::publish_particles(void)
+{
+	static geometry_msgs::PoseArray _particles;
+	_particles.poses.resize(PARTICLES_NUM);
+	_particles.header.frame_id = map.header.frame_id;
+	_particles.header.stamp = ros::Time::now();
+	for(int i=0;i<PARTICLES_NUM;i++){
+		geometry_msgs::Pose p;
+		p.position.x = particles[i].x;
+		p.position.y = particles[i].y;
+		p.orientation = tf::createQuaternionMsgFromYaw(particles[i].yaw);
+		_particles.poses[i] = p;
+	}
+	particles_pub.publish(_particles);
+	_particles.poses.clear();
 }
 
 void NodeEdgeLocalizer::particle_filter(void)
