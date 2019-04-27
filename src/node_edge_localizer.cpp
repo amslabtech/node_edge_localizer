@@ -24,6 +24,7 @@ public:
 	void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr&);
 	void odom_callback(const nav_msgs::OdometryConstPtr&);
 	void process(void);
+	void clustering_trajectories(void);
 	void get_node_from_id(int, amsl_navigation_msgs::Node&);
 	double pi_2_pi(double);
 	void initialize(void);
@@ -170,55 +171,60 @@ void NodeEdgeLocalizer::process(void)
 			if(init_flag){
 				initialize();
 			}
-			if(calculate_trajectory_curvature() > CURVATURE_THRESHOLD){
-				if(trajectory.size() > MIN_LINE_SIZE){
-					static Eigen::Vector2d last_slope;
-					if(!first_edge_flag){
-						Eigen::Vector2d slope;
-						// get slope of current trajectory
-						get_slope_from_trajectory(trajectory, slope);
-						double diff_angle = acos(slope.dot(last_slope));
-						if(diff_angle > M_PI / 2.0){
-							diff_angle = M_PI - diff_angle;
-						}
-						if(diff_angle > M_PI / 5.5){
-							// maybe different line
-							if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH / 2.0){
-								if(diff_angle > M_PI / 3.5 || get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
-									// robot was turned
-									trajectories.push_back(trajectory);
-									last_slope = slope;
-								}else{
-									// NOT different line
-									std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
-									get_slope_from_trajectory(trajectories.back(), last_slope);
-								}
-							}
-						}else{
-							// same line 
-							std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
-							get_slope_from_trajectory(trajectories.back(), last_slope);
-							last_yaw = estimated_yaw;
-						}
-					}else{
-						// first edge
-						if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
-							get_slope_from_trajectory(trajectory, last_slope);
-							trajectories.push_back(trajectory);
-							last_yaw = estimated_yaw;
-							first_edge_flag = false;
-						}
-					}
-				}else{
-					// maybe robot is turning
-				}
-				trajectory.clear();
-			}else{
-				trajectory.push_back(estimated_pose);
-			}
+			clustering_trajectories();
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
+	}
+}
+
+void NodeEdgeLocalizer::clustering_trajectories(void)
+{
+	if(calculate_trajectory_curvature() > CURVATURE_THRESHOLD){
+		if(trajectory.size() > MIN_LINE_SIZE){
+			static Eigen::Vector2d last_slope;
+			if(!first_edge_flag){
+				Eigen::Vector2d slope;
+				// get slope of current trajectory
+				get_slope_from_trajectory(trajectory, slope);
+				double diff_angle = acos(slope.dot(last_slope));
+				if(diff_angle > M_PI / 2.0){
+					diff_angle = M_PI - diff_angle;
+				}
+				if(diff_angle > M_PI / 5.5){
+					// maybe different line
+					if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH / 2.0){
+						if(diff_angle > M_PI / 3.5 || get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
+							// robot was turned
+							trajectories.push_back(trajectory);
+							last_slope = slope;
+						}else{
+							// NOT different line
+							std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
+							get_slope_from_trajectory(trajectories.back(), last_slope);
+						}
+					}
+				}else{
+					// same line 
+					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
+					get_slope_from_trajectory(trajectories.back(), last_slope);
+					last_yaw = estimated_yaw;
+				}
+			}else{
+				// first edge
+				if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
+					get_slope_from_trajectory(trajectory, last_slope);
+					trajectories.push_back(trajectory);
+					last_yaw = estimated_yaw;
+					first_edge_flag = false;
+				}
+			}
+		}else{
+			// maybe robot is turning
+		}
+		trajectory.clear();
+	}else{
+		trajectory.push_back(estimated_pose);
 	}
 }
 
