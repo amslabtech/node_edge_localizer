@@ -13,6 +13,8 @@
 #include "amsl_navigation_msgs/Edge.h"
 #include "amsl_navigation_msgs/NodeEdgeMap.h"
 
+#include "node_edge_localizer/node_edge_particle.h"
+
 class NodeEdgeLocalizer
 {
 public:
