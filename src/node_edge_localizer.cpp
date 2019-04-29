@@ -84,6 +84,7 @@ private:
 	amsl_navigation_msgs::NodeEdgeMap map;
 	amsl_navigation_msgs::Edge estimated_edge;
 	bool map_subscribed;
+	bool odom_updated;
 	Eigen::Vector3d estimated_pose;
 	double estimated_yaw;
 	bool init_flag;
@@ -134,6 +135,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("NOISE_SIGMA", NOISE_SIGMA, {0.5});
 
 	map_subscribed = false;
+	odom_updated = false;
 	init_flag = true;
 	last_yaw = 0.0;
 	first_edge_flag = true;
@@ -165,11 +167,12 @@ void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapCons
 
 void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
+	std::cout << "odom calback" << std::endl;
 	Eigen::Vector3d odom_pose;
 	odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
 	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.x,
-		         odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.y;
-
+				 odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.y,
+				 0.0;
 	estimated_pose = odom_correction * odom_pose;
 	if(!USE_ORIENTATION_Z_AS_YAW){
 		estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
@@ -179,6 +182,7 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	estimated_yaw = pi_2_pi(estimated_yaw);
 	robot_frame_id = msg->child_frame_id;
 	odom_frame_id = msg->header.frame_id;
+	odom_updated = true;
 }
 
 void NodeEdgeLocalizer::process(void)
@@ -187,14 +191,23 @@ void NodeEdgeLocalizer::process(void)
 	
 	while(ros::ok()){
 		if(map_subscribed){
+			std::cout << "=== node_edge_localizer ===" << std::endl;
 			if(init_flag){
+				std::cout << "initialize" << std::endl;
 				initialize();
 			}
-			particle_filter();
-			clustering_trajectories();
-			calculate_affine_tranformation(odom_correction);
-			publish_pose();
-			publish_particles();
+			if(odom_updated){
+				std::cout << "particle filter" << std::endl;
+				particle_filter();
+				std::cout << "clustering trajectories" << std::endl;
+				clustering_trajectories();
+				std::cout << "calculate correction" << std::endl;
+				calculate_affine_tranformation(odom_correction);
+				std::cout << "publish" << std::endl;
+				publish_pose();
+				publish_particles();
+				odom_updated = false;
+			}
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
