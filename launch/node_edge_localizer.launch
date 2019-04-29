@@ -1,18 +1,32 @@
 <launch>
+	<arg name="hz" default="50"/>
+	<arg name="init_node0_id" default="0"/>
+	<arg name="init_node1_id" default="1"/>
+	<arg name="init_progress" default="0.0"/>
+	<arg name="init_yaw" default="0.0"/>
+	<arg name="curvature_threshold" default="0.01"/>
+	<arg name="pose_num_pca" default="37"/>
+	<arg name="min_line_size" default="80"/>
+	<arg name="min_line_length" default="8.6"/>
+	<arg name="enable_tf" default="false"/>
+	<arg name="use_orientation_z_as_yaw" default="false"/>
+	<arg name="particles_num" default="100"/>
+	<arg name="noise_sigma" default="0.5"/>
 
 	<node pkg="node_edge_localizer" type="node_edge_localizer" name="node_edge_localizer" ns="localiztion">
-			<param name="INIT_NODE0_ID" value="0" type="int"/>
-			<param name="INIT_NODE1_ID" value="1" type="int"/>
-			<param name="INIT_PROGRESS" value="0.0" type="double"/>
-			<param name="INIT_YAW" value="0.0" type="double"/>
-			<param name="CURVATURE_THRESHOLD" value="0.01" type="double"/>
-			<param name="POSE_NUM_PCA" value="37" type="int"/>
-			<param name="MIN_LINE_SIZE" value="80" type="int"/>
-			<param name="MIN_LINE_LENGTH" value="8.6" type="double"/>
-			<param name="ENABLE_TF" value="false" type="bool"/>
-			<param name="USE_ORIENTATION_Z_AS_YAW" value="false" type="bool"/>
-			<param name="PARTICLES_NUM" value="100" type="int"/>
-			<param name="NOISE_SIGMA" value="0.5" type="double"/>
+		<param name="HZ" value="$(arg hz)" type="int"/>
+		<param name="INIT_NODE0_ID" value="$(arg init_node0_id)" type="int"/>
+		<param name="INIT_NODE1_ID" value="$(arg init_node1_id)" type="int"/>
+		<param name="INIT_PROGRESS" value="$(arg init_progress)" type="double"/>
+		<param name="INIT_YAW" value="$(arg init_yaw)" type="double"/>
+		<param name="CURVATURE_THRESHOLD" value="$(arg curvature_threshold)" type="double"/>
+		<param name="POSE_NUM_PCA" value="$(arg pose_num_pca)" type="int"/>
+		<param name="MIN_LINE_SIZE" value="$(arg min_line_size)" type="int"/>
+		<param name="MIN_LINE_LENGTH" value="$(arg min_line_length)" type="double"/>
+		<param name="ENABLE_TF" value="$(arg enable_tf)" type="bool"/>
+		<param name="USE_ORIENTATION_Z_AS_YAW" value="$(arg use_orientation_z_as_yaw)" type="bool"/>
+		<param name="PARTICLES_NUM" value="$(arg particles_num)" type="int"/>
+		<param name="NOISE_SIGMA" value="$(arg noise_sigma)" type="double"/>
 	</node>
 
 </launch>
