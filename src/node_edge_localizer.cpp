@@ -51,6 +51,7 @@ public:
 	void publish_particles(void);
 	void particle_filter(void);
 	void resampling(void);
+	int get_next_edge_index_from_edge_index(int);
 
 private:
 	double HZ;
@@ -299,7 +300,7 @@ void NodeEdgeLocalizer::initialize(void)
 		p.last_node_y = node0.point.y;
 		p.weight = 1.0 / (double)PARTICLES_NUM;
 		p.current_edge_index = edge_index; 
-		p.last_edge_index = edge_index; 
+		p.last_edge_index = -1; 
 	}
 	init_flag = false;
 }
@@ -608,13 +609,42 @@ void NodeEdgeLocalizer::particle_filter(void)
 	int unique_edge_index = -1;
 	bool unique_edge_flag = true;
 
-	// move particles
 	for(auto& p : particles){
+		// move particles
 		double diff_linear = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1)) - p.moved_distance;	
 		p.move(diff_linear * (1 + rand(mt)), map.edges[p.current_edge_index].direction);
-	}
 
-	// evaluation
+		// evaluation
+		if(!p.near_node_flag){
+			p.evaluate(estimated_yaw);	
+			/*
+			if(p.moved_distance < 0.1){
+				// This particle may have returned to the last node
+				if(p.last_edge_index == 0){
+					// first edge
+					p.near_node_flag = true;
+				}
+			}
+			*/
+			if(map.edges[p.current_edge_index].distance < p.moved_distance){
+				// arrived ???
+				p.near_node_flag = true;
+				p.last_node_x = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.x;
+				p.last_node_y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.y;
+				p.x = p.last_node_x;
+				p.y = p.last_node_y;
+			}
+		}else{
+			// go out of range of the last node
+			if(p.moved_distance > 0.4){
+				p.near_node_flag = false;
+				p.last_edge_index = p.current_edge_index;
+				p.current_edge_index = get_next_edge_index_from_edge_index(p.current_edge_index);
+				p.x = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.x; 
+				p.y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.y;
+			}
+		}
+	}
 	
 	// normalize weight
 	double max_weight = 0;
@@ -677,4 +707,24 @@ void NodeEdgeLocalizer::resampling(void)
 	std::copy(copied_particles.begin(), copied_particles.end(), particles.begin());
 
 	copied_particles.clear();
+}
+
+int NodeEdgeLocalizer::get_next_edge_index_from_edge_index(int index)
+{
+	double min_direction_diff = 100;
+	int min_index = -1;
+	int size = map.edges.size();
+	for(int i=0;i<size;i++){
+		if(index != i){
+			if(map.edges[index].node1_id == map.edges[i].node0_id){
+				double diff = map.edges[i].direction - map.edges[index].direction;
+				diff = fabs(atan2(sin(diff), cos(diff)));
+				if(min_direction_diff > diff){
+					min_direction_diff = diff;
+					min_index = i;
+				}
+			}
+		}
+	}
+	return min_index;
 }
