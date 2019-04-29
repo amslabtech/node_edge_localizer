@@ -12,6 +12,7 @@
 			<param name="ENABLE_TF" value="false" type="bool"/>
 			<param name="USE_ORIENTATION_Z_AS_YAW" value="false" type="bool"/>
 			<param name="PARTICLES_NUM" value="100" type="int"/>
+			<param name="NOISE_SIGMA" value="0.5" type="double"/>
 	</node>
 
 </launch>

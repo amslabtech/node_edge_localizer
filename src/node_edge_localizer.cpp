@@ -65,6 +65,7 @@ private:
 	bool ENABLE_TF;
 	bool USE_ORIENTATION_Z_AS_YAW;
 	int PARTICLES_NUM;
+	double NOISE_SIGMA;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -129,6 +130,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("ENABLE_TF", ENABLE_TF, {false});
 	private_nh.param("USE_ORIENTATION_Z_AS_YAW", USE_ORIENTATION_Z_AS_YAW, {false});
 	private_nh.param("PARTICLES_NUM", PARTICLES_NUM, {100});
+	private_nh.param("NOISE_SIGMA", NOISE_SIGMA, {0.5});
 
 	map_subscribed = false;
 	init_flag = true;
@@ -151,6 +153,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "ENABLE_TF: " << ENABLE_TF << std::endl;
 	std::cout << "USE_ORIENTATION_Z_AS_YAW: " << USE_ORIENTATION_Z_AS_YAW << std::endl;
 	std::cout << "PARTICLES_NUM: " << PARTICLES_NUM << std::endl;
+	std::cout << "NOISE_SIGMA: " << NOISE_SIGMA << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -600,7 +603,7 @@ void NodeEdgeLocalizer::particle_filter(void)
 	// unimplemented
 	static int resampling_count = 0;
 	static std::mt19937 mt{std::random_device{}()}; 
-	std::normal_distribution<> rand(0, 0.5);
+	std::normal_distribution<> rand(0, NOISE_SIGMA);
 	
 	int unique_edge_index = -1;
 	bool unique_edge_flag = true;
