@@ -193,6 +193,8 @@ void NodeEdgeLocalizer::process(void)
 			particle_filter();
 			clustering_trajectories();
 			calculate_affine_tranformation(odom_correction);
+			publish_pose();
+			publish_particles();
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
