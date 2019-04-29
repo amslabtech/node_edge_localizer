@@ -30,8 +30,8 @@ void NodeEdgeParticle::move(double distance, double direction)
 
 void NodeEdgeParticle::evaluate(double edge_orientation)
 {
-	double diff = fabs(yaw - edge_orientation);	
-	diff = atan2(sin(diff), cos(diff));
+	double diff = yaw - edge_orientation;	
+	diff = fabs(atan2(sin(diff), cos(diff)));
 	weight = (1 - diff / M_PI);
 	if(weight < 1e-5){
 		weight = 1e-5;
