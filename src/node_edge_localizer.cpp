@@ -193,6 +193,7 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	std::cout << "odom_pose: \n" << odom_pose << std::endl;
 	std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
 	std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
+	std::cout << "estimated_yaw: " << estimated_yaw << std::endl;
 	if(!USE_ORIENTATION_Z_AS_YAW){
 		estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
 	}else{
@@ -219,11 +220,11 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "=== node_edge_localizer ===" << std::endl;
 				int unique_edge_index;
 				bool unique_edge_flag; 
-				std::cout << "particle filter" << std::endl;
+				std::cout << "--- particle filter ---" << std::endl;
 				particle_filter(unique_edge_index, unique_edge_flag);
-				std::cout << "clustering trajectories" << std::endl;
+				std::cout << "--- clustering trajectories ---" << std::endl;
 				clustering_trajectories();
-				std::cout << "calculate correction" << std::endl;
+				std::cout << "--- calculate correction ---" << std::endl;
 				correct();
 				if(unique_edge_flag && clear_flag){
 					manage_passed_edge(unique_edge_index);
@@ -714,6 +715,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	unique_edge_flag = true;
 
 	for(auto& p : particles){
+		// std::cout << "before move: " << p.x << ", " << p.y << std::endl;
 		// move particles
 		double diff_linear = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1)) - p.moved_distance;	
 		p.move(diff_linear * (1 + rand(mt)), map.edges[p.current_edge_index].direction);
@@ -732,22 +734,28 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 			*/
 			if(map.edges[p.current_edge_index].distance < p.moved_distance){
 				// arrived ???
+				std::cout << "particle arrived at node" << std::endl;
 				p.near_node_flag = true;
 				p.last_node_x = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.x;
 				p.last_node_y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.y;
 				p.x = p.last_node_x;
 				p.y = p.last_node_y;
+				p.moved_distance = 0;
 			}
 		}else{
 			// go out of range of the last node
 			if(p.moved_distance > 0.4){
+				std::cout << "particle put on next edge" << std::endl;
 				p.near_node_flag = false;
 				p.last_edge_index = p.current_edge_index;
 				p.current_edge_index = get_next_edge_index_from_edge_index(p.current_edge_index);
 				p.x = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.x; 
 				p.y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.y;
+				p.moved_distance = 0;
+				std::cout << map.edges[p.current_edge_index] << std::endl;
 			}
 		}
+		// std::cout << "after move: " << p.x << ", " << p.y << std::endl;
 	}
 	
 	// normalize weight
@@ -787,6 +795,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 
 void NodeEdgeLocalizer::resampling(void)
 {
+	std::cout << "-- resampling --" << std::endl;
 	static std::mt19937 mt{std::random_device{}()}; 
 	static std::vector<NodeEdgeParticle> copied_particles(PARTICLES_NUM);
 
@@ -824,8 +833,9 @@ int NodeEdgeLocalizer::get_next_edge_index_from_edge_index(int index)
 	for(int i=0;i<size;i++){
 		if(index != i){
 			if(map.edges[index].node1_id == map.edges[i].node0_id){
-				double diff = map.edges[i].direction - map.edges[index].direction;
-				diff = fabs(atan2(sin(diff), cos(diff)));
+				// double diff = map.edges[i].direction - map.edges[index].direction;
+				double diff = map.edges[i].direction - estimated_yaw;
+				diff = fabs(pi_2_pi(diff));
 				if(min_direction_diff > diff){
 					min_direction_diff = diff;
 					min_index = i;
