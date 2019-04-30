@@ -55,6 +55,7 @@ public:
 	int get_next_edge_index_from_edge_index(int);
 	void manage_passed_edge(int);
 	void correct_trajectories(int, const Eigen::Affine3d&); 
+	void clear(int);
 
 private:
 	double HZ;
@@ -103,8 +104,12 @@ private:
 	std::string robot_frame_id;
 	std::string odom_frame_id;
 	std::vector<NodeEdgeParticle> particles;
+	// for correction
 	std::vector<Eigen::Vector3d> passed_nodes;
 	std::vector<double> passed_line_directions;
+	int begin_line_edge_index;
+	int end_line_edge_index;
+	int last_line_edge_index;
 };
 
 int main(int argc, char** argv)
@@ -147,6 +152,9 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	robot_frame_id = "base_link";
 	odom_frame_id = "odom";
 	particles.resize(PARTICLES_NUM);
+	begin_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	end_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	last_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -208,6 +216,7 @@ void NodeEdgeLocalizer::process(void)
 				particle_filter(unique_edge_index, unique_edge_flag);
 				if(unique_edge_flag){
 					manage_passed_edge(unique_edge_index);
+					clear(unique_edge_index);
 				}
 				std::cout << "clustering trajectories" << std::endl;
 				clustering_trajectories();
@@ -809,9 +818,6 @@ int NodeEdgeLocalizer::get_next_edge_index_from_edge_index(int index)
 void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 {
 	double CONTINUOUS_LINE_THRESHOLD = M_PI / 7.0;
-	static int begin_line_edge_index = 0;
-	static int end_line_edge_index = 0;
-	static int last_line_edge_index = 0;
 
 	if(edge_index != last_line_edge_index){
 		// entered new edge
@@ -847,4 +853,15 @@ void NodeEdgeLocalizer::correct_trajectories(int count, const Eigen::Affine3d& c
 			v = correction * v;
 		}
 	}
+}
+
+void NodeEdgeLocalizer::clear(int unique_edge_index)
+{
+	std::cout << "--- clear ---" << std::endl;;
+	passed_nodes.clear();
+	passed_line_directions.clear();
+	trajectories.clear();
+	begin_line_edge_index = unique_edge_index;
+	end_line_edge_index = unique_edge_index;
+	last_line_edge_index = unique_edge_index;
 }
