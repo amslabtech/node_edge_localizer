@@ -92,6 +92,7 @@ private:
 	Eigen::Vector3d estimated_pose;
 	double estimated_yaw;
 	bool init_flag;
+	bool clear_flag;
 	// estimated edge(line) from odom 
 	std::vector<Eigen::Vector3d> trajectory;
 	// estimated edges from odom 
@@ -147,6 +148,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	map_subscribed = false;
 	odom_updated = false;
 	init_flag = true;
+	clear_flag = false;
 	last_yaw = 0.0;
 	first_edge_flag = true;
 	robot_frame_id = "base_link";
@@ -219,14 +221,14 @@ void NodeEdgeLocalizer::process(void)
 				bool unique_edge_flag; 
 				std::cout << "particle filter" << std::endl;
 				particle_filter(unique_edge_index, unique_edge_flag);
-				if(unique_edge_flag){
-					manage_passed_edge(unique_edge_index);
-					clear(unique_edge_index);
-				}
 				std::cout << "clustering trajectories" << std::endl;
 				clustering_trajectories();
 				std::cout << "calculate correction" << std::endl;
 				correct();
+				if(unique_edge_flag && clear_flag){
+					manage_passed_edge(unique_edge_index);
+					clear(unique_edge_index);
+				}
 				std::cout << "publish" << std::endl;
 				publish_pose();
 				publish_particles();
@@ -286,6 +288,8 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 	}else{
 		trajectory.push_back(estimated_pose);
 	}
+	std::cout << "trajectory.size(): " << trajectory.size() << std::endl;
+	std::cout << "trajectories.size(): " << trajectories.size() << std::endl;
 }
 
 void NodeEdgeLocalizer::get_node_from_id(int id, amsl_navigation_msgs::Node& node)
@@ -449,6 +453,9 @@ void NodeEdgeLocalizer::correct(void)
 {
 	static int correction_count = 0;
 
+	std::cout << "yaws: " << passed_line_directions.size() << std::endl;
+	std::cout << "correction_count: " << correction_count << std::endl;
+
 	if(passed_line_directions.size() > correction_count && trajectories.size() > correction_count + 1){
 		std::cout << "--- correction ---" << std::endl;
 		double ratio;
@@ -456,14 +463,18 @@ void NodeEdgeLocalizer::correct(void)
 		Eigen::Affine3d diff_correction;
 		calculate_affine_tranformation(correction_count, ratio, direction_diff, diff_correction);
 
-		// ???
-		if(direction_diff < M_PI / 15.0){
-			odom_correction = diff_correction * odom_correction;
-			correct_trajectories(correction_count, odom_correction);
-			std::cout << "corrected" << std::endl;
-			correction_count++;
+		if(ratio > 1.2){
+		}else if(ratio < 0.8){ 
 		}else{
-
+			// ???
+			if(direction_diff < M_PI / 15.0){
+				odom_correction = diff_correction * odom_correction;
+				correct_trajectories(correction_count, odom_correction);
+				std::cout << "corrected" << std::endl;
+				correction_count++;
+			}else{
+				clear_flag = true;
+			}
 		}
 	}
 }
@@ -874,4 +885,5 @@ void NodeEdgeLocalizer::clear(int unique_edge_index)
 	begin_line_edge_index = unique_edge_index;
 	end_line_edge_index = unique_edge_index;
 	last_line_edge_index = unique_edge_index;
+	clear_flag = false;
 }
