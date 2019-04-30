@@ -112,6 +112,7 @@ private:
 	int begin_line_edge_index;
 	int end_line_edge_index;
 	int last_line_edge_index;
+	double robot_moved_distance;
 };
 
 int main(int argc, char** argv)
@@ -160,6 +161,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	end_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	last_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	odom_correction = Eigen::Affine3d::Identity();
+	robot_moved_distance = 0.0;
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -187,6 +189,11 @@ void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapCons
 void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
 	std::cout << "--- odom calback ---" << std::endl;
+	static Eigen::Vector3d last_estimated_pose;
+	static bool first_odom_callback_flag = true;
+
+	last_estimated_pose = estimated_pose;
+
 	Eigen::Vector3d odom_pose;
 	odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
 	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.x,
@@ -205,7 +212,12 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	estimated_yaw = pi_2_pi(estimated_yaw);
 	robot_frame_id = msg->child_frame_id;
 	odom_frame_id = msg->header.frame_id;
-	odom_updated = true;
+	if(first_odom_callback_flag){
+		first_odom_callback_flag = false;
+	}else{
+		odom_updated = true;
+		robot_moved_distance = (estimated_pose - last_estimated_pose).norm();
+	}
 }
 
 void NodeEdgeLocalizer::process(void)
@@ -722,18 +734,15 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 		//std::cout << "before move: " << p.x << ", " << p.y << std::endl;
 		// move particles
 		//std::cout << "last node xy: " << p.last_node_x << ", " << p.last_node_y << std::endl;
-		//std::cout << "robot distance from last node: " << p.robot_distance_from_last_node << std::endl;
 		double current_robot_distance_from_last_node = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1));
-		double diff_linear = current_robot_distance_from_last_node - p.robot_distance_from_last_node;
-		p.robot_distance_from_last_node = current_robot_distance_from_last_node;
-		//std::cout << "diff_linear: " << diff_linear << std::endl;
-		p.move(diff_linear + rand(mt), map.edges[p.current_edge_index].direction);
+		//std::cout << "robot_moved_distance: " << robot_moved_distance << std::endl;
+		p.move(robot_moved_distance + rand(mt), map.edges[p.current_edge_index].direction);
 
 		// evaluation
 		if(!p.near_node_flag){
 			p.evaluate(estimated_yaw);	
 			/*
-			if(p.robot_distance_from_last_node < 0.1){
+			if(robot_moved_distance < 0.1){
 				// This particle may have returned to the last node
 				if(p.last_edge_index == 0){
 					// first edge
@@ -749,7 +758,6 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				p.last_node_y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.y;
 				p.x = p.last_node_x;
 				p.y = p.last_node_y;
-				p.robot_distance_from_last_node = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1));
 			}
 		}else{
 			// go out of range of the last node
