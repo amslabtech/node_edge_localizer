@@ -12,6 +12,7 @@ public:
 	NodeEdgeParticle(void);
 
 	double get_distance_from_last_node(double, double);
+	double get_particle_distance_from_last_node(void);
 	double square(double);
 	void move(double, double);
 	void evaluate(double);
@@ -22,7 +23,7 @@ public:
 	double yaw;
 	int current_edge_index;
 	int last_edge_index;
-	double moved_distance;
+	double robot_distance_from_last_node;
 	double last_node_x;
 	double last_node_y;
 	double weight;

@@ -12,6 +12,7 @@
 	<arg name="use_orientation_z_as_yaw" default="false"/>
 	<arg name="particles_num" default="100"/>
 	<arg name="noise_sigma" default="0.5"/>
+	<arg name="edge_decision_threshold" default="0.5"/>
 
 	<node pkg="node_edge_localizer" type="node_edge_localizer" name="node_edge_localizer" ns="localiztion">
 		<param name="HZ" value="$(arg hz)" type="int"/>
@@ -27,6 +28,7 @@
 		<param name="USE_ORIENTATION_Z_AS_YAW" value="$(arg use_orientation_z_as_yaw)" type="bool"/>
 		<param name="PARTICLES_NUM" value="$(arg particles_num)" type="int"/>
 		<param name="NOISE_SIGMA" value="$(arg noise_sigma)" type="double"/>
+		<param name="EDGE_DECISION_THRESHOLD" value="$(arg edge_decision_threshold)" type="double"/>
 	</node>
 
 </launch>
