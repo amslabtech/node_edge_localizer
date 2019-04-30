@@ -715,16 +715,22 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	unique_edge_flag = true;
 
 	for(auto& p : particles){
-		// std::cout << "before move: " << p.x << ", " << p.y << std::endl;
+		std::cout << "--" << std::endl;
+		std::cout << "before move: " << p.x << ", " << p.y << std::endl;
 		// move particles
-		double diff_linear = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1)) - p.moved_distance;	
+		std::cout << "last node xy: " << p.last_node_x << ", " << p.last_node_y << std::endl;
+		std::cout << "robot distance from last node: " << p.robot_distance_from_last_node << std::endl;
+		double current_robot_distance_from_last_node = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1));
+		double diff_linear = current_robot_distance_from_last_node - p.robot_distance_from_last_node;
+		p.robot_distance_from_last_node = current_robot_distance_from_last_node;
+		std::cout << "diff_linear: " << diff_linear << std::endl;
 		p.move(diff_linear * (1 + rand(mt)), map.edges[p.current_edge_index].direction);
 
 		// evaluation
 		if(!p.near_node_flag){
 			p.evaluate(estimated_yaw);	
 			/*
-			if(p.moved_distance < 0.1){
+			if(p.robot_distance_from_last_node < 0.1){
 				// This particle may have returned to the last node
 				if(p.last_edge_index == 0){
 					// first edge
@@ -732,7 +738,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				}
 			}
 			*/
-			if(map.edges[p.current_edge_index].distance < p.moved_distance){
+			if(map.edges[p.current_edge_index].distance < p.get_particle_distance_from_last_node()){
 				// arrived ???
 				std::cout << "particle arrived at node" << std::endl;
 				p.near_node_flag = true;
@@ -740,22 +746,25 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				p.last_node_y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.y;
 				p.x = p.last_node_x;
 				p.y = p.last_node_y;
-				p.moved_distance = 0;
+				p.robot_distance_from_last_node = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1));
 			}
 		}else{
 			// go out of range of the last node
-			if(p.moved_distance > 0.4){
+			// it should be a constant
+			double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
+			if(particle_distance_from_last_node > 0.5){
 				std::cout << "particle put on next edge" << std::endl;
 				p.near_node_flag = false;
 				p.last_edge_index = p.current_edge_index;
 				p.current_edge_index = get_next_edge_index_from_edge_index(p.current_edge_index);
 				p.x = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.x; 
 				p.y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.y;
-				p.moved_distance = 0;
+				// particle's moved distance is more suitable ??
+				p.move(particle_distance_from_last_node * (1 + rand(mt)), map.edges[p.current_edge_index].direction);
 				std::cout << map.edges[p.current_edge_index] << std::endl;
 			}
 		}
-		// std::cout << "after move: " << p.x << ", " << p.y << std::endl;
+		std::cout << "after move: " << p.x << ", " << p.y << std::endl;
 	}
 	
 	// normalize weight
