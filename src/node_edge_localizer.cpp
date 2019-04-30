@@ -155,6 +155,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	begin_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	end_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	last_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	odom_correction = Eigen::Affine3d::Identity();
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -180,13 +181,16 @@ void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapCons
 
 void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
-	std::cout << "odom calback" << std::endl;
+	std::cout << "--- odom calback ---" << std::endl;
 	Eigen::Vector3d odom_pose;
 	odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
 	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.x,
 				 odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.y,
 				 0.0;
 	estimated_pose = odom_correction * odom_pose;
+	std::cout << "odom_pose: \n" << odom_pose << std::endl;
+	std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
+	std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
 	if(!USE_ORIENTATION_Z_AS_YAW){
 		estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
 	}else{
@@ -204,12 +208,13 @@ void NodeEdgeLocalizer::process(void)
 	
 	while(ros::ok()){
 		if(map_subscribed){
-			std::cout << "=== node_edge_localizer ===" << std::endl;
 			if(init_flag){
-				std::cout << "initialize" << std::endl;
+				std::cout << "--- initialize ---" << std::endl;
 				initialize();
+				std::cout << "waiting for odom..." << std::endl;
 			}
 			if(odom_updated){
+				std::cout << "=== node_edge_localizer ===" << std::endl;
 				int unique_edge_index;
 				bool unique_edge_flag; 
 				std::cout << "particle filter" << std::endl;
@@ -666,6 +671,7 @@ void NodeEdgeLocalizer::publish_pose(void)
 			std::cout << ex.what() << std::endl;
 		}
 	}
+	std::cout << "pose was published" << std::endl;
 }
 
 void NodeEdgeLocalizer::publish_particles(void)
@@ -683,6 +689,7 @@ void NodeEdgeLocalizer::publish_particles(void)
 	}
 	particles_pub.publish(_particles);
 	_particles.poses.clear();
+	std::cout << "particles was published" << std::endl;
 }
 
 void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edge_flag)
@@ -691,7 +698,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	static int resampling_count = 0;
 	static std::mt19937 mt{std::random_device{}()}; 
 	std::normal_distribution<> rand(0, NOISE_SIGMA);
-	
+
 	unique_edge_index = -1;
 	unique_edge_flag = true;
 
@@ -762,6 +769,9 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 		resampling_count = 0;
 	}
 	resampling_count++;
+	std::cout << "unique edge index: " << unique_edge_index << std::endl;
+	std::cout << "unique edge flag: " << unique_edge_flag << std::endl;
+	
 }
 
 void NodeEdgeLocalizer::resampling(void)
