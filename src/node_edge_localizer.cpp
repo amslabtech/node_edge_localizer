@@ -39,7 +39,8 @@ public:
 	void get_slope_and_center_from_trajectory(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Vector2d&);
 	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&);
 	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&, Eigen::Vector2d&);
-	void calculate_affine_tranformation(Eigen::Affine3d&);
+	void correct(void);
+	void calculate_affine_tranformation(const int, double&, double&, Eigen::Affine3d&);
 	void calculate_affine_tranformation_tentatively(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<Eigen::Vector3d>&, std::vector<Eigen::Vector3d>&, Eigen::Vector3d&);
 	double get_angle_from_lines(Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&);
@@ -53,6 +54,7 @@ public:
 	void resampling(void);
 	int get_next_edge_index_from_edge_index(int);
 	void manage_passed_edge(int);
+	void correct_trajectories(int, const Eigen::Affine3d&); 
 
 private:
 	double HZ;
@@ -210,7 +212,7 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "clustering trajectories" << std::endl;
 				clustering_trajectories();
 				std::cout << "calculate correction" << std::endl;
-				calculate_affine_tranformation(odom_correction);
+				correct();
 				std::cout << "publish" << std::endl;
 				publish_pose();
 				publish_particles();
@@ -429,25 +431,76 @@ void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen:
 	center << ave_x, ave_y;
 }
 
-void NodeEdgeLocalizer::calculate_affine_tranformation(Eigen::Affine3d& affine_transformation)
+void NodeEdgeLocalizer::correct(void)
 {
-	// It represents B(i) in paper
-	Eigen::Vector3d intersection_point_i;
-	get_intersection_from_trajectories(*(trajectories.end() - 2), *(trajectories.end() - 1), intersection_point_i);
-	// It represents B(i-1) in paper
-	Eigen::Vector3d intersection_point_i_1;
-	get_intersection_from_trajectories(*(trajectories.end() - 3), *(trajectories.end() - 2), intersection_point_i_1);
-	// It represents N(i) in paper
-	Eigen::Vector3d map_node_point_i;
-	// It represents N(i-1) in paper
-	Eigen::Vector3d map_node_point_i_1;
+	static int correction_count = 0;
 
-	double theta = get_angle_from_lines(intersection_point_i, intersection_point_i_1, map_node_point_i, map_node_point_i_1);
+	if(passed_line_directions.size() > correction_count && trajectories.size() > correction_count + 1){
+		std::cout << "--- correction ---" << std::endl;
+		double ratio;
+		double direction_diff;
+		Eigen::Affine3d diff_correction;
+		calculate_affine_tranformation(correction_count, ratio, direction_diff, diff_correction);
+
+		// ???
+		if(direction_diff < M_PI / 15.0){
+			odom_correction = diff_correction * odom_correction;
+			correct_trajectories(correction_count, odom_correction);
+			std::cout << "corrected" << std::endl;
+			correction_count++;
+		}else{
+
+		}
+	}
+}
+
+void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
+{
+	double direction_from_odom = get_angle_from_trajectory(trajectories[count]);
+	double direction_from_map = passed_line_directions[count];
+	direction_diff = direction_from_map - direction_from_odom;
+
+	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
+	std::cout << "direction from map: " << direction_from_map << "[rad]" << std::endl;
+	std::cout << "direction difference: " << direction_diff << "[rad]" << std::endl;
+
+	// This represents B(i) in paper
+	Eigen::Vector3d intersection_point_i;
+	get_intersection_from_trajectories(*(trajectories.begin() + count), *(trajectories.begin() + count + 1), intersection_point_i);
+	// This represents N(i) in paper
+	Eigen::Vector3d map_node_point_i;
+	map_node_point_i = passed_nodes[count];
+	// This represents N(i-1) in paper
+	Eigen::Vector3d map_node_point_i_1;
+	map_node_point_i = passed_nodes[count - 1];
+
+	std::cout << "B(i): " << intersection_point_i(0) << ", " << intersection_point_i(1) << std::endl;
+	std::cout << "N(i): " << map_node_point_i(0) << ", " << map_node_point_i(1) << std::endl;
+
+	// distance from B(i) to B(i-1)
+	double dist_from_odom = get_length_of_trajectory(*(trajectories.begin() + count));
+	// distance from N(i) to N(i-1)
+	double dist_from_map = (map_node_point_i - map_node_point_i_1).norm();
+
+	if(count){
+		ratio = dist_from_odom / dist_from_map;
+	}else{
+		ratio = 1.0;
+	}
+
+	/*
+	 * weight has been omitted
+	 */
+
+	std::cout << "B(i-1) to B(i): " << dist_from_odom << "[m]" << std::endl;
+	std::cout << "N(i-1) to N(i): " << dist_from_map << "[m]" << std::endl;
+	std::cout << "ratio: " << ratio << std::endl;
+	std::cout << "count: " << count << std::endl;
 
 	Eigen::Translation<double, 3> t1(intersection_point_i - map_node_point_i);
 	Eigen::Translation<double, 3> t2(-intersection_point_i);
 	Eigen::Matrix3d rotation;
-	rotation = Eigen::AngleAxisd(theta, Eigen::Vector3d::UnitZ());
+	rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
 	affine_transformation = t1 * rotation * t2;
 }
 
@@ -784,5 +837,14 @@ void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 		}
 		last_line_edge_index = edge_index;
 		std::cout << "line count: " << passed_line_directions.size() << std::endl;
+	}
+}
+
+void NodeEdgeLocalizer::correct_trajectories(int count, const Eigen::Affine3d& correction) 
+{
+	for(auto line=(trajectories.begin()+count);line!=trajectories.end();line++){
+		for(auto& v : *(line)){
+			v = correction * v;
+		}
 	}
 }
