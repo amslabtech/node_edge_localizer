@@ -71,6 +71,7 @@ private:
 	bool USE_ORIENTATION_Z_AS_YAW;
 	int PARTICLES_NUM;
 	double NOISE_SIGMA;
+	double EDGE_DECISION_THRESHOLD;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -144,6 +145,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("USE_ORIENTATION_Z_AS_YAW", USE_ORIENTATION_Z_AS_YAW, {false});
 	private_nh.param("PARTICLES_NUM", PARTICLES_NUM, {100});
 	private_nh.param("NOISE_SIGMA", NOISE_SIGMA, {0.5});
+	private_nh.param("EDGE_DECISION_THRESHOLD", EDGE_DECISION_THRESHOLD, {0.5});
 
 	map_subscribed = false;
 	odom_updated = false;
@@ -173,6 +175,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "USE_ORIENTATION_Z_AS_YAW: " << USE_ORIENTATION_Z_AS_YAW << std::endl;
 	std::cout << "PARTICLES_NUM: " << PARTICLES_NUM << std::endl;
 	std::cout << "NOISE_SIGMA: " << NOISE_SIGMA << std::endl;
+	std::cout << "EDGE_DECISION_THRESHOLD: " << EDGE_DECISION_THRESHOLD << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -752,7 +755,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 			// go out of range of the last node
 			// it should be a constant
 			double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
-			if(particle_distance_from_last_node > 0.5){
+			if(particle_distance_from_last_node > EDGE_DECISION_THRESHOLD){
 				std::cout << "particle put on next edge" << std::endl;
 				p.near_node_flag = false;
 				p.last_edge_index = p.current_edge_index;
