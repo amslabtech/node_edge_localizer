@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Status1
+        - /Odometry1/Shape1
       Splitter Ratio: 0.5
     Tree Height: 750
   - Class: rviz/Selection
@@ -84,7 +85,7 @@ Visualization Manager:
       Axes Length: 0.300000012
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
-      Color: 255; 25; 0
+      Color: 255; 255; 0
       Enabled: true
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
@@ -123,7 +124,7 @@ Visualization Manager:
         Color: 255; 25; 0
         Head Length: 0.300000012
         Head Radius: 0.100000001
-        Shaft Length: 1
+        Shaft Length: 0.00999999978
         Shaft Radius: 0.0500000007
         Value: Arrow
       Topic: /estimated_pose/odom
@@ -203,16 +204,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 76.608017
+      Distance: 71.8992081
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 2.15288019
-        Y: -0.0184557308
-        Z: -11.3190975
+        X: 1.65864432
+        Y: -0.515294909
+        Z: -11.3185635
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
