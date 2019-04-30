@@ -49,9 +49,10 @@ public:
 	double calculate_trajectory_curvature(void);
 	void publish_pose(void);
 	void publish_particles(void);
-	void particle_filter(void);
+	void particle_filter(int&, bool&);
 	void resampling(void);
 	int get_next_edge_index_from_edge_index(int);
+	void manage_passed_edge(int);
 
 private:
 	double HZ;
@@ -100,6 +101,8 @@ private:
 	std::string robot_frame_id;
 	std::string odom_frame_id;
 	std::vector<NodeEdgeParticle> particles;
+	std::vector<Eigen::Vector3d> passed_nodes;
+	std::vector<double> passed_line_directions;
 };
 
 int main(int argc, char** argv)
@@ -197,8 +200,13 @@ void NodeEdgeLocalizer::process(void)
 				initialize();
 			}
 			if(odom_updated){
+				int unique_edge_index;
+				bool unique_edge_flag; 
 				std::cout << "particle filter" << std::endl;
-				particle_filter();
+				particle_filter(unique_edge_index, unique_edge_flag);
+				if(unique_edge_flag){
+					manage_passed_edge(unique_edge_index);
+				}
 				std::cout << "clustering trajectories" << std::endl;
 				clustering_trajectories();
 				std::cout << "calculate correction" << std::endl;
@@ -615,15 +623,15 @@ void NodeEdgeLocalizer::publish_particles(void)
 	_particles.poses.clear();
 }
 
-void NodeEdgeLocalizer::particle_filter(void)
+void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edge_flag)
 {
 	// unimplemented
 	static int resampling_count = 0;
 	static std::mt19937 mt{std::random_device{}()}; 
 	std::normal_distribution<> rand(0, NOISE_SIGMA);
 	
-	int unique_edge_index = -1;
-	bool unique_edge_flag = true;
+	unique_edge_index = -1;
+	unique_edge_flag = true;
 
 	for(auto& p : particles){
 		// move particles
@@ -743,4 +751,38 @@ int NodeEdgeLocalizer::get_next_edge_index_from_edge_index(int index)
 		}
 	}
 	return min_index;
+}
+
+void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
+{
+	double CONTINUOUS_LINE_THRESHOLD = M_PI / 7.0;
+	static int begin_line_edge_index = 0;
+	static int end_line_edge_index = 0;
+	static int last_line_edge_index = 0;
+
+	if(edge_index != last_line_edge_index){
+		// entered new edge
+		double angle_diff = fabs(pi_2_pi(map.edges[edge_index].direction - map.edges[last_line_edge_index].direction));
+		if(angle_diff > CONTINUOUS_LINE_THRESHOLD){
+			end_line_edge_index = last_line_edge_index;
+			int begin_node_index = get_index_from_id(map.edges[begin_line_edge_index].node0_id);
+			int end_node_index = get_index_from_id(map.edges[end_line_edge_index].node1_id);
+			amsl_navigation_msgs::Node begin_node = map.nodes[begin_node_index];
+			amsl_navigation_msgs::Node end_node = map.nodes[end_node_index];
+			double distance = sqrt(square(begin_node.point.x - end_node.point.x) + square(begin_node.point.y - end_node.point.y));
+			if(distance > MIN_LINE_LENGTH){
+				begin_line_edge_index = 0;
+				double line_angle = atan2((end_node.point.y - begin_node.point.y), (end_node.point.x - begin_node.point.x));
+				passed_line_directions.push_back(line_angle);
+				Eigen::Vector3d node_point;
+				node_point << end_node.point.x, end_node.point.y, 0.0;
+				passed_nodes.push_back(node_point);
+			}
+		}else{
+			// extension of a straight line
+			end_line_edge_index = last_line_edge_index; 
+		}
+		last_line_edge_index = edge_index;
+		std::cout << "line count: " << passed_line_directions.size() << std::endl;
+	}
 }
