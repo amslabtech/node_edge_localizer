@@ -727,7 +727,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 		double diff_linear = current_robot_distance_from_last_node - p.robot_distance_from_last_node;
 		p.robot_distance_from_last_node = current_robot_distance_from_last_node;
 		std::cout << "diff_linear: " << diff_linear << std::endl;
-		p.move(diff_linear * (1 + rand(mt)), map.edges[p.current_edge_index].direction);
+		p.move(diff_linear + rand(mt), map.edges[p.current_edge_index].direction);
 
 		// evaluation
 		if(!p.near_node_flag){
@@ -763,7 +763,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				p.x = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.x; 
 				p.y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.y;
 				// particle's moved distance is more suitable ??
-				p.move(particle_distance_from_last_node * (1 + rand(mt)), map.edges[p.current_edge_index].direction);
+				p.move(particle_distance_from_last_node + rand(mt), map.edges[p.current_edge_index].direction);
 				std::cout << map.edges[p.current_edge_index] << std::endl;
 			}
 		}
