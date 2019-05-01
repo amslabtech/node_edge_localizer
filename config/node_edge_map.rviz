@@ -65,13 +65,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /node_edge_map/viz/node
       Name: MarkerArray
       Namespaces:
-        {}
+        node: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /node_edge_map/viz/node/checkpoint
@@ -179,6 +179,14 @@ Visualization Manager:
       Topic: /odom/complement
       Unreliable: false
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /passed_lines/viz
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -204,16 +212,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 77.1114807
+      Distance: 74.5019608
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.32165933
-        Y: -1.18340051
-        Z: -11.3178797
+        X: 0.174764499
+        Y: -1.06945932
+        Z: -11.3179197
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false

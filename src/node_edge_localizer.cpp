@@ -9,6 +9,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/Marker.h>
 
 #include "Eigen/Dense"
 #include "Eigen/Geometry"
@@ -56,6 +57,7 @@ public:
 	void manage_passed_edge(int);
 	void correct_trajectories(int, const Eigen::Affine3d&); 
 	void clear(int);
+	void visualize_lines(void);
 
 private:
 	double HZ;
@@ -80,6 +82,7 @@ private:
 	ros::Publisher edge_pub;
 	ros::Publisher odom_pub;
 	ros::Publisher particles_pub;
+	ros::Publisher lines_pub;
 	ros::Subscriber map_sub;
 	ros::Subscriber odom_sub;
 
@@ -131,6 +134,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
 	odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/odom", 1);
 	particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);
+	lines_pub = nh.advertise<visualization_msgs::Marker>("/passed_lines/viz", 1);
 
 	private_nh.param("HZ", HZ, {50});
 	private_nh.param("INIT_NODE0_ID", INIT_NODE0_ID, {0});
@@ -257,6 +261,7 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "publish" << std::endl;
 				publish_pose();
 				publish_particles();
+				visualize_lines();
 				odom_updated = false;
 			}
 		}
@@ -278,6 +283,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 				// get slope of current trajectory
 				get_slope_from_trajectory(trajectory, slope);
 				double diff_angle = acos(slope.dot(last_slope));
+				std::cout << "diff_angle: " << diff_angle << std::endl;
 				if(diff_angle > M_PI / 2.0){
 					diff_angle = M_PI - diff_angle;
 				}
@@ -288,10 +294,12 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 							// robot was turned
 							trajectories.push_back(trajectory);
 							last_slope = slope;
+							std::cout << "trajectory was added to trajectories" << std::endl;
 						}else{
 							// NOT different line
 							std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
 							get_slope_from_trajectory(trajectories.back(), last_slope);
+							std::cout << "the last of trajectories was extended" << std::endl;
 						}
 					}
 				}else{
@@ -299,6 +307,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
 					get_slope_from_trajectory(trajectories.back(), last_slope);
 					last_yaw = estimated_yaw;
+					std::cout << "the last of trajectories was extended" << std::endl;
 				}
 			}else{
 				// first edge
@@ -307,16 +316,20 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					trajectories.push_back(trajectory);
 					last_yaw = estimated_yaw;
 					first_edge_flag = false;
+					std::cout << "first edge trajectory was added to trajectories" << std::endl;
 				}
 			}
 		}else{
 			// maybe robot is turning
 		}
 		trajectory.clear();
+		std::cout << "trajectory was cleared" << std::endl;
 	}else{
 		trajectory.push_back(estimated_pose);
+		std::cout << "pose was added to trajectory" << std::endl;
 	}
 	std::cout << "trajectory.size(): " << trajectory.size() << std::endl;
+	std::cout << "trajectory length: " << get_length_of_trajectory(trajectory) << std::endl;
 	std::cout << "trajectories.size(): " << trajectories.size() << std::endl;
 }
 
@@ -926,4 +939,33 @@ void NodeEdgeLocalizer::clear(int unique_edge_index)
 	end_line_edge_index = unique_edge_index;
 	last_line_edge_index = unique_edge_index;
 	clear_flag = false;
+}
+
+void NodeEdgeLocalizer::visualize_lines(void)
+{
+	visualization_msgs::Marker lines_marker;
+	lines_marker.header.frame_id = map.header.frame_id;
+	lines_marker.header.stamp = ros::Time::now();
+	lines_marker.ns = "line_viz";
+	lines_marker.action = visualization_msgs::Marker::ADD;
+	lines_marker.pose.orientation.w = 1;
+	lines_marker.id = 0;
+	lines_marker.type = visualization_msgs::Marker::LINE_LIST;
+	lines_marker.scale.x = 0.1;
+	lines_marker.color.r = 1.0;
+	lines_marker.color.g = 0.0;
+	lines_marker.color.b = 1.0;
+	lines_marker.color.a = 1.0;
+	for(auto traj : trajectories){
+		geometry_msgs::Point p;
+		p.x = (*traj.begin())(0);
+		p.y = (*traj.begin())(1);
+		p.z = (*traj.begin())(2);
+		lines_marker.points.push_back(p);
+		p.x = (*(traj.end() - 1))(0);
+		p.y = (*(traj.end() - 1))(1);
+		p.z = (*(traj.end() - 1))(2);
+		lines_marker.points.push_back(p);
+	}
+	lines_pub.publish(lines_marker);
 }
