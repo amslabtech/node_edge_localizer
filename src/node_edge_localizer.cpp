@@ -622,6 +622,9 @@ double NodeEdgeLocalizer::get_angle_from_lines(Eigen::Vector3d& line0_p0, Eigen:
 
 double NodeEdgeLocalizer::get_length_of_trajectory(std::vector<Eigen::Vector3d>& traj)
 {
+	if(traj.empty()){
+		return 0;
+	}
 	Eigen::Vector3d p0 = *(traj.begin());
 	Eigen::Vector3d p1 = *(traj.end() - 1);
 	Eigen::Vector3d diff = p1 - p0;
