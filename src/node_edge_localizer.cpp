@@ -256,8 +256,10 @@ void NodeEdgeLocalizer::process(void)
 				clustering_trajectories();
 				std::cout << "--- calculate correction ---" << std::endl;
 				correct();
-				if(unique_edge_flag && clear_flag){
+				if(unique_edge_flag){
 					manage_passed_edge(unique_edge_index);
+				}
+				if(clear_flag){
 					clear(unique_edge_index);
 				}
 				std::cout << "publish" << std::endl;
@@ -523,8 +525,18 @@ void NodeEdgeLocalizer::correct(void)
 void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
 {
 	double direction_from_odom = get_angle_from_trajectory(trajectories[count]);
+	if(direction_from_odom > M_PI / 2.0){
+		direction_from_odom -= M_PI;
+	}else if(direction_from_odom < -M_PI / 2.0){
+		direction_from_odom += M_PI;
+	}
 	double direction_from_map = passed_line_directions[count];
-	direction_diff = direction_from_map - direction_from_odom;
+	if(direction_from_map > M_PI / 2.0){
+		direction_from_map -= M_PI;
+	}else if(direction_from_map < -M_PI / 2.0){
+		direction_from_map += M_PI;
+	}
+	direction_diff = pi_2_pi(direction_from_map - direction_from_odom);
 
 	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
 	std::cout << "direction from map: " << direction_from_map << "[rad]" << std::endl;
@@ -533,15 +545,15 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	// This represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
 	get_intersection_from_trajectories(*(trajectories.begin() + count), *(trajectories.begin() + count + 1), intersection_point_i);
+	std::cout << "B(i): \n" << intersection_point_i << std::endl;
 	// This represents N(i) in paper
 	Eigen::Vector3d map_node_point_i;
 	map_node_point_i = passed_nodes[count];
+	std::cout << "N(i): \n" << map_node_point_i << std::endl;
 	// This represents N(i-1) in paper
 	Eigen::Vector3d map_node_point_i_1;
 	map_node_point_i = passed_nodes[count - 1];
-
-	std::cout << "B(i): " << intersection_point_i(0) << ", " << intersection_point_i(1) << std::endl;
-	std::cout << "N(i): " << map_node_point_i(0) << ", " << map_node_point_i(1) << std::endl;
+	std::cout << "N(i-1): \n" << map_node_point_i_1 << std::endl;
 
 	// distance from B(i) to B(i-1)
 	double dist_from_odom = get_length_of_trajectory(*(trajectories.begin() + count));
@@ -607,8 +619,8 @@ void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<Eigen::Ve
 	double c1 = -a1 * center_1(0) + center_1(1);
 
 	intersection_point << (-c1 + c0) / (a1 - a0),
-					      (-a0 * c1 + a1 * c0) / (a1 - a0);
-
+					      (-a0 * c1 + a1 * c0) / (a1 - a0),
+						  0.0;
 }
 
 double NodeEdgeLocalizer::get_angle_from_lines(Eigen::Vector3d& line0_p0, Eigen::Vector3d& line0_p1, Eigen::Vector3d& line1_p0, Eigen::Vector3d& line1_p1)
