@@ -269,7 +269,9 @@ void NodeEdgeLocalizer::process(void)
 
 void NodeEdgeLocalizer::clustering_trajectories(void)
 {
-	if(calculate_trajectory_curvature() > CURVATURE_THRESHOLD){
+	double trajectory_curvature = calculate_trajectory_curvature();
+	std::cout << "trajectory curvature: " << trajectory_curvature << std::endl;
+	if(trajectory_curvature > CURVATURE_THRESHOLD){
 		if(trajectory.size() > MIN_LINE_SIZE){
 			static Eigen::Vector2d last_slope;
 			if(!first_edge_flag){
@@ -636,8 +638,7 @@ double NodeEdgeLocalizer::calculate_trajectory_curvature(void)
 	static int count = 0;
 	double x_ave = 0.0;
 	double y_ave = 0.0;
-	static std::vector<Eigen::Vector3d> pose_buffer;
-	pose_buffer.resize(POSE_NUM_PCA);
+	static std::vector<Eigen::Vector3d> pose_buffer(POSE_NUM_PCA, Eigen::Vector3d::Zero());
 
 	// sequential calculation
 	static double x_sum = 0.0;
@@ -670,6 +671,7 @@ double NodeEdgeLocalizer::calculate_trajectory_curvature(void)
 	Eigen::Matrix2d covariance_matrix; 
 	covariance_matrix << xx_sum / POSE_NUM_PCA - x_ave * x_ave, covariance,
 					     covariance, yy_sum / POSE_NUM_PCA - y_ave * y_ave;
+	//std::cout << "covariance matrix: \n" << covariance_matrix << std::endl;
 
 	Eigen::EigenSolver<Eigen::Matrix2d> es(covariance_matrix);
 	Eigen::Vector2d values = es.eigenvalues().real();
