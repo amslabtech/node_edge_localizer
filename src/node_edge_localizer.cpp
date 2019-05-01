@@ -58,6 +58,7 @@ public:
 	void correct_trajectories(int, const Eigen::Affine3d&); 
 	void clear(int);
 	void visualize_lines(void);
+	void remove_curve_from_trajectory(std::vector<Eigen::Vector3d>&);
 
 private:
 	double HZ;
@@ -247,6 +248,7 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "waiting for odom..." << std::endl;
 			}
 			if(odom_updated){
+				double start_time = ros::Time::now().toSec();
 				std::cout << "=== node_edge_localizer ===" << std::endl;
 				int unique_edge_index;
 				bool unique_edge_flag; 
@@ -267,6 +269,8 @@ void NodeEdgeLocalizer::process(void)
 				publish_particles();
 				visualize_lines();
 				odom_updated = false;
+				std::cout << "process time: " << ros::Time::now().toSec() - start_time << "[s]" << std::endl;
+				std::cout << "===========================" << std::endl;
 			}
 		}
 		ros::spinOnce();
@@ -295,6 +299,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					// maybe different line
 					if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD * 2.0 || get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
 						// robot was turned
+						remove_curve_from_trajectory(trajectory);
 						trajectories.push_back(trajectory);
 						last_slope = slope;
 						std::cout << "trajectory was added to trajectories" << std::endl;
@@ -315,6 +320,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 				// first edge
 				if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
 					get_slope_from_trajectory(trajectory, last_slope);
+					remove_curve_from_trajectory(trajectory);
 					trajectories.push_back(trajectory);
 					last_yaw = estimated_yaw;
 					first_edge_flag = false;
@@ -983,4 +989,14 @@ void NodeEdgeLocalizer::visualize_lines(void)
 		lines_marker.points.push_back(p);
 	}
 	lines_pub.publish(lines_marker);
+}
+
+void NodeEdgeLocalizer::remove_curve_from_trajectory(std::vector<Eigen::Vector3d>& traj)
+{
+	for(int i=0;i<POSE_NUM_PCA;i++){
+		if(get_length_of_trajectory(traj) < MIN_LINE_LENGTH){
+			return;
+		}
+		traj.pop_back();
+	}
 }
