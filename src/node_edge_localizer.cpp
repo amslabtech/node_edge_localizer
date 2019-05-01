@@ -101,7 +101,6 @@ private:
 	// correct odom to edge
 	Eigen::Affine3d odom_correction;
 	double yaw_correction;
-	double last_yaw;
 	bool first_edge_flag;
 	std::string robot_frame_id;
 	std::string odom_frame_id;
@@ -152,7 +151,6 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	odom_updated = false;
 	init_flag = true;
 	clear_flag = false;
-	last_yaw = 0.0;
 	first_edge_flag = true;
 	robot_frame_id = "base_link";
 	odom_frame_id = "odom";
@@ -274,6 +272,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 	if(trajectory_curvature > CURVATURE_THRESHOLD){
 		if(trajectory.size() > MIN_LINE_SIZE){
 			static Eigen::Vector2d last_slope;
+			static double last_yaw = 0;
 			if(!first_edge_flag){
 				Eigen::Vector2d slope;
 				// get slope of current trajectory
