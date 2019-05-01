@@ -74,6 +74,7 @@ private:
 	int PARTICLES_NUM;
 	double NOISE_SIGMA;
 	double EDGE_DECISION_THRESHOLD;
+	double SAME_TRAJECTORY_ANGLE_THRESHOLD;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -150,6 +151,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("PARTICLES_NUM", PARTICLES_NUM, {1000});
 	private_nh.param("NOISE_SIGMA", NOISE_SIGMA, {0.05});
 	private_nh.param("EDGE_DECISION_THRESHOLD", EDGE_DECISION_THRESHOLD, {0.5});
+	private_nh.param("SAME_TRAJECTORY_ANGLE_THRESHOLD", SAME_TRAJECTORY_ANGLE_THRESHOLD, {M_PI/6.0});
 
 	map_subscribed = false;
 	odom_updated = false;
@@ -287,20 +289,18 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 				if(diff_angle > M_PI / 2.0){
 					diff_angle = M_PI - diff_angle;
 				}
-				if(diff_angle > M_PI / 5.5){
+				if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD){
 					// maybe different line
-					if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH / 2.0){
-						if(diff_angle > M_PI / 3.5 || get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
-							// robot was turned
-							trajectories.push_back(trajectory);
-							last_slope = slope;
-							std::cout << "trajectory was added to trajectories" << std::endl;
-						}else{
-							// NOT different line
-							std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
-							get_slope_from_trajectory(trajectories.back(), last_slope);
-							std::cout << "the last of trajectories was extended" << std::endl;
-						}
+					if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD * 2.0 || get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
+						// robot was turned
+						trajectories.push_back(trajectory);
+						last_slope = slope;
+						std::cout << "trajectory was added to trajectories" << std::endl;
+					}else{
+						// NOT different line
+						std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
+						get_slope_from_trajectory(trajectories.back(), last_slope);
+						std::cout << "the last of trajectories was extended" << std::endl;
 					}
 				}else{
 					// same line 
