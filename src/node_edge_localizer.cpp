@@ -216,7 +216,18 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 		first_odom_callback_flag = false;
 	}else{
 		odom_updated = true;
-		robot_moved_distance = (estimated_pose - last_estimated_pose).norm();
+		Eigen::Vector3d move_vector = estimated_pose - last_estimated_pose;
+		robot_moved_distance = move_vector.norm();
+		double moved_direction = atan2(move_vector(1), move_vector(0));
+		double diff_yaw_and_moved_direction = estimated_yaw - moved_direction;
+		diff_yaw_and_moved_direction = pi_2_pi(diff_yaw_and_moved_direction);
+		if(fabs(diff_yaw_and_moved_direction) < M_PI / 2.0){
+			// forward
+			robot_moved_distance = robot_moved_distance;
+		}else{
+			// back
+			robot_moved_distance = -robot_moved_distance;
+		}
 	}
 }
 
