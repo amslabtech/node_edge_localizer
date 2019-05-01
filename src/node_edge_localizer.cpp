@@ -257,14 +257,14 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "--- clustering trajectories ---" << std::endl;
 				clustering_trajectories();
 				std::cout << "--- calculate correction ---" << std::endl;
-				correct();
 				if(unique_edge_flag){
 					manage_passed_edge(unique_edge_index);
 				}
+				correct();
 				if(clear_flag){
 					clear(unique_edge_index);
 				}
-				std::cout << "publish" << std::endl;
+				std::cout << "--- publish ---" << std::endl;
 				publish_pose();
 				publish_particles();
 				visualize_lines();
@@ -512,18 +512,15 @@ void NodeEdgeLocalizer::correct(void)
 		Eigen::Affine3d diff_correction;
 		calculate_affine_tranformation(correction_count, ratio, direction_diff, diff_correction);
 
-		if(ratio > 1.2){
-		}else if(ratio < 0.8){ 
+		if(direction_diff < M_PI / 15.0){
+			odom_correction = diff_correction * odom_correction;
+			correct_trajectories(correction_count, odom_correction);
+			std::cout << "corrected" << std::endl;
+			correction_count++;
 		}else{
-			// ???
-			if(direction_diff < M_PI / 15.0){
-				odom_correction = diff_correction * odom_correction;
-				correct_trajectories(correction_count, odom_correction);
-				std::cout << "corrected" << std::endl;
-				correction_count++;
-			}else{
-				clear_flag = true;
-			}
+			std::cout << "###failed to correct###" << std::endl;
+			std::cout << "###correction reset###" << std::endl;
+			clear_flag = true;
 		}
 	}
 }
@@ -558,7 +555,11 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	std::cout << "N(i): \n" << map_node_point_i << std::endl;
 	// This represents N(i-1) in paper
 	Eigen::Vector3d map_node_point_i_1;
-	map_node_point_i = passed_nodes[count - 1];
+	if(count - 1 >= 0){
+		map_node_point_i_1 = passed_nodes[count - 1];
+	}else{
+		map_node_point_i_1 << 0.0, 0.0, 0.0;
+	}
 	std::cout << "N(i-1): \n" << map_node_point_i_1 << std::endl;
 
 	// distance from B(i) to B(i-1)
@@ -581,11 +582,13 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	std::cout << "ratio: " << ratio << std::endl;
 	std::cout << "count: " << count << std::endl;
 
-	Eigen::Translation<double, 3> t1(intersection_point_i - map_node_point_i);
+	// Eigen::Translation<double, 3> t1(intersection_point_i - map_node_point_i);
+	Eigen::Translation<double, 3> t1(map_node_point_i);
 	Eigen::Translation<double, 3> t2(-intersection_point_i);
 	Eigen::Matrix3d rotation;
 	rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
 	affine_transformation = t1 * rotation * t2;
+	yaw_correction += direction_diff;
 }
 
 void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine3d& affine_transformation)
@@ -916,6 +919,7 @@ void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 
 	if(edge_index != last_line_edge_index){
 		// entered new edge
+		std::cout << "!!!new unique edge!!!" << std::endl;
 		double angle_diff = fabs(pi_2_pi(map.edges[edge_index].direction - map.edges[last_line_edge_index].direction));
 		if(angle_diff > CONTINUOUS_LINE_THRESHOLD){
 			end_line_edge_index = last_line_edge_index;
@@ -925,12 +929,13 @@ void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 			amsl_navigation_msgs::Node end_node = map.nodes[end_node_index];
 			double distance = sqrt(square(begin_node.point.x - end_node.point.x) + square(begin_node.point.y - end_node.point.y));
 			if(distance > MIN_LINE_LENGTH){
-				begin_line_edge_index = 0;
 				double line_angle = atan2((end_node.point.y - begin_node.point.y), (end_node.point.x - begin_node.point.x));
+				std::cout << "line angle added !!!: " << line_angle << std::endl;
 				passed_line_directions.push_back(line_angle);
 				Eigen::Vector3d node_point;
 				node_point << end_node.point.x, end_node.point.y, 0.0;
 				passed_nodes.push_back(node_point);
+				begin_line_edge_index = edge_index;
 			}
 		}else{
 			// extension of a straight line
