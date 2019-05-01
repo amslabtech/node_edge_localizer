@@ -136,19 +136,19 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);
 	lines_pub = nh.advertise<visualization_msgs::Marker>("/passed_lines/viz", 1);
 
-	private_nh.param("HZ", HZ, {50});
+	private_nh.param("HZ", HZ, {10});
 	private_nh.param("INIT_NODE0_ID", INIT_NODE0_ID, {0});
 	private_nh.param("INIT_NODE1_ID", INIT_NODE1_ID, {1});
 	private_nh.param("INIT_PROGRESS", INIT_PROGRESS, {0.0});
 	private_nh.param("INIT_YAW", INIT_YAW, {0.0});
 	private_nh.param("CURVATURE_THRESHOLD", CURVATURE_THRESHOLD, {0.01});
-	private_nh.param("POSE_NUM_PCA", POSE_NUM_PCA, {37});
-	private_nh.param("MIN_LINE_SIZE", MIN_LINE_SIZE, {80});
-	private_nh.param("MIN_LINE_LENGTH", MIN_LINE_LENGTH, {8.6});
+	private_nh.param("POSE_NUM_PCA", POSE_NUM_PCA, {15});
+	private_nh.param("MIN_LINE_SIZE", MIN_LINE_SIZE, {15});
+	private_nh.param("MIN_LINE_LENGTH", MIN_LINE_LENGTH, {3.0});
 	private_nh.param("ENABLE_TF", ENABLE_TF, {false});
 	private_nh.param("USE_ORIENTATION_Z_AS_YAW", USE_ORIENTATION_Z_AS_YAW, {false});
-	private_nh.param("PARTICLES_NUM", PARTICLES_NUM, {100});
-	private_nh.param("NOISE_SIGMA", NOISE_SIGMA, {0.5});
+	private_nh.param("PARTICLES_NUM", PARTICLES_NUM, {1000});
+	private_nh.param("NOISE_SIGMA", NOISE_SIGMA, {0.05});
 	private_nh.param("EDGE_DECISION_THRESHOLD", EDGE_DECISION_THRESHOLD, {0.5});
 
 	map_subscribed = false;
