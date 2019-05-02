@@ -316,6 +316,9 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					// same line 
 					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
 					get_slope_from_trajectory(trajectories.back(), last_slope);
+					Eigen::Affine3d diff_correction;
+					calculate_affine_tranformation_tentatively(diff_correction);
+					odom_correction = diff_correction * odom_correction;
 					last_yaw = estimated_yaw;
 					std::cout << "the last of trajectories was extended" << std::endl;
 				}
@@ -597,25 +600,52 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 
 void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine3d& affine_transformation)
 {
-	// unimplemented
-	// It represents B(i) in paper
+	// current line correction
+	std::cout << "# correct tentatively #" << std::endl;
+	double direction_from_odom = get_angle_from_trajectory(trajectories.back());
+	if(direction_from_odom > M_PI / 2.0){
+		direction_from_odom -= M_PI;
+	}else if(direction_from_odom < -M_PI / 2.0){
+		direction_from_odom += M_PI;
+	}
+	amsl_navigation_msgs::Node map_node_point_begin;
+	map_node_point_begin = map.nodes[get_index_from_id(map.edges[begin_line_edge_index].node0_id)];
+	amsl_navigation_msgs::Node map_node_point_last;
+	map_node_point_last = map.nodes[get_index_from_id(map.edges[last_line_edge_index].node1_id)];
+	double direction_from_map = atan2(map_node_point_last.point.y - map_node_point_begin.point.y, map_node_point_last.point.x - map_node_point_begin.point.x);
+	if(direction_from_map > M_PI / 2.0){
+		direction_from_map -= M_PI;
+	}else if(direction_from_map < -M_PI / 2.0){
+		direction_from_map += M_PI;
+	}
+	double direction_diff = pi_2_pi(direction_from_map - direction_from_odom);
+
+	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
+	std::cout << "direction from map: " << direction_from_map << "[rad]" << std::endl;
+	std::cout << "direction difference: " << direction_diff << "[rad]" << std::endl;
+
+	// This represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
-	//get_intersection_from_trajectories(trajectories, intersection_point_i);
-	// It represents B(i-1) in paper
-	Eigen::Vector3d intersection_point_i_1;
-	//get_intersection_from_trajectories(trajectories, intersection_point_i_1);
-	// It represents N(i) in paper
+	if(trajectories.size() > 1){
+		get_intersection_from_trajectories(*(trajectories.end() - 2), *(trajectories.end() - 1), intersection_point_i);
+	}else{
+		intersection_point_i << 0.0, 0.0, 0.0;
+	}
+	std::cout << "B(i): \n" << intersection_point_i << std::endl;
+	// This represents N(i) in paper
 	Eigen::Vector3d map_node_point_i;
-	// It represents N(i-1) in paper
-	Eigen::Vector3d map_node_point_i_1;
+	std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
+	map_node_point_i << map_node_point_begin.point.x, map_node_point_begin.point.y, 0.0;
+	std::cout << "N(i): \n" << map_node_point_i << std::endl;
 
-	double theta = get_angle_from_lines(intersection_point_i, intersection_point_i_1, map_node_point_i, map_node_point_i_1);
-
-	Eigen::Translation<double, 3> t1(intersection_point_i - map_node_point_i);
+	Eigen::Translation<double, 3> t1(map_node_point_i);
 	Eigen::Translation<double, 3> t2(-intersection_point_i);
 	Eigen::Matrix3d rotation;
-	rotation = Eigen::AngleAxisd(theta, Eigen::Vector3d::UnitZ());
+	rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
 	affine_transformation = t1 * rotation * t2;
+	yaw_correction += direction_diff;
+	std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
+	correct_trajectories(trajectories.size() - 1, affine_transformation);
 }
 
 void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<Eigen::Vector3d>& trajectory_0, std::vector<Eigen::Vector3d>& trajectory_1, Eigen::Vector3d& intersection_point)
@@ -923,7 +953,8 @@ void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 
 	if(edge_index != last_line_edge_index){
 		// entered new edge
-		std::cout << "!!!new unique edge!!!" << std::endl;
+		std::cout << "!!! new unique edge !!!" << std::endl;
+		std::cout << "index: " << edge_index << std::endl;
 		double angle_diff = fabs(pi_2_pi(map.edges[edge_index].direction - map.edges[last_line_edge_index].direction));
 		if(angle_diff > CONTINUOUS_LINE_THRESHOLD){
 			end_line_edge_index = last_line_edge_index;
