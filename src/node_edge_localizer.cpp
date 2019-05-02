@@ -283,7 +283,9 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 {
 	double trajectory_curvature = calculate_trajectory_curvature();
 	std::cout << "trajectory curvature: " << trajectory_curvature << std::endl;
-	if(trajectory_curvature > CURVATURE_THRESHOLD){
+	double trajectory_length = get_length_of_trajectory(trajectory);
+	std::cout << "trajectory length: " << trajectory_length << std::endl;
+	if(trajectory_curvature > CURVATURE_THRESHOLD || trajectory_length > MIN_LINE_LENGTH){
 		if(trajectory.size() > MIN_LINE_SIZE){
 			static Eigen::Vector2d last_slope;
 			static double last_yaw = 0;
@@ -298,7 +300,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 				}
 				if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD){
 					// maybe different line
-					if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD * 2.0 || get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
+					if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD * 2.0 || trajectory_length > MIN_LINE_LENGTH){
 						// robot was turned
 						remove_curve_from_trajectory(trajectory);
 						trajectories.push_back(trajectory);
@@ -319,7 +321,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 				}
 			}else{
 				// first edge
-				if(get_length_of_trajectory(trajectory) > MIN_LINE_LENGTH){
+				if(trajectory_length > MIN_LINE_LENGTH){
 					get_slope_from_trajectory(trajectory, last_slope);
 					remove_curve_from_trajectory(trajectory);
 					trajectories.push_back(trajectory);
