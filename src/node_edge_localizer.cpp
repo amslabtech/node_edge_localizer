@@ -205,17 +205,17 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 				 odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.y,
 				 0.0;
 	estimated_pose = odom_correction * odom_pose;
-	std::cout << "odom_pose: \n" << odom_pose << std::endl;
-	std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
-	std::cout << "yaw_correction: " << yaw_correction << "[rad]" << std::endl;
-	std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
-	std::cout << "estimated_yaw: " << estimated_yaw << "[rad]" << std::endl;
 	if(!USE_ORIENTATION_Z_AS_YAW){
 		estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
 	}else{
 		estimated_yaw = msg->pose.pose.orientation.z + yaw_correction + INIT_YAW;
 	}
 	estimated_yaw = pi_2_pi(estimated_yaw);
+	std::cout << "odom_pose: \n" << odom_pose << std::endl;
+	std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
+	std::cout << "yaw_correction: " << yaw_correction << "[rad]" << std::endl;
+	std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
+	std::cout << "estimated_yaw: " << estimated_yaw << "[rad]" << std::endl;
 	robot_frame_id = msg->child_frame_id;
 	odom_frame_id = msg->header.frame_id;
 	if(first_odom_callback_flag){
