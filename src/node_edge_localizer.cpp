@@ -59,6 +59,7 @@ public:
 	void clear(int);
 	void visualize_lines(void);
 	void remove_curve_from_trajectory(std::vector<Eigen::Vector3d>&);
+	void publish_edge(int, bool);
 
 private:
 	double HZ;
@@ -267,6 +268,7 @@ void NodeEdgeLocalizer::process(void)
 				if(clear_flag){
 					clear(unique_edge_index);
 				}
+				publish_edge(unique_edge_index, unique_edge_flag);
 				std::cout << "--- publish ---" << std::endl;
 				publish_pose();
 				publish_particles();
@@ -1043,4 +1045,18 @@ void NodeEdgeLocalizer::remove_curve_from_trajectory(std::vector<Eigen::Vector3d
 		}
 		traj.pop_back();
 	}
+}
+
+void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_flag)
+{
+	static amsl_navigation_msgs::Node last_node;
+	static Eigen::Vector3d last_node_point;
+	if(unique_edge_flag){
+		estimated_edge = map.edges[unique_edge_index];
+		last_node = map.nodes[get_index_from_id(estimated_edge.node0_id)];
+		last_node_point << last_node.point.x, last_node.point.y, 0.0;
+	}
+	double distance_from_last_node = (estimated_pose - last_node_point).norm();
+	estimated_edge.progress = distance_from_last_node / estimated_edge.distance; 
+	edge_pub.publish(estimated_edge);
 }
