@@ -207,8 +207,9 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	estimated_pose = odom_correction * odom_pose;
 	std::cout << "odom_pose: \n" << odom_pose << std::endl;
 	std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
+	std::cout << "yaw_correction: " << yaw_correction << "[rad]" << std::endl;
 	std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
-	std::cout << "estimated_yaw: " << estimated_yaw << std::endl;
+	std::cout << "estimated_yaw: " << estimated_yaw << "[rad]" << std::endl;
 	if(!USE_ORIENTATION_Z_AS_YAW){
 		estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
 	}else{
@@ -514,7 +515,7 @@ void NodeEdgeLocalizer::correct(void)
 
 		if(direction_diff < M_PI / 15.0){
 			odom_correction = diff_correction * odom_correction;
-			correct_trajectories(correction_count, odom_correction);
+			correct_trajectories(correction_count, diff_correction);
 			std::cout << "corrected" << std::endl;
 			correction_count++;
 		}else{
@@ -589,6 +590,7 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
 	affine_transformation = t1 * rotation * t2;
 	yaw_correction += direction_diff;
+	std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
 }
 
 void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine3d& affine_transformation)
