@@ -163,7 +163,7 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 100
+      Keep: 0
       Name: Odometry
       Position Tolerance: 0.100000001
       Shape:
@@ -184,7 +184,7 @@ Visualization Manager:
       Marker Topic: /passed_lines/viz
       Name: Marker
       Namespaces:
-        {}
+        line_viz: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -212,7 +212,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 74.5019608
+      Distance: 77.6048965
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -230,7 +230,7 @@ Visualization Manager:
       Pitch: 1.56979632
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.510373
+      Yaw: 1.49537301
     Saved: ~
 Window Geometry:
   Displays:
