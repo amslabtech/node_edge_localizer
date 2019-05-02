@@ -310,12 +310,14 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 						std::cout << "trajectory was added to trajectories" << std::endl;
 					}else{
 						// NOT different line
+						remove_curve_from_trajectory(trajectory);
 						std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
 						get_slope_from_trajectory(trajectories.back(), last_slope);
 						std::cout << "the last of trajectories was extended" << std::endl;
 					}
 				}else{
 					// same line 
+					remove_curve_from_trajectory(trajectory);
 					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(trajectories.back()));
 					get_slope_from_trajectory(trajectories.back(), last_slope);
 					Eigen::Affine3d diff_correction;
