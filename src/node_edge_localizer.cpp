@@ -407,6 +407,9 @@ void NodeEdgeLocalizer::initialize(void)
 	estimated_yaw = INIT_YAW;
 	int edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	for(auto& p : particles){
+		p.x = estimated_pose(0);
+		p.y = estimated_pose(1);
+		p.yaw = estimated_yaw;
 		p.move(estimated_edge.distance * estimated_edge.progress, estimated_edge.direction);
 		p.last_node_x = node0.point.x;
 		p.last_node_y = node0.point.y;
