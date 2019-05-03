@@ -197,22 +197,39 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	std::cout << "--- odom calback ---" << std::endl;
 	static Eigen::Vector3d last_estimated_pose;
 	static bool first_odom_callback_flag = true;
+	static Eigen::Vector3d first_odom_pose;
+	static double first_odom_yaw;
+	static Eigen::Vector3d init_estimated_pose;
 
 	last_estimated_pose = estimated_pose;
 
 	Eigen::Vector3d odom_pose;
 	odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
-	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.x,
-				 odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW) + map.nodes[get_index_from_id(INIT_NODE0_ID)].point.y,
-				 0.0;
-	estimated_pose = odom_correction * odom_pose;
-	if(!USE_ORIENTATION_Z_AS_YAW){
-		estimated_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction + INIT_YAW;
-	}else{
-		estimated_yaw = msg->pose.pose.orientation.z + yaw_correction + INIT_YAW;
+	if(first_odom_callback_flag){
+		first_odom_pose = odom_pose;
+		std::cout << "first odom pose: \n" << first_odom_pose << std::endl;
+		init_estimated_pose = estimated_pose;
 	}
+	odom_pose -= first_odom_pose;
+	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW),
+				 odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW),
+				 0.0;
+	estimated_pose = odom_correction * odom_pose + init_estimated_pose;
+	double odom_yaw; 
+	if(!USE_ORIENTATION_Z_AS_YAW){
+		odom_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction;
+	}else{
+		odom_yaw = msg->pose.pose.orientation.z + yaw_correction;
+	}
+	if(first_odom_callback_flag){
+		first_odom_yaw = odom_yaw; 
+		std::cout << "first odom yaw: " << first_odom_yaw << std::endl;
+	}
+	odom_yaw -= first_odom_yaw;
+	estimated_yaw = odom_yaw + INIT_YAW;
 	estimated_yaw = pi_2_pi(estimated_yaw);
 	std::cout << "odom_pose: \n" << odom_pose << std::endl;
+	std::cout << "odom_yaw: \n" << odom_yaw << std::endl;
 	std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
 	std::cout << "yaw_correction: " << yaw_correction << "[rad]" << std::endl;
 	std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
@@ -250,8 +267,7 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "--- initialize ---" << std::endl;
 				initialize();
 				std::cout << "waiting for odom..." << std::endl;
-			}
-			if(odom_updated){
+			}else if(odom_updated){
 				double start_time = ros::Time::now().toSec();
 				std::cout << "=== node_edge_localizer ===" << std::endl;
 				int unique_edge_index;
@@ -277,6 +293,8 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "process time: " << ros::Time::now().toSec() - start_time << "[s]" << std::endl;
 				std::cout << "===========================" << std::endl;
 			}
+		}else{
+			std::cout << "waiting for map..." << std::endl;
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
