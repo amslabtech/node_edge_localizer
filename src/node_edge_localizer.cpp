@@ -320,6 +320,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 			if(!first_edge_flag){
 				Eigen::Vector2d slope;
 				// get slope of current trajectory
+				std::cout << "trajectory angle: " << get_angle_from_trajectory(trajectory) << std::endl;
 				get_slope_from_trajectory(trajectory, slope);
 				double diff_angle = acos(slope.dot(last_slope));
 				std::cout << "diff_angle: " << diff_angle << std::endl;
@@ -328,19 +329,27 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 				}
 				if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD){
 					// robot was turned
+					std::cout << "robot is entering new edge" << std::endl;
 					linear_trajectories.push_back(trajectory);
+					std::cout << "remove curve from last trajectory" << std::endl;
 					remove_curve_from_trajectory(*(linear_trajectories.end() - 2));
 					last_slope = slope;
 					std::cout << "trajectory was added to trajectories" << std::endl;
+					std::cout << "trajectory length: " << get_length_of_trajectory(linear_trajectories.back()) << std::endl;
+					std::cout << "trajectory angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 				}else{
 					// same line 
+					std::cout << "robot is curving but on same edge" << std::endl;
 					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
 					get_slope_from_trajectory(linear_trajectories.back(), last_slope);
 					Eigen::Affine3d diff_correction;
 					calculate_affine_transformation_tentatively(diff_correction);
+					std::cout << "corrected line angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 					odom_correction = diff_correction * odom_correction;
 					last_yaw = estimated_yaw;
 					std::cout << "the last of trajectories was extended" << std::endl;
+					std::cout << "trajectory length: " << get_length_of_trajectory(linear_trajectories.back()) << std::endl;
+					std::cout << "trajectory angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 				}
 			}else{
 				// first edge
@@ -350,6 +359,8 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					last_yaw = estimated_yaw;
 					first_edge_flag = false;
 					std::cout << "first edge trajectory was added to trajectories" << std::endl;
+					std::cout << "trajectory length: " << get_length_of_trajectory(linear_trajectories.back()) << std::endl;
+					std::cout << "trajectory angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 				}
 			}
 		}else{
@@ -549,6 +560,7 @@ void NodeEdgeLocalizer::correct(void)
 			correct_trajectories(correction_count, diff_correction);
 			std::cout << "corrected" << std::endl;
 			correction_count++;
+			std::cout << "corrected line angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 		}else{
 			std::cout << "###failed to correct###" << std::endl;
 			std::cout << "###correction reset###" << std::endl;
@@ -668,9 +680,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	std::cout << "N(i): \n" << map_node_point_i << std::endl;
 
 	Eigen::Translation<double, 3> t1(map_node_point_i);
-	std::cout << "T(N(i): \n" << t1.translation() << std::endl;
 	Eigen::Translation<double, 3> t2(-intersection_point_i);
-	std::cout << "T(B(i): \n" << t2.translation() << std::endl;
 	Eigen::Matrix3d rotation;
 	rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
 	affine_transformation = t1 * rotation * t2;
