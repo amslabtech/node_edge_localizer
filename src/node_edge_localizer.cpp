@@ -42,7 +42,7 @@ public:
 	void calculate_pca(std::vector<Eigen::Vector3d>&, Eigen::Vector2d&, Eigen::Matrix2d&, Eigen::Vector2d&);
 	void correct(void);
 	void calculate_affine_tranformation(const int, double&, double&, Eigen::Affine3d&);
-	void calculate_affine_tranformation_tentatively(Eigen::Affine3d&);
+	void calculate_affine_transformation_tentatively(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<Eigen::Vector3d>&, std::vector<Eigen::Vector3d>&, Eigen::Vector3d&);
 	double get_angle_from_lines(Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&, Eigen::Vector3d&);
 	double get_length_of_trajectory(std::vector<Eigen::Vector3d>&);
@@ -331,7 +331,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
 					get_slope_from_trajectory(linear_trajectories.back(), last_slope);
 					Eigen::Affine3d diff_correction;
-					calculate_affine_tranformation_tentatively(diff_correction);
+					calculate_affine_transformation_tentatively(diff_correction);
 					odom_correction = diff_correction * odom_correction;
 					last_yaw = estimated_yaw;
 					std::cout << "the last of trajectories was extended" << std::endl;
@@ -614,7 +614,7 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
 }
 
-void NodeEdgeLocalizer::calculate_affine_tranformation_tentatively(Eigen::Affine3d& affine_transformation)
+void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affine3d& affine_transformation)
 {
 	// current line correction
 	std::cout << "# correct tentatively #" << std::endl;
