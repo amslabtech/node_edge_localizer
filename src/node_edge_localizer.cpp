@@ -303,23 +303,13 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					diff_angle = M_PI - diff_angle;
 				}
 				if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD){
-					// maybe different line
-					if(diff_angle > SAME_TRAJECTORY_ANGLE_THRESHOLD * 2.0 || trajectory_length > MIN_LINE_LENGTH){
-						// robot was turned
-						remove_curve_from_trajectory(trajectory);
-						linear_trajectories.push_back(trajectory);
-						last_slope = slope;
-						std::cout << "trajectory was added to trajectories" << std::endl;
-					}else{
-						// NOT different line
-						remove_curve_from_trajectory(trajectory);
-						std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
-						get_slope_from_trajectory(linear_trajectories.back(), last_slope);
-						std::cout << "the last of trajectories was extended" << std::endl;
-					}
+					// robot was turned
+					linear_trajectories.push_back(trajectory);
+					remove_curve_from_trajectory(*(linear_trajectories.end() - 2));
+					last_slope = slope;
+					std::cout << "trajectory was added to trajectories" << std::endl;
 				}else{
 					// same line 
-					remove_curve_from_trajectory(trajectory);
 					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
 					get_slope_from_trajectory(linear_trajectories.back(), last_slope);
 					Eigen::Affine3d diff_correction;
@@ -332,7 +322,6 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 				// first edge
 				if(trajectory_length > MIN_LINE_LENGTH){
 					get_slope_from_trajectory(trajectory, last_slope);
-					remove_curve_from_trajectory(trajectory);
 					linear_trajectories.push_back(trajectory);
 					last_yaw = estimated_yaw;
 					first_edge_flag = false;
