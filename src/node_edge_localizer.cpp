@@ -97,6 +97,7 @@ private:
 	bool map_subscribed;
 	bool odom_updated;
 	Eigen::Vector3d estimated_pose;
+	Eigen::Vector3d init_estimated_pose;
 	double estimated_yaw;
 	bool init_flag;
 	bool clear_flag;
@@ -107,17 +108,21 @@ private:
 	// correct odom to edge
 	Eigen::Affine3d odom_correction;
 	double yaw_correction;
+
 	bool first_edge_flag;
 	std::string robot_frame_id;
 	std::string odom_frame_id;
+
+	// for particle filter
 	std::vector<NodeEdgeParticle> particles;
+	double robot_moved_distance;
+
 	// for correction
 	std::vector<Eigen::Vector3d> passed_nodes;
 	std::vector<double> passed_line_directions;
 	int begin_line_edge_index;
 	int end_line_edge_index;
 	int last_line_edge_index;
-	double robot_moved_distance;
 };
 
 int main(int argc, char** argv)
@@ -199,7 +204,6 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	static bool first_odom_callback_flag = true;
 	static Eigen::Vector3d first_odom_pose;
 	static double first_odom_yaw;
-	static Eigen::Vector3d init_estimated_pose;
 
 	last_estimated_pose = estimated_pose;
 
@@ -208,7 +212,6 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	if(first_odom_callback_flag){
 		first_odom_pose = odom_pose;
 		std::cout << "first odom pose: \n" << first_odom_pose << std::endl;
-		init_estimated_pose = estimated_pose;
 	}
 	odom_pose -= first_odom_pose;
 	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW),
@@ -405,6 +408,7 @@ void NodeEdgeLocalizer::initialize(void)
 	estimated_pose(0) = node0.point.x + estimated_edge.distance * estimated_edge.progress * cos(estimated_edge.direction);
 	estimated_pose(1) = node0.point.y + estimated_edge.distance * estimated_edge.progress * sin(estimated_edge.direction);
 	estimated_yaw = INIT_YAW;
+	init_estimated_pose = estimated_pose;
 	int edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	for(auto& p : particles){
 		p.x = estimated_pose(0);
@@ -580,7 +584,9 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	if(count - 1 >= 0){
 		map_node_point_i_1 = passed_nodes[count - 1];
 	}else{
-		map_node_point_i_1 << 0.0, 0.0, 0.0;
+		amsl_navigation_msgs::Node init_node;
+		init_node = map.nodes[get_index_from_id(INIT_NODE0_ID)];
+		map_node_point_i_1 << init_node.point.x, init_node.point.y, 0.0;
 	}
 	std::cout << "N(i-1): \n" << map_node_point_i_1 << std::endl;
 
@@ -645,7 +651,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	if(linear_trajectories.size() > 1){
 		get_intersection_from_trajectories(*(linear_trajectories.end() - 2), *(linear_trajectories.end() - 1), intersection_point_i);
 	}else{
-		intersection_point_i << 0.0, 0.0, 0.0;
+		intersection_point_i = init_estimated_pose;
 	}
 	std::cout << "B(i): \n" << intersection_point_i << std::endl;
 	// This represents N(i) in paper
@@ -655,7 +661,9 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	std::cout << "N(i): \n" << map_node_point_i << std::endl;
 
 	Eigen::Translation<double, 3> t1(map_node_point_i);
+	std::cout << "T(N(i): \n" << t1.translation() << std::endl;
 	Eigen::Translation<double, 3> t2(-intersection_point_i);
+	std::cout << "T(B(i): \n" << t2.translation() << std::endl;
 	Eigen::Matrix3d rotation;
 	rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
 	affine_transformation = t1 * rotation * t2;
