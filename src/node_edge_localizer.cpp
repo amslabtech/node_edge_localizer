@@ -168,9 +168,6 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	robot_frame_id = "base_link";
 	odom_frame_id = "odom";
 	particles.resize(PARTICLES_NUM);
-	begin_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
-	end_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
-	last_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	odom_correction = Eigen::Affine3d::Identity();
 	robot_moved_distance = 0.0;
 
@@ -207,17 +204,6 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
 	last_estimated_pose = estimated_pose;
 
-	Eigen::Vector3d odom_pose;
-	odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
-	if(first_odom_callback_flag){
-		first_odom_pose = odom_pose;
-		std::cout << "first odom pose: \n" << first_odom_pose << std::endl;
-	}
-	odom_pose -= first_odom_pose;
-	odom_pose << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW),
-				 odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW),
-				 0.0;
-	estimated_pose = odom_correction * odom_pose + init_estimated_pose;
 	double odom_yaw; 
 	if(!USE_ORIENTATION_Z_AS_YAW){
 		odom_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction;
@@ -231,6 +217,23 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	odom_yaw -= first_odom_yaw;
 	estimated_yaw = odom_yaw + INIT_YAW;
 	estimated_yaw = pi_2_pi(estimated_yaw);
+
+	Eigen::Vector3d odom_pose;
+	odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
+	if(first_odom_callback_flag){
+		first_odom_pose = odom_pose;
+		std::cout << "first odom pose: \n" << first_odom_pose << std::endl;
+	}
+	odom_pose -= first_odom_pose;
+	odom_pose << odom_pose(0) * cos(-first_odom_yaw) - odom_pose(1) * sin(-first_odom_yaw),
+				 odom_pose(0) * sin(-first_odom_yaw) + odom_pose(1) * cos(-first_odom_yaw),
+				 0.0;
+	Eigen::Vector3d odom_to_map;
+	odom_to_map << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW),
+			       odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW),
+				   0.0;
+	estimated_pose = odom_correction * (odom_to_map + init_estimated_pose);
+
 	std::cout << "odom_pose: \n" << odom_pose << std::endl;
 	std::cout << "odom_yaw: \n" << odom_yaw << std::endl;
 	std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
@@ -421,6 +424,9 @@ void NodeEdgeLocalizer::initialize(void)
 		p.current_edge_index = edge_index; 
 		p.last_edge_index = -1; 
 	}
+	begin_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	end_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	last_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	init_flag = false;
 }
 
@@ -571,6 +577,7 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	std::cout << "direction from map: " << direction_from_map << "[rad]" << std::endl;
 	std::cout << "direction difference: " << direction_diff << "[rad]" << std::endl;
 
+	std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
 	// This represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
 	get_intersection_from_trajectories(*(linear_trajectories.begin() + count), *(linear_trajectories.begin() + count + 1), intersection_point_i);
@@ -982,12 +989,15 @@ void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 		double angle_diff = fabs(pi_2_pi(map.edges[edge_index].direction - map.edges[last_line_edge_index].direction));
 		if(angle_diff > CONTINUOUS_LINE_THRESHOLD){
 			end_line_edge_index = last_line_edge_index;
+			std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
 			int begin_node_index = get_index_from_id(map.edges[begin_line_edge_index].node0_id);
 			int end_node_index = get_index_from_id(map.edges[end_line_edge_index].node1_id);
 			amsl_navigation_msgs::Node begin_node = map.nodes[begin_node_index];
 			amsl_navigation_msgs::Node end_node = map.nodes[end_node_index];
 			double distance = sqrt(square(begin_node.point.x - end_node.point.x) + square(begin_node.point.y - end_node.point.y));
 			if(distance > MIN_LINE_LENGTH){
+				std::cout << "begin_node: \n" << begin_node << std::endl;;
+				std::cout << "end_node: \n" << end_node << std::endl;;
 				double line_angle = atan2((end_node.point.y - begin_node.point.y), (end_node.point.x - begin_node.point.x));
 				std::cout << "line angle added !!!: " << line_angle << std::endl;
 				passed_line_directions.push_back(line_angle);
@@ -995,6 +1005,11 @@ void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 				node_point << end_node.point.x, end_node.point.y, 0.0;
 				passed_nodes.push_back(node_point);
 				begin_line_edge_index = edge_index;
+				int i=0;
+				for(auto pn : passed_nodes){
+					std::cout << "passed_node[" << i << "]: " << pn << std::endl;
+					i++;
+				}
 			}
 		}else{
 			// extension of a straight line
