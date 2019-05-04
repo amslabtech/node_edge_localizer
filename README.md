@@ -2,6 +2,10 @@
 ![issue_opened](https://img.shields.io/github/issues/amslabtech/node_edge_localizer.svg)
 ![issue_closed](https://img.shields.io/github/issues-closed/amslabtech/node_edge_localizer.svg)
 
+## environment
+- Ubuntu 16.04LTS
+- ROS Kinetic
+
 ## dependencies
 - amsl_navigation_managers
 - amsl_navigation_msgs
@@ -18,3 +22,37 @@
   - the node edge map
 - /odom/complement
   - wheel odometry (complementation with IMU is recommended)
+
+## parameters
+- hz
+  - main loop rate (default: 20[Hz])
+- init_node0_id
+  - node id of the begin of initial edge (default: 0)
+- init_node1_id
+  - node id of the end of initial edge (default: 1)
+- init_progress
+  - initial progress on initial edge (default: 0.0)
+- init_yaw
+  - initial robot yaw in map frame (default: 0.0)
+- curvature_threshold
+  - trajectories with curvature greater than this parameter are considered as curves (default: 0.010)
+- pose_num_pca
+  - number of robot poses to calculate principal component analysis for calculating trajectory curvature and angle (default: 30)
+- min_line_size
+  - number of robot poses that exceed this parameter is considered a trajectory (default: 30)
+    - this parameter is recommended to correspond with pose_num_pca
+- min_line_length
+  - trajectories that are longer than this parameter and aren't curve is considered as straight lines (default: 3.0[m])
+- enable_tf
+  - if this parameter is true, this node publishes transform from map frame to robot frame (default: false)
+    - to publish transform, odom frame to robot frame tf is required 
+- use_orientation_z_as_yaw
+  - in principle, this parameter should NOT be set to "true" (default: false)
+- particles_num
+  - number of particles (default: 1000)
+- noise_sigma
+  - standard deviation of particle motion noise (default: 0.05)
+- edge_decision_threshold
+  - when the robot passes the node by this distance, the particles determine the next edge according to the robot's orientation (default: 0.5[m])
+- same_trajectory_angle_threshold
+  - the continuous trajectories with less orientation difference than this angle is considered to be same trajectory (default: 0.523598[rad])
