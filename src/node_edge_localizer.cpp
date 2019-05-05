@@ -60,6 +60,7 @@ public:
 	void visualize_lines(void);
 	void remove_curve_from_trajectory(std::vector<Eigen::Vector3d>&);
 	void publish_edge(int, bool);
+	double get_slope_angle(double);
 
 private:
 	double HZ;
@@ -591,17 +592,9 @@ void NodeEdgeLocalizer::correct(void)
 void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
 {
 	double direction_from_odom = get_angle_from_trajectory(linear_trajectories[count]);
-	if(direction_from_odom > M_PI / 2.0){
-		direction_from_odom -= M_PI;
-	}else if(direction_from_odom < -M_PI / 2.0){
-		direction_from_odom += M_PI;
-	}
+	direction_from_odom = get_slope_angle(direction_from_odom);
 	double direction_from_map = passed_line_directions[count];
-	if(direction_from_map > M_PI / 2.0){
-		direction_from_map -= M_PI;
-	}else if(direction_from_map < -M_PI / 2.0){
-		direction_from_map += M_PI;
-	}
+	direction_from_map = get_slope_angle(direction_from_map);
 	direction_diff = pi_2_pi(direction_from_map - direction_from_odom);
 
 	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
@@ -663,21 +656,14 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	// current line correction
 	std::cout << "# correct tentatively #" << std::endl;
 	double direction_from_odom = get_angle_from_trajectory(linear_trajectories.back());
-	if(direction_from_odom > M_PI / 2.0){
-		direction_from_odom -= M_PI;
-	}else if(direction_from_odom < -M_PI / 2.0){
-		direction_from_odom += M_PI;
-	}
+	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
+	direction_from_odom = get_slope_angle(direction_from_odom);
 	amsl_navigation_msgs::Node map_node_point_begin;
 	map_node_point_begin = map.nodes[get_index_from_id(map.edges[begin_line_edge_index].node0_id)];
 	amsl_navigation_msgs::Node map_node_point_last;
 	map_node_point_last = map.nodes[get_index_from_id(map.edges[last_line_edge_index].node1_id)];
 	double direction_from_map = atan2(map_node_point_last.point.y - map_node_point_begin.point.y, map_node_point_last.point.x - map_node_point_begin.point.x);
-	if(direction_from_map > M_PI / 2.0){
-		direction_from_map -= M_PI;
-	}else if(direction_from_map < -M_PI / 2.0){
-		direction_from_map += M_PI;
-	}
+	direction_from_map = get_slope_angle(direction_from_map);
 	double direction_diff = pi_2_pi(direction_from_map - direction_from_odom);
 
 	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
@@ -1120,4 +1106,14 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	double distance_from_last_node = (estimated_pose - last_node_point).norm();
 	estimated_edge.progress = distance_from_last_node / estimated_edge.distance; 
 	edge_pub.publish(estimated_edge);
+}
+
+double NodeEdgeLocalizer::get_slope_angle(double angle)
+{
+	if(angle > M_PI / 2.0){
+		angle -= M_PI;
+	}else if(angle < -M_PI / 2.0){
+		angle += M_PI;
+	}
+	return angle;
 }
