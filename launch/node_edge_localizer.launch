@@ -16,6 +16,7 @@
 	<arg name="same_trajectory_angle_threshold" default="0.523598"/>
 	<arg name="continuous_line_threshold" default="0.448798"/>
 	<arg name="line_edge_ratio_threshold" default="0.5"/>
+	<arg name="enable_odom_tf" default="false"/>
 
 	<node pkg="node_edge_localizer" type="node_edge_localizer" name="node_edge_localizer" ns="localiztion">
 		<param name="HZ" value="$(arg hz)" type="int"/>
@@ -35,6 +36,7 @@
 		<param name="SAME_TRAJECTORY_ANGLE_THRESHOLD" value="$(arg same_trajectory_angle_threshold)" type="double"/>
 		<param name="CONTINUOUS_LINE_THRESHOLD" value="$(arg continuous_line_threshold)" type="double"/>
 		<param name="LINE_EDGE_RATIO_THRESHOLD" value="$(arg line_edge_ratio_threshold)" type="double"/>
+		<param name="ENABLE_ODOM_TF" value="$(arg enable_odom_tf)" type="bool"/>
 	</node>
 
 </launch>

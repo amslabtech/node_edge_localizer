@@ -61,6 +61,7 @@ public:
 	void remove_curve_from_trajectory(std::vector<Eigen::Vector3d>&);
 	void publish_edge(int, bool);
 	double get_slope_angle(double);
+	void publish_odom_tf(Eigen::Vector3d&, double);
 
 private:
 	double HZ;
@@ -80,6 +81,7 @@ private:
 	double SAME_TRAJECTORY_ANGLE_THRESHOLD;
 	double CONTINUOUS_LINE_THRESHOLD;
 	double LINE_EDGE_RATIO_THRESHOLD;
+	bool ENABLE_ODOM_TF;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -128,6 +130,8 @@ private:
 	int last_line_edge_index;
 
 	int tentative_correction_count;// count down
+
+	ros::Time odom_time;
 };
 
 int main(int argc, char** argv)
@@ -166,6 +170,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("SAME_TRAJECTORY_ANGLE_THRESHOLD", SAME_TRAJECTORY_ANGLE_THRESHOLD, {M_PI/6.0});
 	private_nh.param("CONTINUOUS_LINE_THRESHOLD", CONTINUOUS_LINE_THRESHOLD, {M_PI/7.0});
 	private_nh.param("LINE_EDGE_RATIO_THRESHOLD", LINE_EDGE_RATIO_THRESHOLD, {0.5});
+	private_nh.param("ENABLE_ODOM_TF", ENABLE_ODOM_TF, {false});
 
 	map_subscribed = false;
 	odom_updated = false;
@@ -197,6 +202,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "SAME_TRAJECTORY_ANGLE_THRESHOLD: " << SAME_TRAJECTORY_ANGLE_THRESHOLD << std::endl;
 	std::cout << "CONTINUOUS_LINE_THRESHOLD: " << CONTINUOUS_LINE_THRESHOLD << std::endl;
 	std::cout << "LINE_EDGE_RATIO_THRESHOLD: " << LINE_EDGE_RATIO_THRESHOLD << std::endl;
+	std::cout << "ENABLE_ODOM_TF: " << ENABLE_ODOM_TF << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -254,6 +260,7 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 		std::cout << "estimated_yaw: " << estimated_yaw << "[rad]" << std::endl;
 		robot_frame_id = msg->child_frame_id;
 		odom_frame_id = msg->header.frame_id;
+		odom_time = msg->header.stamp;
 		if(first_odom_callback_flag){
 			first_odom_callback_flag = false;
 		}else{
@@ -272,6 +279,9 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 				// back
 				robot_moved_distance = -robot_moved_distance;
 			}
+		}
+		if(ENABLE_ODOM_TF){
+			publish_odom_tf(odom_pose, odom_yaw);
 		}
 	}else{
 		std::cout << "not initialized !!!" << std::endl;
@@ -832,11 +842,11 @@ void NodeEdgeLocalizer::publish_pose(void)
 		try{
 			tf::Transform map_to_robot;
 			tf::poseMsgToTF(odom.pose.pose, map_to_robot);
-			tf::Stamped<tf::Pose> robot_to_map(map_to_robot.inverse(), odom.header.stamp, robot_frame_id);
+			tf::Stamped<tf::Pose> robot_to_map(map_to_robot.inverse(), odom_time, robot_frame_id);
 			tf::Stamped<tf::Pose> odom_to_map;
-			listener.transformPose(odom.header.frame_id, robot_to_map, odom_to_map);
+			listener.transformPose(odom_frame_id, robot_to_map, odom_to_map);
 
-			broadcaster.sendTransform(tf::StampedTransform(odom_to_map.inverse(), odom.header.stamp, map.header.frame_id, odom.header.frame_id));
+			broadcaster.sendTransform(tf::StampedTransform(odom_to_map.inverse(), odom.header.stamp, map.header.frame_id, odom_frame_id));
 		}catch(tf::TransformException ex){
 			std::cout << ex.what() << std::endl;
 		}
@@ -1134,4 +1144,16 @@ double NodeEdgeLocalizer::get_slope_angle(double angle)
 		angle += M_PI;
 	}
 	return angle;
+}
+
+void NodeEdgeLocalizer::publish_odom_tf(Eigen::Vector3d& odom, double yaw)
+{
+	tf::Transform transform;
+	transform.setOrigin(tf::Vector3(odom(0), odom(1), odom(2)));
+	tf::Quaternion q;
+	q.setRPY(0, 0, yaw);
+	transform.setRotation(q);
+	odom_time = ros::Time::now();
+	tf::StampedTransform odom_tf(transform, odom_time, odom_frame_id, robot_frame_id);
+	broadcaster.sendTransform(odom_tf);	
 }
