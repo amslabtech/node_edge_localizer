@@ -123,6 +123,8 @@ private:
 	int begin_line_edge_index;
 	int end_line_edge_index;
 	int last_line_edge_index;
+
+	int tentative_correction_count;// count down
 };
 
 int main(int argc, char** argv)
@@ -170,6 +172,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	particles.resize(PARTICLES_NUM);
 	odom_correction = Eigen::Affine3d::Identity();
 	robot_moved_distance = 0.0;
+	tentative_correction_count = POSE_NUM_PCA;
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -282,18 +285,23 @@ void NodeEdgeLocalizer::process(void)
 				particle_filter(unique_edge_index, unique_edge_flag);
 				std::cout << "--- clustering trajectories ---" << std::endl;
 				clustering_trajectories();
-				std::cout << "--- calculate correction ---" << std::endl;
+				if(tentative_correction_count > 0){
+					tentative_correction_count--;
+				}
+				std::cout << "tentative correction count: " << tentative_correction_count << std::endl;
+				std::cout << " --- manage passed edge ---" << std::endl;
 				if(unique_edge_flag){
 					manage_passed_edge(unique_edge_index);
 				}
+				std::cout << "--- calculate correction ---" << std::endl;
 				correct();
 				if(clear_flag){
 					clear(unique_edge_index);
 				}
-				publish_edge(unique_edge_index, unique_edge_flag);
 				std::cout << "--- publish ---" << std::endl;
 				publish_pose();
 				publish_particles();
+				publish_edge(unique_edge_index, unique_edge_flag);
 				visualize_lines();
 				odom_updated = false;
 				std::cout << "process time: " << ros::Time::now().toSec() - start_time << "[s]" << std::endl;
@@ -342,10 +350,12 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					std::cout << "robot is curving but on same edge" << std::endl;
 					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
 					get_slope_from_trajectory(linear_trajectories.back(), last_slope);
-					Eigen::Affine3d diff_correction;
-					calculate_affine_transformation_tentatively(diff_correction);
-					std::cout << "corrected line angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
-					odom_correction = diff_correction * odom_correction;
+					if(tentative_correction_count == 0){
+						Eigen::Affine3d diff_correction;
+						calculate_affine_transformation_tentatively(diff_correction);
+						std::cout << "tentatively corrected line angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
+						odom_correction = diff_correction * odom_correction;
+					}
 					last_yaw = estimated_yaw;
 					std::cout << "the last of trajectories was extended" << std::endl;
 					std::cout << "trajectory length: " << get_length_of_trajectory(linear_trajectories.back()) << std::endl;
@@ -561,6 +571,7 @@ void NodeEdgeLocalizer::correct(void)
 			std::cout << "corrected" << std::endl;
 			correction_count++;
 			std::cout << "corrected line angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
+			tentative_correction_count = POSE_NUM_PCA;
 		}else{
 			std::cout << "###failed to correct###" << std::endl;
 			std::cout << "###correction reset###" << std::endl;
@@ -686,6 +697,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	affine_transformation = t1 * rotation * t2;
 	yaw_correction += direction_diff;
 	std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
+	tentative_correction_count = POSE_NUM_PCA;
 	correct_trajectories(linear_trajectories.size() - 1, affine_transformation);
 }
 
