@@ -559,7 +559,7 @@ void NodeEdgeLocalizer::correct(void)
 {
 	static int correction_count = 0;
 
-	std::cout << "yaws: " << passed_line_directions.size() << std::endl;
+	std::cout << "passed lines: " << passed_line_directions.size() << std::endl;
 	std::cout << "correction_count: " << correction_count << std::endl;
 
 	if(passed_line_directions.size() > correction_count && linear_trajectories.size() > correction_count + 1){
@@ -577,8 +577,8 @@ void NodeEdgeLocalizer::correct(void)
 			std::cout << "corrected line angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 			tentative_correction_count = POSE_NUM_PCA;
 		}else{
-			std::cout << "###failed to correct###" << std::endl;
-			std::cout << "###correction reset###" << std::endl;
+			std::cout << "### failed to correct ###" << std::endl;
+			std::cout << "### correction reset ###" << std::endl;
 			clear_flag = true;
 		}
 	}
