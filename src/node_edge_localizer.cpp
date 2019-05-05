@@ -200,69 +200,73 @@ void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapCons
 void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
 	std::cout << "--- odom calback ---" << std::endl;
-	static Eigen::Vector3d last_estimated_pose;
-	static bool first_odom_callback_flag = true;
-	static Eigen::Vector3d first_odom_pose;
-	static double first_odom_yaw;
+	if(!init_flag){
+		static Eigen::Vector3d last_estimated_pose;
+		static bool first_odom_callback_flag = true;
+		static Eigen::Vector3d first_odom_pose;
+		static double first_odom_yaw;
 
-	last_estimated_pose = estimated_pose;
+		last_estimated_pose = estimated_pose;
 
-	double odom_yaw; 
-	if(!USE_ORIENTATION_Z_AS_YAW){
-		odom_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction;
-	}else{
-		odom_yaw = msg->pose.pose.orientation.z + yaw_correction;
-	}
-	if(first_odom_callback_flag){
-		first_odom_yaw = odom_yaw; 
-		std::cout << "first odom yaw: " << first_odom_yaw << std::endl;
-	}
-	odom_yaw -= first_odom_yaw;
-	estimated_yaw = odom_yaw + INIT_YAW;
-	estimated_yaw = pi_2_pi(estimated_yaw);
-
-	Eigen::Vector3d odom_pose;
-	odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
-	if(first_odom_callback_flag){
-		first_odom_pose = odom_pose;
-		std::cout << "first odom pose: \n" << first_odom_pose << std::endl;
-	}
-	odom_pose -= first_odom_pose;
-	odom_pose << odom_pose(0) * cos(-first_odom_yaw) - odom_pose(1) * sin(-first_odom_yaw),
-				 odom_pose(0) * sin(-first_odom_yaw) + odom_pose(1) * cos(-first_odom_yaw),
-				 0.0;
-	Eigen::Vector3d odom_to_map;
-	odom_to_map << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW),
-			       odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW),
-				   0.0;
-	estimated_pose = odom_correction * (odom_to_map + init_estimated_pose);
-
-	std::cout << "odom_pose: \n" << odom_pose << std::endl;
-	std::cout << "odom_yaw: \n" << odom_yaw << std::endl;
-	std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
-	std::cout << "yaw_correction: " << yaw_correction << "[rad]" << std::endl;
-	std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
-	std::cout << "estimated_yaw: " << estimated_yaw << "[rad]" << std::endl;
-	robot_frame_id = msg->child_frame_id;
-	odom_frame_id = msg->header.frame_id;
-	if(first_odom_callback_flag){
-		first_odom_callback_flag = false;
-	}else{
-		odom_updated = true;
-		// robot moveed distance for particle
-		Eigen::Vector3d move_vector = estimated_pose - last_estimated_pose;
-		robot_moved_distance = move_vector.norm();
-		double moved_direction = atan2(move_vector(1), move_vector(0));
-		double diff_yaw_and_moved_direction = estimated_yaw - moved_direction;
-		diff_yaw_and_moved_direction = pi_2_pi(diff_yaw_and_moved_direction);
-		robot_moved_distance *= cos(diff_yaw_and_moved_direction);
-		if(fabs(diff_yaw_and_moved_direction) < M_PI / 2.0){
-			// forward
-			robot_moved_distance = robot_moved_distance;
+		double odom_yaw; 
+		if(!USE_ORIENTATION_Z_AS_YAW){
+			odom_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction;
 		}else{
-			// back
-			robot_moved_distance = -robot_moved_distance;
+			odom_yaw = msg->pose.pose.orientation.z + yaw_correction;
 		}
+		if(first_odom_callback_flag){
+			first_odom_yaw = odom_yaw; 
+			std::cout << "first odom yaw: " << first_odom_yaw << std::endl;
+		}
+		odom_yaw -= first_odom_yaw;
+		estimated_yaw = odom_yaw + INIT_YAW;
+		estimated_yaw = pi_2_pi(estimated_yaw);
+
+		Eigen::Vector3d odom_pose;
+		odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
+		if(first_odom_callback_flag){
+			first_odom_pose = odom_pose;
+			std::cout << "first odom pose: \n" << first_odom_pose << std::endl;
+		}
+		odom_pose -= first_odom_pose;
+		odom_pose << odom_pose(0) * cos(-first_odom_yaw) - odom_pose(1) * sin(-first_odom_yaw),
+					 odom_pose(0) * sin(-first_odom_yaw) + odom_pose(1) * cos(-first_odom_yaw),
+					 0.0;
+		Eigen::Vector3d odom_to_map;
+		odom_to_map << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW),
+					   odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW),
+					   0.0;
+		estimated_pose = odom_correction * (odom_to_map + init_estimated_pose);
+
+		std::cout << "odom_pose: \n" << odom_pose << std::endl;
+		std::cout << "odom_yaw: \n" << odom_yaw << std::endl;
+		std::cout << "odom_correction: \n" << odom_correction.matrix() << std::endl;
+		std::cout << "yaw_correction: " << yaw_correction << "[rad]" << std::endl;
+		std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
+		std::cout << "estimated_yaw: " << estimated_yaw << "[rad]" << std::endl;
+		robot_frame_id = msg->child_frame_id;
+		odom_frame_id = msg->header.frame_id;
+		if(first_odom_callback_flag){
+			first_odom_callback_flag = false;
+		}else{
+			odom_updated = true;
+			// robot moveed distance for particle
+			Eigen::Vector3d move_vector = estimated_pose - last_estimated_pose;
+			robot_moved_distance = move_vector.norm();
+			double moved_direction = atan2(move_vector(1), move_vector(0));
+			double diff_yaw_and_moved_direction = estimated_yaw - moved_direction;
+			diff_yaw_and_moved_direction = pi_2_pi(diff_yaw_and_moved_direction);
+			robot_moved_distance *= cos(diff_yaw_and_moved_direction);
+			if(fabs(diff_yaw_and_moved_direction) < M_PI / 2.0){
+				// forward
+				robot_moved_distance = robot_moved_distance;
+			}else{
+				// back
+				robot_moved_distance = -robot_moved_distance;
+			}
+		}
+	}else{
+		std::cout << "not initialized !!!" << std::endl;
 	}
 }
 
