@@ -293,12 +293,15 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "--- particle filter ---" << std::endl;
 				particle_filter(unique_edge_index, unique_edge_flag);
 				std::cout << "--- clustering trajectories ---" << std::endl;
+				if(!unique_edge_flag){
+					tentative_correction_count = POSE_NUM_PCA;
+				}
 				clustering_trajectories();
 				if(tentative_correction_count > 0){
 					tentative_correction_count--;
 				}
 				std::cout << "tentative correction count: " << tentative_correction_count << std::endl;
-				std::cout << " --- manage passed edge ---" << std::endl;
+				std::cout << "--- manage passed edge ---" << std::endl;
 				if(unique_edge_flag){
 					manage_passed_edge(unique_edge_index);
 				}
@@ -592,10 +595,11 @@ void NodeEdgeLocalizer::correct(void)
 void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
 {
 	double direction_from_odom = get_angle_from_trajectory(linear_trajectories[count]);
-	direction_from_odom = get_slope_angle(direction_from_odom);
+	// direction_from_odom = get_slope_angle(direction_from_odom);
 	double direction_from_map = passed_line_directions[count];
-	direction_from_map = get_slope_angle(direction_from_map);
+	// direction_from_map = get_slope_angle(direction_from_map);
 	direction_diff = pi_2_pi(direction_from_map - direction_from_odom);
+	direction_diff = get_slope_angle(direction_diff);
 
 	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
 	std::cout << "direction from map: " << direction_from_map << "[rad]" << std::endl;
@@ -656,15 +660,15 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	// current line correction
 	std::cout << "# correct tentatively #" << std::endl;
 	double direction_from_odom = get_angle_from_trajectory(linear_trajectories.back());
-	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
-	direction_from_odom = get_slope_angle(direction_from_odom);
+	// direction_from_odom = get_slope_angle(direction_from_odom);
 	amsl_navigation_msgs::Node map_node_point_begin;
 	map_node_point_begin = map.nodes[get_index_from_id(map.edges[begin_line_edge_index].node0_id)];
 	amsl_navigation_msgs::Node map_node_point_last;
 	map_node_point_last = map.nodes[get_index_from_id(map.edges[last_line_edge_index].node1_id)];
 	double direction_from_map = atan2(map_node_point_last.point.y - map_node_point_begin.point.y, map_node_point_last.point.x - map_node_point_begin.point.x);
-	direction_from_map = get_slope_angle(direction_from_map);
+	// direction_from_map = get_slope_angle(direction_from_map);
 	double direction_diff = pi_2_pi(direction_from_map - direction_from_odom);
+	direction_diff = get_slope_angle(direction_diff);
 
 	std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
 	std::cout << "direction from map: " << direction_from_map << "[rad]" << std::endl;
