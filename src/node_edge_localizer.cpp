@@ -1084,14 +1084,19 @@ void NodeEdgeLocalizer::visualize_lines(void)
 	lines_marker.color.b = 1.0;
 	lines_marker.color.a = 1.0;
 	for(auto traj : linear_trajectories){
+		double length = get_length_of_trajectory(traj);
+		Eigen::Vector2d slope;
+		Eigen::Vector2d center;
+		get_slope_and_center_from_trajectory(traj, slope, center);
+		double angle = atan2(slope(1), slope(0));
 		geometry_msgs::Point p;
-		p.x = (*traj.begin())(0);
-		p.y = (*traj.begin())(1);
-		p.z = (*traj.begin())(2) + 0.1;
+		p.x = center(0) + 0.5 * length * cos(angle);
+		p.y = center(1) + 0.5 * length * sin(angle);
+		p.z = 0.1;
 		lines_marker.points.push_back(p);
-		p.x = (*(traj.end() - 1))(0);
-		p.y = (*(traj.end() - 1))(1);
-		p.z = (*(traj.end() - 1))(2) + 0.1;
+		p.x = center(0) - 0.5 * length * cos(angle);
+		p.y = center(1) - 0.5 * length * sin(angle);
+		p.z = 0.1;
 		lines_marker.points.push_back(p);
 	}
 	lines_pub.publish(lines_marker);
