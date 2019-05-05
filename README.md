@@ -57,3 +57,5 @@
   - when the robot passes the node by this distance, the particles determine the next edge according to the robot's orientation (default: 0.5[m])
 - same_trajectory_angle_threshold
   - the continuous trajectories with less orientation difference than this angle is considered to be same trajectory (default: 0.523598[rad])
+- continuous_line_threshold 
+  - connected edges with angles smaller than the threshold are considered straight (default: 0.448798[rad])

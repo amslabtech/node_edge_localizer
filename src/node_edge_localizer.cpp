@@ -77,6 +77,7 @@ private:
 	double NOISE_SIGMA;
 	double EDGE_DECISION_THRESHOLD;
 	double SAME_TRAJECTORY_ANGLE_THRESHOLD;
+	double CONTINUOUS_LINE_THRESHOLD;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -161,6 +162,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("NOISE_SIGMA", NOISE_SIGMA, {0.05});
 	private_nh.param("EDGE_DECISION_THRESHOLD", EDGE_DECISION_THRESHOLD, {0.5});
 	private_nh.param("SAME_TRAJECTORY_ANGLE_THRESHOLD", SAME_TRAJECTORY_ANGLE_THRESHOLD, {M_PI/6.0});
+	private_nh.param("CONTINUOUS_LINE_THRESHOLD", CONTINUOUS_LINE_THRESHOLD, {M_PI/7.0});
 
 	map_subscribed = false;
 	odom_updated = false;
@@ -189,6 +191,8 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "PARTICLES_NUM: " << PARTICLES_NUM << std::endl;
 	std::cout << "NOISE_SIGMA: " << NOISE_SIGMA << std::endl;
 	std::cout << "EDGE_DECISION_THRESHOLD: " << EDGE_DECISION_THRESHOLD << std::endl;
+	std::cout << "SAME_TRAJECTORY_ANGLE_THRESHOLD: " << SAME_TRAJECTORY_ANGLE_THRESHOLD << std::endl;
+	std::cout << "CONTINUOUS_LINE_THRESHOLD: " << CONTINUOUS_LINE_THRESHOLD << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -1006,8 +1010,6 @@ int NodeEdgeLocalizer::get_next_edge_index_from_edge_index(int index)
 
 void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 {
-	double CONTINUOUS_LINE_THRESHOLD = M_PI / 7.0;
-
 	if(edge_index != last_line_edge_index){
 		// entered new edge
 		std::cout << "!!! new unique edge !!!" << std::endl;

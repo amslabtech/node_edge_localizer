@@ -14,6 +14,7 @@
 	<arg name="noise_sigma" default="0.05"/>
 	<arg name="edge_decision_threshold" default="0.5"/>
 	<arg name="same_trajectory_angle_threshold" default="0.523598"/>
+	<arg name="continuous_line_threshold" default="0.448798"/>
 
 	<node pkg="node_edge_localizer" type="node_edge_localizer" name="node_edge_localizer" ns="localiztion">
 		<param name="HZ" value="$(arg hz)" type="int"/>
@@ -30,6 +31,8 @@
 		<param name="PARTICLES_NUM" value="$(arg particles_num)" type="int"/>
 		<param name="NOISE_SIGMA" value="$(arg noise_sigma)" type="double"/>
 		<param name="EDGE_DECISION_THRESHOLD" value="$(arg edge_decision_threshold)" type="double"/>
+		<param name="SAME_TRAJECTORY_ANGLE_THRESHOLD" value="$(arg same_trajectory_angle_threshold)" type="double"/>
+		<param name="CONTINUOUS_LINE_THRESHOLD" value="$(arg continuous_line_threshold)" type="double"/>
 	</node>
 
 </launch>
