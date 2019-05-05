@@ -239,11 +239,11 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 		odom_pose -= first_odom_pose;
 		odom_pose << odom_pose(0) * cos(-first_odom_yaw) - odom_pose(1) * sin(-first_odom_yaw),
 					 odom_pose(0) * sin(-first_odom_yaw) + odom_pose(1) * cos(-first_odom_yaw),
-					 0.0;
+					 odom_pose(2);
 		Eigen::Vector3d odom_to_map;
 		odom_to_map << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW),
 					   odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW),
-					   0.0;
+					   odom_pose(2);
 		estimated_pose = odom_correction * (odom_to_map + init_estimated_pose);
 
 		std::cout << "odom_pose: \n" << odom_pose << std::endl;
@@ -1078,7 +1078,7 @@ void NodeEdgeLocalizer::visualize_lines(void)
 	lines_marker.pose.orientation.w = 1;
 	lines_marker.id = 0;
 	lines_marker.type = visualization_msgs::Marker::LINE_LIST;
-	lines_marker.scale.x = 0.1;
+	lines_marker.scale.x = 0.3;
 	lines_marker.color.r = 1.0;
 	lines_marker.color.g = 0.0;
 	lines_marker.color.b = 1.0;
@@ -1087,11 +1087,11 @@ void NodeEdgeLocalizer::visualize_lines(void)
 		geometry_msgs::Point p;
 		p.x = (*traj.begin())(0);
 		p.y = (*traj.begin())(1);
-		p.z = (*traj.begin())(2);
+		p.z = (*traj.begin())(2) + 0.1;
 		lines_marker.points.push_back(p);
 		p.x = (*(traj.end() - 1))(0);
 		p.y = (*(traj.end() - 1))(1);
-		p.z = (*(traj.end() - 1))(2);
+		p.z = (*(traj.end() - 1))(2) + 0.1;
 		lines_marker.points.push_back(p);
 	}
 	lines_pub.publish(lines_marker);
