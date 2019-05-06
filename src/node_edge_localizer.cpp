@@ -62,6 +62,7 @@ public:
 	void publish_edge(int, bool);
 	double get_slope_angle(double);
 	void publish_odom_tf(Eigen::Vector3d&, double);
+	void remove_shorter_line_from_trajectories(const int);
 
 private:
 	double HZ;
@@ -80,7 +81,6 @@ private:
 	double EDGE_DECISION_THRESHOLD;
 	double SAME_TRAJECTORY_ANGLE_THRESHOLD;
 	double CONTINUOUS_LINE_THRESHOLD;
-	double LINE_EDGE_RATIO_THRESHOLD;
 	bool ENABLE_ODOM_TF;
 
 	ros::NodeHandle nh;
@@ -168,7 +168,6 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("EDGE_DECISION_THRESHOLD", EDGE_DECISION_THRESHOLD, {0.5});
 	private_nh.param("SAME_TRAJECTORY_ANGLE_THRESHOLD", SAME_TRAJECTORY_ANGLE_THRESHOLD, {M_PI/6.0});
 	private_nh.param("CONTINUOUS_LINE_THRESHOLD", CONTINUOUS_LINE_THRESHOLD, {M_PI/7.0});
-	private_nh.param("LINE_EDGE_RATIO_THRESHOLD", LINE_EDGE_RATIO_THRESHOLD, {0.5});
 	private_nh.param("ENABLE_ODOM_TF", ENABLE_ODOM_TF, {false});
 
 	map_subscribed = false;
@@ -200,7 +199,6 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "EDGE_DECISION_THRESHOLD: " << EDGE_DECISION_THRESHOLD << std::endl;
 	std::cout << "SAME_TRAJECTORY_ANGLE_THRESHOLD: " << SAME_TRAJECTORY_ANGLE_THRESHOLD << std::endl;
 	std::cout << "CONTINUOUS_LINE_THRESHOLD: " << CONTINUOUS_LINE_THRESHOLD << std::endl;
-	std::cout << "LINE_EDGE_RATIO_THRESHOLD: " << LINE_EDGE_RATIO_THRESHOLD << std::endl;
 	std::cout << "ENABLE_ODOM_TF: " << ENABLE_ODOM_TF << std::endl;
 }
 
@@ -592,30 +590,25 @@ void NodeEdgeLocalizer::correct(void)
 		Eigen::Affine3d diff_correction;
 		calculate_affine_tranformation(correction_count, ratio, direction_diff, diff_correction);
 
-		if(ratio > LINE_EDGE_RATIO_THRESHOLD){
-			if(direction_diff < M_PI / 15.0){
-				odom_correction = diff_correction * odom_correction;
-				yaw_correction += direction_diff;
-				correct_trajectories(correction_count, diff_correction);
-				std::cout << "corrected" << std::endl;
-				correction_count++;
-				std::cout << "corrected line angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
-				tentative_correction_count = POSE_NUM_PCA;
-			}else{
-				std::cout << "### failed to correct ###" << std::endl;
-				std::cout << "### correction reset ###" << std::endl;
-				clear_flag = true;
-			}
+		if(direction_diff < M_PI / 6){
+			odom_correction = diff_correction * odom_correction;
+			yaw_correction += direction_diff;
+			correct_trajectories(correction_count, diff_correction);
+			std::cout << "corrected" << std::endl;
+			correction_count++;
+			std::cout << "corrected line angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
+			tentative_correction_count = POSE_NUM_PCA;
 		}else{
-			std::cout << "### correction update was rejected because of very short line ###" << std::endl;
-			std::cout << "### line [" << correction_count << "] was deleted ###" << std::endl;
-			linear_trajectories.erase(linear_trajectories.begin() + correction_count);
+			std::cout << "### failed to correct ###" << std::endl;
+			std::cout << "### correction reset ###" << std::endl;
+			clear_flag = true;
 		}
 	}
 }
 
 void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
 {
+	remove_shorter_line_from_trajectories(count);
 	double direction_from_odom = get_angle_from_trajectory(linear_trajectories[count]);
 	// direction_from_odom = get_slope_angle(direction_from_odom);
 	double direction_from_map = passed_line_directions[count];
@@ -630,6 +623,7 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
 	// This represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
+	std::vector<Eigen::Vector3d> longest_line;
 	get_intersection_from_trajectories(*(linear_trajectories.begin() + count), *(linear_trajectories.begin() + count + 1), intersection_point_i);
 	std::cout << "B(i): \n" << intersection_point_i << std::endl;
 	// This represents N(i) in paper
@@ -1158,4 +1152,29 @@ void NodeEdgeLocalizer::publish_odom_tf(Eigen::Vector3d& odom, double yaw)
 	odom_time = ros::Time::now();
 	tf::StampedTransform odom_tf(transform, odom_time, odom_frame_id, robot_frame_id);
 	broadcaster.sendTransform(odom_tf);	
+}
+
+void NodeEdgeLocalizer::remove_shorter_line_from_trajectories(const int count)
+{
+	std::cout << "remove shorter line from trajectories" << std::endl;
+	int longest_line_index = -1;	
+	double longest_length = 0;
+	int size = linear_trajectories.size();
+	for(int i=count;i<size-1;i++){
+		double length = get_length_of_trajectory(linear_trajectories[i]);
+		std::cout << "length of line[" << i << "] is " << length << "[m]" << std::endl;
+		if(length > longest_length){
+			longest_length = length;
+			longest_line_index = i;
+		}
+	}
+	std::cout << "the longest line index: " << longest_line_index << std::endl;
+	for(auto line=(linear_trajectories.begin()+count);line!=linear_trajectories.end()-1;){
+		double length = get_length_of_trajectory(*line);
+		if(length < longest_length){
+			line = linear_trajectories.erase(line);
+		}else{
+			line++;
+		}
+	}
 }
