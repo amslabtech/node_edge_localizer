@@ -86,7 +86,6 @@ private:
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
 
-	ros::Publisher pose_pub;
 	ros::Publisher edge_pub;
 	ros::Publisher odom_pub;
 	ros::Publisher particles_pub;
@@ -148,9 +147,8 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 {
 	map_sub = nh.subscribe("/node_edge_map", 1, &NodeEdgeLocalizer::map_callback, this);
 	odom_sub = nh.subscribe("/odom/complement", 1 ,&NodeEdgeLocalizer::odom_callback, this);
-	pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/estimated_pose/pose", 1);
 	edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
-	odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/odom", 1);
+	odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/pose", 1);
 	particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);
 	lines_pub = nh.advertise<visualization_msgs::Marker>("/passed_lines/viz", 1);
 
@@ -216,6 +214,7 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
 	std::cout << "--- odom calback ---" << std::endl;
 	if(!init_flag){
+		double start_time = ros::Time::now().toSec();
 		static Eigen::Vector3d last_estimated_pose;
 		static bool first_odom_callback_flag = true;
 		static Eigen::Vector3d first_odom_pose;
@@ -284,6 +283,7 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 		if(ENABLE_ODOM_TF){
 			publish_odom_tf(odom_pose, odom_yaw);
 		}
+		std::cout << "odom callback time: " << ros::Time::now().toSec() - start_time << "[s]" << std::endl;
 	}else{
 		std::cout << "not initialized !!!" << std::endl;
 	}
