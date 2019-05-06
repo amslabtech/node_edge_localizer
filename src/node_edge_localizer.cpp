@@ -145,7 +145,7 @@ int main(int argc, char** argv)
 NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	: private_nh("~")
 {
-	map_sub = nh.subscribe("/node_edge_map", 1, &NodeEdgeLocalizer::map_callback, this);
+	map_sub = nh.subscribe("/node_edge_map/map", 1, &NodeEdgeLocalizer::map_callback, this);
 	odom_sub = nh.subscribe("/odom/complement", 1 ,&NodeEdgeLocalizer::odom_callback, this);
 	edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
 	odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/pose", 1);
