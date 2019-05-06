@@ -387,6 +387,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					std::cout << "trajectory angle: " << get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 				}
 			}else{
+				std::cout << "first edge" << std::endl;
 				// first edge
 				if(trajectory_length > MIN_LINE_LENGTH){
 					get_slope_from_trajectory(trajectory, last_slope);
@@ -400,6 +401,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 			}
 		}else{
 			// maybe robot is turning
+			std::cout << "robot is curving or going straight longer than threshold, \nbut trajectory size is not larger than MIN_LINE_SIZE" << std::endl;
 		}
 		trajectory.clear();
 		std::cout << "trajectory was cleared" << std::endl;
