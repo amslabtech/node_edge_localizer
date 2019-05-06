@@ -129,6 +129,7 @@ private:
 	int end_line_edge_index;
 	int last_line_edge_index;
 
+	int correction_count = 0;// count up
 	int tentative_correction_count;// count down
 
 	ros::Time odom_time;
@@ -580,7 +581,6 @@ void NodeEdgeLocalizer::calculate_pca(std::vector<Eigen::Vector3d>& traj, Eigen:
 
 void NodeEdgeLocalizer::correct(void)
 {
-	static int correction_count = 0;
 
 	std::cout << "passed lines: " << passed_line_directions.size() << std::endl;
 	std::cout << "correction_count: " << correction_count << std::endl;
@@ -697,8 +697,8 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 
 	// This represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
-	if(linear_trajectories.size() > 1){
-		get_intersection_from_trajectories(*(linear_trajectories.end() - 2), *(linear_trajectories.end() - 1), intersection_point_i);
+	if(correction_count > 0){
+		get_intersection_from_trajectories(*(linear_trajectories.begin() + correction_count - 1), *(linear_trajectories.end() - 1), intersection_point_i);
 	}else{
 		intersection_point_i = init_estimated_pose;
 	}
