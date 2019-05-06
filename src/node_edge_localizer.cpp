@@ -320,7 +320,7 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "--- calculate correction ---" << std::endl;
 				correct();
 				if(clear_flag){
-					clear(unique_edge_index);
+					//clear(unique_edge_index);
 				}
 				std::cout << "--- publish ---" << std::endl;
 				publish_pose();
@@ -689,29 +689,34 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	std::cout << "direction from map: " << direction_from_map << "[rad]" << std::endl;
 	std::cout << "direction difference: " << direction_diff << "[rad]" << std::endl;
 
-	// This represents B(i) in paper
-	Eigen::Vector3d intersection_point_i;
-	if(correction_count > 0){
-		get_intersection_from_trajectories(*(linear_trajectories.begin() + correction_count - 1), *(linear_trajectories.end() - 1), intersection_point_i);
-	}else{
-		intersection_point_i = init_estimated_pose;
-	}
-	std::cout << "B(i): \n" << intersection_point_i << std::endl;
-	// This represents N(i) in paper
-	Eigen::Vector3d map_node_point_i;
-	std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
-	map_node_point_i << map_node_point_begin.point.x, map_node_point_begin.point.y, 0.0;
-	std::cout << "N(i): \n" << map_node_point_i << std::endl;
+	if(fabs(direction_diff) < M_PI / 6.0){
+		// This represents B(i) in paper
+		Eigen::Vector3d intersection_point_i;
+		if(correction_count > 0){
+			get_intersection_from_trajectories(*(linear_trajectories.begin() + correction_count - 1), *(linear_trajectories.end() - 1), intersection_point_i);
+		}else{
+			intersection_point_i = init_estimated_pose;
+		}
+		std::cout << "B(i): \n" << intersection_point_i << std::endl;
+		// This represents N(i) in paper
+		Eigen::Vector3d map_node_point_i;
+		std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
+		map_node_point_i << map_node_point_begin.point.x, map_node_point_begin.point.y, 0.0;
+		std::cout << "N(i): \n" << map_node_point_i << std::endl;
 
-	Eigen::Translation<double, 3> t1(map_node_point_i);
-	Eigen::Translation<double, 3> t2(-intersection_point_i);
-	Eigen::Matrix3d rotation;
-	rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
-	affine_transformation = t1 * rotation * t2;
-	yaw_correction += direction_diff;
-	std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
-	tentative_correction_count = POSE_NUM_PCA;
-	correct_trajectories(linear_trajectories.size() - 1, affine_transformation);
+		Eigen::Translation<double, 3> t1(map_node_point_i);
+		Eigen::Translation<double, 3> t2(-intersection_point_i);
+		Eigen::Matrix3d rotation;
+		rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
+		affine_transformation = t1 * rotation * t2;
+		yaw_correction += direction_diff;
+		std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
+		tentative_correction_count = POSE_NUM_PCA;
+		correct_trajectories(linear_trajectories.size() - 1, affine_transformation);
+	}else{
+		std::cout << "correction was interrupted because the angle difference is large" << std::endl;
+		tentative_correction_count = POSE_NUM_PCA;
+	}
 }
 
 void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<Eigen::Vector3d>& trajectory_0, std::vector<Eigen::Vector3d>& trajectory_1, Eigen::Vector3d& intersection_point)
