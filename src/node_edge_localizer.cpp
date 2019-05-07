@@ -35,7 +35,7 @@ public:
 	int get_edge_index_from_node_id(int, int);
 	void initialize(void);
 	void correct(void);
-	void calculate_affine_tranformation(const int, double&, double&, Eigen::Affine3d&);
+	bool calculate_affine_tranformation(const int, double&, double&, Eigen::Affine3d&);
 	void calculate_affine_transformation_tentatively(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<Eigen::Vector3d>&, std::vector<Eigen::Vector3d>&, Eigen::Vector3d&);
 	int get_index_from_id(int);
@@ -73,6 +73,7 @@ private:
 	double CONTINUOUS_LINE_THRESHOLD;
 	bool ENABLE_ODOM_TF;
 	double CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD;
+
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
 
@@ -475,9 +476,9 @@ void NodeEdgeLocalizer::correct(void)
 		double ratio;
 		double direction_diff;
 		Eigen::Affine3d diff_correction;
-		calculate_affine_tranformation(correction_count, ratio, direction_diff, diff_correction);
+		bool succeeded = calculate_affine_tranformation(correction_count, ratio, direction_diff, diff_correction);
 
-		if(fabs(direction_diff) < CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD){
+		if(succeeded){
 			odom_correction = diff_correction * odom_correction;
 			yaw_correction += direction_diff;
 			correct_trajectories(correction_count, diff_correction);
@@ -493,7 +494,7 @@ void NodeEdgeLocalizer::correct(void)
 	}
 }
 
-void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
+bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
 {
 	remove_shorter_line_from_trajectories(count);
 	double direction_from_odom = Calculation::get_angle_from_trajectory(linear_trajectories[count]);
@@ -548,13 +549,20 @@ void NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	std::cout << "ratio: " << ratio << std::endl;
 	std::cout << "count: " << count << std::endl;
 
-	// Eigen::Translation<double, 3> t1(intersection_point_i - map_node_point_i);
-	Eigen::Translation<double, 3> t1(map_node_point_i);
-	Eigen::Translation<double, 3> t2(-intersection_point_i);
-	Eigen::Matrix3d rotation;
-	rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
-	affine_transformation = t1 * rotation * t2;
-	std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
+	double dist_odom_map = (map_node_point_i - intersection_point_i).norm();
+	std::cout << "B(i) to N(i): " << dist_odom_map << "[m]" << std::endl;
+	if((dist_odom_map < map.edges[end_line_edge_index].distance) && (fabs(direction_diff) < CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD)){
+		// correction succeeded
+		Eigen::Translation<double, 3> t1(map_node_point_i);
+		Eigen::Translation<double, 3> t2(-intersection_point_i);
+		Eigen::Matrix3d rotation;
+		rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
+		affine_transformation = t1 * rotation * t2;
+		std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
+		return true;
+	}else{
+		return false;
+	}
 }
 
 void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affine3d& affine_transformation)
