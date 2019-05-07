@@ -12,7 +12,7 @@
 - amsl_navigation_msgs
 
 ## published topics
-- /estimated_pose/odom (nav_msgs/Odometry)
+- /estimated_pose/pose (nav_msgs/Odometry)
   - estimated robot pose on map
 - /estimated_pose/edge (amsl_navigation_msgs/Edge)
   - an edge presumed to have the robot
@@ -59,3 +59,9 @@
   - the continuous trajectories with less orientation difference than this angle is considered to be same trajectory (default: 0.523598[rad])
 - continuous_line_threshold 
   - connected edges with angles smaller than the threshold are considered straight (default: 0.448798[rad])
+- line_edge_ratio_threshold (deprecated)
+  - linear trajectories shorter than the threshold aren't used for correction (default: 0.5[m])
+- enable_odom_tf
+  - if this param is true, this node publishes internally calculated odometry (default: false)
+- correction_rejection_angle_difference_threshold
+  - if yaw of the correction result is greater than this threshold, the correction is rejected (default: 0.523598)
