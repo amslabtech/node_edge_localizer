@@ -338,6 +338,9 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 	std::cout << "trajectory curvature: " << trajectory_curvature << std::endl;
 	double trajectory_length = Calculation::get_length_of_trajectory(trajectory);
 	std::cout << "trajectory length: " << trajectory_length << std::endl;
+	if(linear_trajectories.size() > 0){
+		std::cout << "linear_trajectory length: " << Calculation::get_length_of_trajectory(linear_trajectories.back()) << std::endl;
+	}
 	if(trajectory_curvature > CURVATURE_THRESHOLD || trajectory_length > MIN_LINE_LENGTH){
 		if(trajectory.size() > MIN_LINE_SIZE){
 			static Eigen::Vector2d last_slope;
@@ -357,7 +360,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					std::cout << "robot is entering new edge" << std::endl;
 					linear_trajectories.push_back(trajectory);
 					std::cout << "remove curve from last trajectory" << std::endl;
-					remove_curve_from_trajectory(*(linear_trajectories.end() - 2));
+					//remove_curve_from_trajectory(*(linear_trajectories.end() - 2));
 					last_slope = slope;
 					std::cout << "trajectory was added to trajectories" << std::endl;
 					std::cout << "trajectory length: " << Calculation::get_length_of_trajectory(linear_trajectories.back()) << std::endl;
@@ -1005,6 +1008,7 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	double distance_from_last_node = (estimated_pose - last_node_point).norm();
 	estimated_edge.progress = distance_from_last_node / estimated_edge.distance; 
 	edge_pub.publish(estimated_edge);
+	std::cout << "estimated_edge: \n" << estimated_edge << std::endl;
 }
 
 void NodeEdgeLocalizer::publish_odom_tf(Eigen::Vector3d& odom, double yaw)
