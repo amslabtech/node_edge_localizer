@@ -907,7 +907,7 @@ void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 				begin_line_edge_index = edge_index;
 				int i=0;
 				for(auto pn : passed_nodes){
-					std::cout << "passed_node[" << i << "]: " << pn << std::endl;
+					std::cout << "passed_node[" << i << "]: \n" << pn << std::endl;
 					i++;
 				}
 			}
