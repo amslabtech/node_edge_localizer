@@ -38,9 +38,9 @@
 - curvature_threshold
   - trajectories with curvature greater than this parameter are considered as curves (default: 0.010)
 - pose_num_pca
-  - number of robot poses to calculate principal component analysis for calculating trajectory curvature and angle (default: 30)
+  - number of robot poses to calculate principal component analysis for calculating trajectory curvature and angle (default: 50)
 - min_line_size
-  - number of robot poses that exceed this parameter is considered a trajectory (default: 30)
+  - number of robot poses that exceed this parameter is considered a trajectory (default: 50)
     - this parameter is recommended to correspond with pose_num_pca
 - min_line_length
   - trajectories that are longer than this parameter and aren't curve is considered as straight lines (default: 3.0[m])
@@ -52,7 +52,7 @@
 - particles_num
   - number of particles (default: 1000)
 - noise_sigma
-  - standard deviation of particle motion noise (default: 0.05)
+  - standard deviation of particle motion noise (default: 0.10)
 - edge_decision_threshold
   - when the robot passes the node by this distance, the particles determine the next edge according to the robot's orientation (default: 0.5[m])
 - same_trajectory_angle_threshold
