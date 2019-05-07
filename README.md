@@ -64,4 +64,4 @@
 - enable_odom_tf
   - if this param is true, this node publishes internally calculated odometry (default: false)
 - correction_rejection_angle_difference_threshold
-  - if yaw of the correction result is greater than this threshold, the correction is rejected (default: 0.523598)
+  - if yaw of the correction result is greater than this threshold, the correction is rejected (default: 0.523598[rad])
