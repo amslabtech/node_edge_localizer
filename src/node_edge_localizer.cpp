@@ -224,6 +224,7 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 			std::cout << "first odom yaw: " << first_odom_yaw << std::endl;
 		}
 		odom_yaw -= first_odom_yaw;
+		odom_yaw = Calculation::pi_2_pi(odom_yaw);
 		estimated_yaw = odom_yaw + INIT_YAW;
 		estimated_yaw = Calculation::pi_2_pi(estimated_yaw);
 
