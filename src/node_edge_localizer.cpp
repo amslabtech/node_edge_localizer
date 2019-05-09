@@ -53,6 +53,7 @@ public:
 	void publish_edge(int, bool);
 	void publish_odom_tf(Eigen::Vector3d&, double);
 	void remove_shorter_line_from_trajectories(const int);
+	int search_interpolating_edge(int, int);
 
 private:
 	double HZ;
@@ -903,6 +904,14 @@ void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
 		// entered new edge
 		std::cout << "!!! new unique edge !!!" << std::endl;
 		std::cout << "index: " << edge_index << std::endl;
+		if(map.edges[last_line_edge_index].node1_id != map.edges[edge_index].node0_id){
+			// not connected edges 
+			int index = search_interpolating_edge(last_line_edge_index, edge_index);
+			if(index >= 0){
+				std::cout << "interpolatin with edge index: " << index << std::endl;
+				edge_index = index;
+			}
+		}
 		double angle_diff = fabs(Calculation::pi_2_pi(map.edges[edge_index].direction - map.edges[last_line_edge_index].direction));
 		if(angle_diff > CONTINUOUS_LINE_THRESHOLD){
 			end_line_edge_index = last_line_edge_index;
@@ -1055,4 +1064,18 @@ void NodeEdgeLocalizer::remove_shorter_line_from_trajectories(const int count)
 		}
 		index++;
 	}
+}
+
+int NodeEdgeLocalizer::search_interpolating_edge(int edge0_index, int edge1_index)
+{
+	int edge0_node1_id = map.edges[edge0_index].node1_id;
+	int edge1_node0_id = map.edges[edge1_index].node0_id;
+	int index = 0;
+	for(auto e : map.edges){
+		if(e.node0_id == edge0_node1_id && e.node1_id == edge1_node0_id){
+			return index;
+		}
+		index++;
+	}
+	return -1;
 }
