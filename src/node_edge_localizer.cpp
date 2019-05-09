@@ -615,6 +615,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	}else{
 		std::cout << "correction was interrupted because the angle difference is large" << std::endl;
 		tentative_correction_count = POSE_NUM_PCA;
+		affine_transformation = Eigen::Affine3d::Identity();
 	}
 }
 
