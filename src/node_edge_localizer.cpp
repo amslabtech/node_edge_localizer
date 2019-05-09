@@ -73,6 +73,7 @@ private:
 	double CONTINUOUS_LINE_THRESHOLD;
 	bool ENABLE_ODOM_TF;
 	double CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD;
+	int RESAMPLING_INTERVAL;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -161,6 +162,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("CONTINUOUS_LINE_THRESHOLD", CONTINUOUS_LINE_THRESHOLD, {M_PI/7.0});
 	private_nh.param("ENABLE_ODOM_TF", ENABLE_ODOM_TF, {false});
 	private_nh.param("CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD", CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD, {M_PI/6.0});
+	private_nh.param("RESAMPLING_INTERVAL", RESAMPLING_INTERVAL, {5});
 
 	map_subscribed = false;
 	odom_updated = false;
@@ -193,6 +195,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "CONTINUOUS_LINE_THRESHOLD: " << CONTINUOUS_LINE_THRESHOLD << std::endl;
 	std::cout << "ENABLE_ODOM_TF: " << ENABLE_ODOM_TF << std::endl;
 	std::cout << "CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD: " << CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD << std::endl;
+	std::cout << "RESAMPLING_INTERVAL: " << RESAMPLING_INTERVAL << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -832,7 +835,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	}
 
 	// resampling
-	if(resampling_count % 3 == 0){
+	if(resampling_count % RESAMPLING_INTERVAL == 0){
 		resampling();
 		resampling_count = 0;
 	}
@@ -854,6 +857,7 @@ void NodeEdgeLocalizer::resampling(void)
 	for(auto p : particles){
 		weight_sum += p.weight;
 	}
+	std::cout << "particle weight sum before resampling" << std::endl;
 
 	std::uniform_real_distribution<> rand(0.0, weight_sum);
 
