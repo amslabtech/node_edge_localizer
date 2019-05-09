@@ -857,7 +857,7 @@ void NodeEdgeLocalizer::resampling(void)
 	for(auto p : particles){
 		weight_sum += p.weight;
 	}
-	std::cout << "particle weight sum before resampling" << std::endl;
+	std::cout << "particle weight sum before resampling: " << weight_sum << std::endl;
 
 	std::uniform_real_distribution<> rand(0.0, weight_sum);
 

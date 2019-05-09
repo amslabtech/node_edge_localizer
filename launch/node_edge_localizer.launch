@@ -18,6 +18,7 @@
 	<arg name="line_edge_ratio_threshold" default="0.5"/>
 	<arg name="enable_odom_tf" default="false"/>
 	<arg name="correction_rejection_angle_difference_threshold" default="0.523598"/>
+	<arg name="resampling_interval" default="5"/>
 
 	<node pkg="node_edge_localizer" type="node_edge_localizer" name="node_edge_localizer" ns="localiztion">
 		<param name="HZ" value="$(arg hz)" type="int"/>
@@ -39,6 +40,7 @@
 		<param name="LINE_EDGE_RATIO_THRESHOLD" value="$(arg line_edge_ratio_threshold)" type="double"/>
 		<param name="ENABLE_ODOM_TF" value="$(arg enable_odom_tf)" type="bool"/>
 		<param name="CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD" value="$(arg correction_rejection_angle_difference_threshold)" type="double"/>
+		<param name="RESAMPLING_INTERVAL" value="$(arg resampling_interval)"/>
 	</node>
 
 </launch>
