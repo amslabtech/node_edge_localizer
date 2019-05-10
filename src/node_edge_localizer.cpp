@@ -54,6 +54,7 @@ public:
 	void publish_odom_tf(Eigen::Vector3d&, double);
 	void remove_shorter_line_from_trajectories(const int);
 	int search_interpolating_edge(int, int);
+	void set_particle_to_near_edge(bool, int, NodeEdgeParticle&);
 
 private:
 	double HZ;
@@ -845,6 +846,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	std::cout << "unique edge index: " << unique_edge_index << std::endl;
 	std::cout << "unique edge flag: " << unique_edge_flag << std::endl;
 	
+	set_particle_to_near_edge(unique_edge_flag, unique_edge_index, particles[0]);
 }
 
 void NodeEdgeLocalizer::resampling(void)
@@ -1079,4 +1081,53 @@ int NodeEdgeLocalizer::search_interpolating_edge(int edge0_index, int edge1_inde
 		index++;
 	}
 	return -1;
+}
+
+void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int unique_edge_index, NodeEdgeParticle& p)
+{
+	if(unique_edge_flag){
+		int last_node_id = map.edges[unique_edge_index].node0_id;
+		std::vector<amsl_navigation_msgs::Edge> candidate_edges;
+		for(auto e : map.edges){
+			if(e.node0_id == last_node_id){
+				if(M_PI - fabs(Calculation::pi_2_pi(e.direction - estimated_yaw)) > CONTINUOUS_LINE_THRESHOLD){
+					candidate_edges.push_back(e);	
+				}
+			}
+		}
+		int edge_num = candidate_edges.size();
+		amsl_navigation_msgs::Node node0;
+		get_node_from_id(candidate_edges[0].node0_id, node0);	
+		if(edge_num > 0){
+			double min_distance = 1000;
+			int min_index = 0;
+			for(int i=0;i<edge_num;i++){
+				amsl_navigation_msgs::Node node1;
+				get_node_from_id(candidate_edges[i].node1_id, node1);
+				double distance = 1000;
+				if(node1.point.x - node0.point.x != 0.0){
+					// ax+by+c=0
+					double a = (node1.point.y - node0.point.y) / (node1.point.x - node0.point.x);
+					double b = -1;
+					double c = node0.point.y - a * node0.point.x;
+					distance = fabs(a * estimated_pose(0) + b * estimated_pose(1) + c) / sqrt(Calculation::square(a) + Calculation::square(b));
+					std::cout << "distance to edge(" << node0.id << ", " << node1.id << "): " << distance << "[m]" << std::endl;
+				}else{
+					distance = fabs(estimated_pose(0) - node1.point.x);
+					std::cout << "distance to edge(" << node0.id << ", " << node1.id << "): " << distance << "[m]" << std::endl;
+				}
+				if(min_distance > distance){
+					min_distance = distance;			
+					min_index = i;
+				}
+			}
+			double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
+			p.last_edge_index = p.current_edge_index;
+			p.current_edge_index = get_edge_index_from_node_id(candidate_edges[min_index].node0_id, candidate_edges[min_index].node1_id);
+			p.x = p.last_node_x = node0.point.x;
+			p.y = p.last_node_y = node0.point.y;
+			p.move(particle_distance_from_last_node, map.edges[p.current_edge_index].direction);
+			std::cout << "set particle[0] to edge(" << node0.id << ", " << map.edges[p.current_edge_index].node1_id << ")" << std::endl;
+		}
+	}
 }
