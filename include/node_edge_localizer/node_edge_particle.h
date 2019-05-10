@@ -17,6 +17,8 @@ public:
 	void move(double, double);
 	void evaluate(double);
 
+	static constexpr double MIN_WEIGHT = 1e-5;
+
 	double x;
 	double y;
 	// edge orientation

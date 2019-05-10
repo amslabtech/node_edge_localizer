@@ -40,7 +40,7 @@ void NodeEdgeParticle::evaluate(double robot_orientation)
 
 	weight *= weight;
 
-	if(weight < 1e-5){
-		weight = 1e-5;
+	if(weight < MIN_WEIGHT){
+		weight = MIN_WEIGHT;
 	}
 }
