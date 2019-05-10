@@ -84,6 +84,7 @@ private:
 	ros::Publisher odom_pub;
 	ros::Publisher particles_pub;
 	ros::Publisher lines_pub;
+	ros::Publisher edge_marker_pub;
 	ros::Subscriber map_sub;
 	ros::Subscriber odom_sub;
 
@@ -145,6 +146,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/pose", 1);
 	particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);
 	lines_pub = nh.advertise<visualization_msgs::Marker>("/passed_lines/viz", 1);
+	edge_marker_pub = nh.advertise<visualization_msgs::Marker>("/estimated_pose/edge/viz", 1);
 
 	private_nh.param("HZ", HZ, {20});
 	private_nh.param("INIT_NODE0_ID", INIT_NODE0_ID, {0});
@@ -1026,6 +1028,30 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	double distance_from_last_node = (estimated_pose - last_node_point).norm();
 	estimated_edge.progress = distance_from_last_node / estimated_edge.distance; 
 	edge_pub.publish(estimated_edge);
+
+	visualization_msgs::Marker unique_edge_marker;
+	unique_edge_marker.header.frame_id = map.header.frame_id;
+	unique_edge_marker.header.stamp = ros::Time::now();
+	unique_edge_marker.ns = "unique_edge_marker";
+	unique_edge_marker.id = 0;
+	if(unique_edge_flag){
+		unique_edge_marker.action = visualization_msgs::Marker::ADD;
+		unique_edge_marker.type = visualization_msgs::Marker::LINE_STRIP; 
+		unique_edge_marker.scale.x = 1.0;
+		unique_edge_marker.color.g = 1.0;
+		unique_edge_marker.color.a = 0.3;
+		unique_edge_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+		amsl_navigation_msgs::Node n;
+		get_node_from_id(estimated_edge.node0_id, n);
+		unique_edge_marker.points.push_back(n.point);
+		get_node_from_id(estimated_edge.node1_id, n);
+		unique_edge_marker.points.push_back(n.point);
+		edge_marker_pub.publish(unique_edge_marker);
+	}else{
+		unique_edge_marker.action = visualization_msgs::Marker::DELETE;
+		edge_marker_pub.publish(unique_edge_marker);
+	}
+
 	std::cout << "estimated_edge: \n" << estimated_edge << std::endl;
 }
 
