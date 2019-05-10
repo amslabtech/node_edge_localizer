@@ -762,6 +762,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	unique_edge_index = -1;
 	unique_edge_flag = true;
 
+	std::cout << "robot moved_distance: " << robot_moved_distance << "[m]" << std::endl;
 	for(auto& p : particles){
 		//std::cout << "--" << std::endl;
 		//std::cout << "before move: " << p.x << ", " << p.y << std::endl;
