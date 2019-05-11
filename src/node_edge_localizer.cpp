@@ -31,22 +31,16 @@ public:
 	void odom_callback(const nav_msgs::OdometryConstPtr&);
 	void process(void);
 	void clustering_trajectories(void);
-	void get_node_from_id(int, amsl_navigation_msgs::Node&);
-	void get_edge_from_node_id(int, int, amsl_navigation_msgs::Edge&);
-	int get_edge_index_from_node_id(int, int);
 	void initialize(void);
 	void correct(void);
 	bool calculate_affine_tranformation(const int, double&, double&, Eigen::Affine3d&);
 	void calculate_affine_transformation_tentatively(Eigen::Affine3d&);
 	void get_intersection_from_trajectories(std::vector<Eigen::Vector3d>&, std::vector<Eigen::Vector3d>&, Eigen::Vector3d&);
-	int get_index_from_id(int);
 	double calculate_trajectory_curvature(void);
 	void publish_pose(void);
 	void publish_particles(void);
 	void particle_filter(int&, bool&);
 	void resampling(void);
-	int get_next_edge_index_from_edge_index(int);
-	void manage_passed_edge(int);
 	void correct_trajectories(int, const Eigen::Affine3d&); 
 	void clear(int);
 	void visualize_lines(void);
@@ -54,7 +48,6 @@ public:
 	void publish_edge(int, bool);
 	void publish_odom_tf(Eigen::Vector3d&, double);
 	void remove_shorter_line_from_trajectories(const int);
-	int search_interpolating_edge(int, int);
 	void set_particle_to_near_edge(bool, int, NodeEdgeParticle&);
 
 private:
@@ -93,7 +86,6 @@ private:
 	tf::TransformBroadcaster broadcaster;
 
 	NodeEdgeMapManagement nemm;
-	amsl_navigation_msgs::NodeEdgeMap map;
 	amsl_navigation_msgs::Edge estimated_edge;
 	bool map_subscribed;
 	bool odom_updated;
@@ -181,6 +173,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	odom_correction = Eigen::Affine3d::Identity();
 	robot_moved_distance = 0.0;
 	tentative_correction_count = POSE_NUM_PCA;
+	nemm.set_parameters(CONTINUOUS_LINE_THRESHOLD, MIN_LINE_LENGTH);
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
@@ -206,7 +199,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
 {
-	map = *msg;
+	amsl_navigation_msgs::NodeEdgeMap map = *msg;
 	nemm.set_map(map);
 	map_subscribed = true;
 }
@@ -319,7 +312,7 @@ void NodeEdgeLocalizer::process(void)
 				std::cout << "tentative correction count: " << tentative_correction_count << std::endl;
 				std::cout << "--- manage passed edge ---" << std::endl;
 				if(unique_edge_flag){
-					manage_passed_edge(unique_edge_index);
+					nemm.manage_passed_edge(unique_edge_index);
 				}
 				std::cout << "--- calculate correction ---" << std::endl;
 				correct();
@@ -420,48 +413,17 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 	std::cout << "linear_trajectories.size(): " << linear_trajectories.size() << std::endl;
 }
 
-void NodeEdgeLocalizer::get_node_from_id(int id, amsl_navigation_msgs::Node& node)
-{
-	for(auto n : map.nodes){
-		if(n.id == id){
-			node = n;
-			return;
-		}
-	}
-}
-
-void NodeEdgeLocalizer::get_edge_from_node_id(int node0_id, int node1_id, amsl_navigation_msgs::Edge& edge)
-{
-	for(auto e : map.edges){
-		if(e.node0_id == node0_id && e.node1_id == node1_id){
-			edge = e;
-			return;
-		}
-	}
-}
-
-int NodeEdgeLocalizer::get_edge_index_from_node_id(int node0_id, int node1_id)
-{
-	int index = 0;
-	for(auto e : map.edges){
-		if(e.node0_id == node0_id && e.node1_id == node1_id){
-			return index;
-		}
-		index++;
-	}
-}
-
 void NodeEdgeLocalizer::initialize(void)
 {
-	get_edge_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID, estimated_edge);
+	nemm.get_edge_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID, estimated_edge);
 	estimated_edge.progress = INIT_PROGRESS;
 	amsl_navigation_msgs::Node node0;
-	get_node_from_id(estimated_edge.node0_id, node0);
+	nemm.get_node_from_id(estimated_edge.node0_id, node0);
 	estimated_pose(0) = node0.point.x + estimated_edge.distance * estimated_edge.progress * cos(estimated_edge.direction);
 	estimated_pose(1) = node0.point.y + estimated_edge.distance * estimated_edge.progress * sin(estimated_edge.direction);
 	estimated_yaw = INIT_YAW;
 	init_estimated_pose = estimated_pose;
-	int edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	int edge_index = nemm.get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	for(auto& p : particles){
 		p.x = estimated_pose(0);
 		p.y = estimated_pose(1);
@@ -473,9 +435,9 @@ void NodeEdgeLocalizer::initialize(void)
 		p.current_edge_index = edge_index; 
 		p.last_edge_index = -1; 
 	}
-	begin_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
-	end_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
-	last_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	begin_line_edge_index = nemm.get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	end_line_edge_index = nemm.get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	last_line_edge_index = nemm.get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 	init_flag = false;
 }
 
@@ -538,7 +500,7 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 		map_node_point_i_1 = passed_nodes[count - 1];
 	}else{
 		amsl_navigation_msgs::Node init_node;
-		init_node = map.nodes[get_index_from_id(INIT_NODE0_ID)];
+		init_node = map.nodes[nemm.get_index_from_id(INIT_NODE0_ID)];
 		map_node_point_i_1 << init_node.point.x, init_node.point.y, 0.0;
 	}
 	std::cout << "N(i-1): \n" << map_node_point_i_1 << std::endl;
@@ -586,9 +548,9 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	double direction_from_odom = Calculation::get_angle_from_trajectory(linear_trajectories.back());
 	// direction_from_odom = Calculation::get_slope_angle(direction_from_odom);
 	amsl_navigation_msgs::Node map_node_point_begin;
-	map_node_point_begin = map.nodes[get_index_from_id(map.edges[begin_line_edge_index].node0_id)];
+	map_node_point_begin = map.nodes[nemm.get_index_from_id(map.edges[begin_line_edge_index].node0_id)];
 	amsl_navigation_msgs::Node map_node_point_last;
-	map_node_point_last = map.nodes[get_index_from_id(map.edges[last_line_edge_index].node1_id)];
+	map_node_point_last = map.nodes[nemm.get_index_from_id(map.edges[last_line_edge_index].node1_id)];
 	double direction_from_map = atan2(map_node_point_last.point.y - map_node_point_begin.point.y, map_node_point_last.point.x - map_node_point_begin.point.x);
 	// direction_from_map = Calculation::get_slope_angle(direction_from_map);
 	double direction_diff = Calculation::pi_2_pi(direction_from_map - direction_from_odom);
@@ -647,18 +609,6 @@ void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<Eigen::Ve
 						  0.0;
 }
 
-int NodeEdgeLocalizer::get_index_from_id(int id)
-{
-	int i = 0;
-	for(auto n : map.nodes){
-		if(n.id == id){
-			return i;
-		}
-		i++;
-	}
-	return -1;
-}
-
 double NodeEdgeLocalizer::calculate_trajectory_curvature(void)
 {
 	static int count = 0;
@@ -714,7 +664,7 @@ double NodeEdgeLocalizer::calculate_trajectory_curvature(void)
 void NodeEdgeLocalizer::publish_pose(void)
 {
 	nav_msgs::Odometry odom;
-	odom.header.frame_id = map.header.frame_id;
+	odom.header.frame_id = nemm.get_map_header_frame_id();
 	odom.header.stamp = ros::Time::now();
 	odom.child_frame_id = robot_frame_id;
 	odom.pose.pose.position.x = estimated_pose(0);
@@ -732,7 +682,7 @@ void NodeEdgeLocalizer::publish_pose(void)
 			tf::Stamped<tf::Pose> odom_to_map;
 			listener.transformPose(odom_frame_id, robot_to_map, odom_to_map);
 
-			broadcaster.sendTransform(tf::StampedTransform(odom_to_map.inverse(), odom.header.stamp, map.header.frame_id, odom_frame_id));
+			broadcaster.sendTransform(tf::StampedTransform(odom_to_map.inverse(), odom.header.stamp, nemm.get_map_header_frame_id(), odom_frame_id));
 		}catch(tf::TransformException ex){
 			std::cout << ex.what() << std::endl;
 		}
@@ -744,7 +694,7 @@ void NodeEdgeLocalizer::publish_particles(void)
 {
 	static geometry_msgs::PoseArray _particles;
 	_particles.poses.resize(PARTICLES_NUM);
-	_particles.header.frame_id = map.header.frame_id;
+	_particles.header.frame_id = nemm.get_map_header_frame_id();
 	_particles.header.stamp = ros::Time::now();
 	for(int i=0;i<PARTICLES_NUM;i++){
 		geometry_msgs::Pose p;
@@ -794,8 +744,8 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				// arrived ???
 				//std::cout << "particle arrived at node" << std::endl;
 				p.near_node_flag = true;
-				p.last_node_x = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.x;
-				p.last_node_y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.y;
+				p.last_node_x = map.nodes[nemm.get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.x;
+				p.last_node_y = map.nodes[nemm.get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.y;
 				p.x = p.last_node_x;
 				p.y = p.last_node_y;
 			}
@@ -807,9 +757,9 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				//std::cout << "particle put on next edge" << std::endl;
 				p.near_node_flag = false;
 				p.last_edge_index = p.current_edge_index;
-				p.current_edge_index = get_next_edge_index_from_edge_index(p.current_edge_index);
-				p.x = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.x; 
-				p.y = map.nodes[get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.y;
+				p.current_edge_index = nemm.get_next_edge_index_from_edge_index(p.current_edge_index, estimated_yaw);
+				p.x = map.nodes[nemm.get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.x; 
+				p.y = map.nodes[nemm.get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.y;
 				// particle's moved distance is more suitable ??
 				p.move(particle_distance_from_last_node + rand(mt), map.edges[p.current_edge_index].direction);
 				//std::cout << map.edges[p.current_edge_index] << std::endl;
@@ -885,75 +835,6 @@ void NodeEdgeLocalizer::resampling(void)
 	std::copy(copied_particles.begin(), copied_particles.end(), particles.begin());
 }
 
-int NodeEdgeLocalizer::get_next_edge_index_from_edge_index(int index)
-{
-	double min_direction_diff = 100;
-	int min_index = -1;
-	int size = map.edges.size();
-	for(int i=0;i<size;i++){
-		if(index != i){
-			if(map.edges[index].node1_id == map.edges[i].node0_id){
-				// double diff = map.edges[i].direction - map.edges[index].direction;
-				double diff = map.edges[i].direction - estimated_yaw;
-				diff = fabs(Calculation::pi_2_pi(diff));
-				if(min_direction_diff > diff){
-					min_direction_diff = diff;
-					min_index = i;
-				}
-			}
-		}
-	}
-	return min_index;
-}
-
-void NodeEdgeLocalizer::manage_passed_edge(int edge_index)
-{
-	if(edge_index != last_line_edge_index){
-		// entered new edge
-		std::cout << "!!! new unique edge !!!" << std::endl;
-		std::cout << "index: " << edge_index << std::endl;
-		if(map.edges[last_line_edge_index].node1_id != map.edges[edge_index].node0_id){
-			// not connected edges 
-			int index = search_interpolating_edge(last_line_edge_index, edge_index);
-			if(index >= 0){
-				std::cout << "interpolatin with edge index: " << index << std::endl;
-				edge_index = index;
-			}
-		}
-		double angle_diff = fabs(Calculation::pi_2_pi(map.edges[edge_index].direction - map.edges[last_line_edge_index].direction));
-		if(angle_diff > CONTINUOUS_LINE_THRESHOLD){
-			end_line_edge_index = last_line_edge_index;
-			std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
-			int begin_node_index = get_index_from_id(map.edges[begin_line_edge_index].node0_id);
-			int end_node_index = get_index_from_id(map.edges[end_line_edge_index].node1_id);
-			amsl_navigation_msgs::Node begin_node = map.nodes[begin_node_index];
-			amsl_navigation_msgs::Node end_node = map.nodes[end_node_index];
-			double distance = sqrt(Calculation::square(begin_node.point.x - end_node.point.x) + Calculation::square(begin_node.point.y - end_node.point.y));
-			if(distance > MIN_LINE_LENGTH){
-				std::cout << "begin_node: \n" << begin_node << std::endl;;
-				std::cout << "end_node: \n" << end_node << std::endl;;
-				double line_angle = atan2((end_node.point.y - begin_node.point.y), (end_node.point.x - begin_node.point.x));
-				std::cout << "line angle added !!!: " << line_angle << std::endl;
-				passed_line_directions.push_back(line_angle);
-				Eigen::Vector3d node_point;
-				node_point << end_node.point.x, end_node.point.y, 0.0;
-				passed_nodes.push_back(node_point);
-				begin_line_edge_index = edge_index;
-				int i=0;
-				for(auto pn : passed_nodes){
-					std::cout << "passed_node[" << i << "]: \n" << pn << std::endl;
-					i++;
-				}
-			}
-		}else{
-			// extension of a straight line
-			end_line_edge_index = last_line_edge_index; 
-		}
-		last_line_edge_index = edge_index;
-		std::cout << "line count: " << passed_line_directions.size() << std::endl;
-	}
-}
-
 void NodeEdgeLocalizer::correct_trajectories(int count, const Eigen::Affine3d& correction) 
 {
 	for(auto line=(linear_trajectories.begin()+count);line!=linear_trajectories.end();line++){
@@ -978,7 +859,7 @@ void NodeEdgeLocalizer::clear(int unique_edge_index)
 void NodeEdgeLocalizer::visualize_lines(void)
 {
 	visualization_msgs::Marker lines_marker;
-	lines_marker.header.frame_id = map.header.frame_id;
+	lines_marker.header.frame_id = nemm.get_map_header_frame_id();
 	lines_marker.header.stamp = ros::Time::now();
 	lines_marker.ns = "line_viz";
 	lines_marker.action = visualization_msgs::Marker::ADD;
@@ -1025,7 +906,7 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	static Eigen::Vector3d last_node_point;
 	if(unique_edge_flag){
 		estimated_edge = map.edges[unique_edge_index];
-		last_node = map.nodes[get_index_from_id(estimated_edge.node0_id)];
+		last_node = map.nodes[nemm.get_index_from_id(estimated_edge.node0_id)];
 		last_node_point << last_node.point.x, last_node.point.y, 0.0;
 	}
 	double distance_from_last_node = (estimated_pose - last_node_point).norm();
@@ -1033,7 +914,7 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	edge_pub.publish(estimated_edge);
 
 	visualization_msgs::Marker unique_edge_marker;
-	unique_edge_marker.header.frame_id = map.header.frame_id;
+	unique_edge_marker.header.frame_id = nemm.get_map_header_frame_id();
 	unique_edge_marker.header.stamp = ros::Time::now();
 	unique_edge_marker.ns = "unique_edge_marker";
 	unique_edge_marker.id = 0;
@@ -1045,9 +926,9 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 		unique_edge_marker.color.a = 0.3;
 		unique_edge_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 		amsl_navigation_msgs::Node n;
-		get_node_from_id(estimated_edge.node0_id, n);
+		nemm.get_node_from_id(estimated_edge.node0_id, n);
 		unique_edge_marker.points.push_back(n.point);
-		get_node_from_id(estimated_edge.node1_id, n);
+		nemm.get_node_from_id(estimated_edge.node1_id, n);
 		unique_edge_marker.points.push_back(n.point);
 		edge_marker_pub.publish(unique_edge_marker);
 	}else{
@@ -1098,20 +979,6 @@ void NodeEdgeLocalizer::remove_shorter_line_from_trajectories(const int count)
 	}
 }
 
-int NodeEdgeLocalizer::search_interpolating_edge(int edge0_index, int edge1_index)
-{
-	int edge0_node1_id = map.edges[edge0_index].node1_id;
-	int edge1_node0_id = map.edges[edge1_index].node0_id;
-	int index = 0;
-	for(auto e : map.edges){
-		if(e.node0_id == edge0_node1_id && e.node1_id == edge1_node0_id){
-			return index;
-		}
-		index++;
-	}
-	return -1;
-}
-
 void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int unique_edge_index, NodeEdgeParticle& p)
 {
 	if(unique_edge_flag){
@@ -1126,13 +993,13 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 		}
 		int edge_num = candidate_edges.size();
 		amsl_navigation_msgs::Node node0;
-		get_node_from_id(candidate_edges[0].node0_id, node0);	
+		nemm.get_node_from_id(candidate_edges[0].node0_id, node0);	
 		if(edge_num > 0){
 			double min_distance = 1000;
 			int min_index = 0;
 			for(int i=0;i<edge_num;i++){
 				amsl_navigation_msgs::Node node1;
-				get_node_from_id(candidate_edges[i].node1_id, node1);
+				nemm.get_node_from_id(candidate_edges[i].node1_id, node1);
 				double distance = 1000;
 				if(node1.point.x - node0.point.x != 0.0){
 					// ax+by+c=0
@@ -1152,7 +1019,7 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 			}
 			double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
 			p.last_edge_index = p.current_edge_index;
-			p.current_edge_index = get_edge_index_from_node_id(candidate_edges[min_index].node0_id, candidate_edges[min_index].node1_id);
+			p.current_edge_index = nemm.get_edge_index_from_node_id(candidate_edges[min_index].node0_id, candidate_edges[min_index].node1_id);
 			p.x = p.last_node_x = node0.point.x;
 			p.y = p.last_node_y = node0.point.y;
 			p.move(particle_distance_from_last_node, map.edges[p.current_edge_index].direction);
