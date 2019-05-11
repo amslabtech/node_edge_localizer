@@ -20,6 +20,7 @@
 
 #include "node_edge_localizer/node_edge_particle.h"
 #include "node_edge_localizer/calculation.h"
+#include "node_edge_localizer/node_edge_map_management.h"
 
 class NodeEdgeLocalizer
 {
@@ -91,6 +92,7 @@ private:
 	tf::TransformListener listener;
 	tf::TransformBroadcaster broadcaster;
 
+	NodeEdgeMapManagement nemm;
 	amsl_navigation_msgs::NodeEdgeMap map;
 	amsl_navigation_msgs::Edge estimated_edge;
 	bool map_subscribed;
@@ -205,6 +207,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
 {
 	map = *msg;
+	nemm.set_map(map);
 	map_subscribed = true;
 }
 
