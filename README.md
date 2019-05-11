@@ -66,4 +66,4 @@
 - correction_rejection_angle_difference_threshold
   - if yaw of the correction result is greater than this threshold, the correction is rejected (default: M_PI/6[rad])
 - resampling_interval
-  - (default: 5)
+  - resampling particles once every (this param) times (default: 5)
