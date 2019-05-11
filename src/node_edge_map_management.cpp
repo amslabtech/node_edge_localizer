@@ -146,3 +146,39 @@ int NodeEdgeMapManagement::search_interpolating_edge(int edge0_index, int edge1_
 	}
 	return -1;
 }
+
+amsl_navigation_msgs::Edge NodeEdgeMapManagement::get_edge_from_index(int edge_index)
+{
+	return map.edges[edge_index];
+}
+
+void NodeEdgeMapManagement::get_candidate_edges(double estimated_yaw, int node_id, std::vector<amsl_navigation_msgs::Edge>& candidate_edges)
+{
+	for(auto e : map.edges){
+		if(e.node0_id == node_id){
+			if(M_PI - fabs(Calculation::pi_2_pi(e.direction - estimated_yaw)) > CONTINUOUS_LINE_THRESHOLD){
+				candidate_edges.push_back(e);	
+			}
+		}
+	}
+}
+
+int NodeEdgeMapManagement::get_passed_line_directions_size(void)
+{
+	return passed_line_directions.size();
+}
+
+double NodeEdgeMapManagement::get_passed_line_direction(int index)
+{
+	return passed_line_directions[index];
+}
+
+void NodeEdgeMapManagement::clear(void)
+{
+	// unimplemented
+}
+
+Eigen::Vector3d NodeEdgeMapManagement::get_passed_node(int index)
+{
+	return passed_nodes[index];
+}

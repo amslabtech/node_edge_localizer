@@ -111,8 +111,6 @@ private:
 	double robot_moved_distance;
 
 	// for correction
-	std::vector<Eigen::Vector3d> passed_nodes;
-	std::vector<double> passed_line_directions;
 	int begin_line_edge_index;
 	int end_line_edge_index;
 	int last_line_edge_index;
@@ -444,10 +442,11 @@ void NodeEdgeLocalizer::initialize(void)
 void NodeEdgeLocalizer::correct(void)
 {
 
-	std::cout << "passed lines: " << passed_line_directions.size() << std::endl;
+	int passed_lines_size = nemm.get_passed_line_directions_size();
+	std::cout << "passed lines: " <<  passed_lines_size << std::endl;
 	std::cout << "correction_count: " << correction_count << std::endl;
 
-	if(passed_line_directions.size() > correction_count && linear_trajectories.size() > correction_count + 1){
+	if(passed_lines_size > correction_count && linear_trajectories.size() > correction_count + 1){
 		std::cout << "--- correction ---" << std::endl;
 		double ratio;
 		double direction_diff;
@@ -475,7 +474,7 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	remove_shorter_line_from_trajectories(count);
 	double direction_from_odom = Calculation::get_angle_from_trajectory(linear_trajectories[count]);
 	// direction_from_odom = Calculation::get_slope_angle(direction_from_odom);
-	double direction_from_map = passed_line_directions[count];
+	double direction_from_map = nemm.get_passed_line_direction(count);
 	// direction_from_map = Calculation::get_slope_angle(direction_from_map);
 	direction_diff = Calculation::pi_2_pi(direction_from_map - direction_from_odom);
 	direction_diff = Calculation::get_slope_angle(direction_diff);
@@ -492,15 +491,16 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	std::cout << "B(i): \n" << intersection_point_i << std::endl;
 	// This represents N(i) in paper
 	Eigen::Vector3d map_node_point_i;
-	map_node_point_i = passed_nodes[count];
+	map_node_point_i = nemm.get_passed_node(count);
 	std::cout << "N(i): \n" << map_node_point_i << std::endl;
 	// This represents N(i-1) in paper
 	Eigen::Vector3d map_node_point_i_1;
 	if(count - 1 >= 0){
-		map_node_point_i_1 = passed_nodes[count - 1];
+		map_node_point_i_1 = nemm.get_passed_node(count - 1);
 	}else{
 		amsl_navigation_msgs::Node init_node;
-		init_node = map.nodes[nemm.get_index_from_id(INIT_NODE0_ID)];
+		// init_node = map.nodes[nemm.get_index_from_id(INIT_NODE0_ID)];
+		nemm.get_node_from_id(INIT_NODE0_ID, init_node);
 		map_node_point_i_1 << init_node.point.x, init_node.point.y, 0.0;
 	}
 	std::cout << "N(i-1): \n" << map_node_point_i_1 << std::endl;
@@ -527,7 +527,7 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 
 	double dist_odom_map = (map_node_point_i - intersection_point_i).norm();
 	std::cout << "B(i) to N(i): " << dist_odom_map << "[m]" << std::endl;
-	if((dist_odom_map < map.edges[end_line_edge_index].distance) && (fabs(direction_diff) < CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD)){
+	if((dist_odom_map < nemm.get_edge_from_index(end_line_edge_index).distance) && (fabs(direction_diff) < CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD)){
 		// correction succeeded
 		Eigen::Translation<double, 3> t1(map_node_point_i);
 		Eigen::Translation<double, 3> t2(-intersection_point_i);
@@ -548,9 +548,9 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 	double direction_from_odom = Calculation::get_angle_from_trajectory(linear_trajectories.back());
 	// direction_from_odom = Calculation::get_slope_angle(direction_from_odom);
 	amsl_navigation_msgs::Node map_node_point_begin;
-	map_node_point_begin = map.nodes[nemm.get_index_from_id(map.edges[begin_line_edge_index].node0_id)];
+	nemm.get_node_from_id(nemm.get_edge_from_index(begin_line_edge_index).node0_id, map_node_point_begin);
 	amsl_navigation_msgs::Node map_node_point_last;
-	map_node_point_last = map.nodes[nemm.get_index_from_id(map.edges[last_line_edge_index].node1_id)];
+	nemm.get_node_from_id(nemm.get_edge_from_index(last_line_edge_index).node1_id, map_node_point_last);
 	double direction_from_map = atan2(map_node_point_last.point.y - map_node_point_begin.point.y, map_node_point_last.point.x - map_node_point_begin.point.x);
 	// direction_from_map = Calculation::get_slope_angle(direction_from_map);
 	double direction_diff = Calculation::pi_2_pi(direction_from_map - direction_from_odom);
@@ -726,7 +726,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 		//std::cout << "last node xy: " << p.last_node_x << ", " << p.last_node_y << std::endl;
 		double current_robot_distance_from_last_node = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1));
 		//std::cout << "robot_moved_distance: " << robot_moved_distance << std::endl;
-		p.move(robot_moved_distance + rand(mt), map.edges[p.current_edge_index].direction);
+		p.move(robot_moved_distance + rand(mt), nemm.get_edge_from_index(p.current_edge_index).direction);
 
 		// evaluation
 		if(!p.near_node_flag){
@@ -740,12 +740,14 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				}
 			}
 			*/
-			if(map.edges[p.current_edge_index].distance < p.get_particle_distance_from_last_node()){
+			if(nemm.get_edge_from_index(p.current_edge_index).distance < p.get_particle_distance_from_last_node()){
 				// arrived ???
 				//std::cout << "particle arrived at node" << std::endl;
 				p.near_node_flag = true;
-				p.last_node_x = map.nodes[nemm.get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.x;
-				p.last_node_y = map.nodes[nemm.get_index_from_id(map.edges[p.current_edge_index].node1_id)].point.y;
+				amsl_navigation_msgs::Node last_node;
+				nemm.get_node_from_id(nemm.get_edge_from_index(p.current_edge_index).node1_id, last_node);
+				p.last_node_x = last_node.point.x;
+				p.last_node_y = last_node.point.y;
 				p.x = p.last_node_x;
 				p.y = p.last_node_y;
 			}
@@ -758,11 +760,12 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				p.near_node_flag = false;
 				p.last_edge_index = p.current_edge_index;
 				p.current_edge_index = nemm.get_next_edge_index_from_edge_index(p.current_edge_index, estimated_yaw);
-				p.x = map.nodes[nemm.get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.x; 
-				p.y = map.nodes[nemm.get_index_from_id(map.edges[p.current_edge_index].node0_id)].point.y;
+				amsl_navigation_msgs::Node node;
+				nemm.get_node_from_id(nemm.get_edge_from_index(p.current_edge_index).node0_id, node);
+				p.x = node.point.x; 
+				p.y = node.point.y;
 				// particle's moved distance is more suitable ??
-				p.move(particle_distance_from_last_node + rand(mt), map.edges[p.current_edge_index].direction);
-				//std::cout << map.edges[p.current_edge_index] << std::endl;
+				p.move(particle_distance_from_last_node + rand(mt), nemm.get_edge_from_index(p.current_edge_index).direction);
 			}
 		}
 		//std::cout << "after move: " << p.x << ", " << p.y << std::endl;
@@ -847,8 +850,7 @@ void NodeEdgeLocalizer::correct_trajectories(int count, const Eigen::Affine3d& c
 void NodeEdgeLocalizer::clear(int unique_edge_index)
 {
 	std::cout << "--- clear ---" << std::endl;;
-	passed_nodes.clear();
-	passed_line_directions.clear();
+	nemm.clear();
 	linear_trajectories.clear();
 	begin_line_edge_index = unique_edge_index;
 	end_line_edge_index = unique_edge_index;
@@ -905,8 +907,8 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	static amsl_navigation_msgs::Node last_node;
 	static Eigen::Vector3d last_node_point;
 	if(unique_edge_flag){
-		estimated_edge = map.edges[unique_edge_index];
-		last_node = map.nodes[nemm.get_index_from_id(estimated_edge.node0_id)];
+		estimated_edge = nemm.get_edge_from_index(unique_edge_index);
+		nemm.get_node_from_id(estimated_edge.node0_id, last_node);
 		last_node_point << last_node.point.x, last_node.point.y, 0.0;
 	}
 	double distance_from_last_node = (estimated_pose - last_node_point).norm();
@@ -982,15 +984,9 @@ void NodeEdgeLocalizer::remove_shorter_line_from_trajectories(const int count)
 void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int unique_edge_index, NodeEdgeParticle& p)
 {
 	if(unique_edge_flag){
-		int last_node_id = map.edges[unique_edge_index].node0_id;
+		int last_node_id = nemm.get_edge_from_index(unique_edge_index).node0_id;
 		std::vector<amsl_navigation_msgs::Edge> candidate_edges;
-		for(auto e : map.edges){
-			if(e.node0_id == last_node_id){
-				if(M_PI - fabs(Calculation::pi_2_pi(e.direction - estimated_yaw)) > CONTINUOUS_LINE_THRESHOLD){
-					candidate_edges.push_back(e);	
-				}
-			}
-		}
+		nemm.get_candidate_edges(estimated_yaw, last_node_id, candidate_edges);
 		int edge_num = candidate_edges.size();
 		amsl_navigation_msgs::Node node0;
 		nemm.get_node_from_id(candidate_edges[0].node0_id, node0);	
@@ -1022,8 +1018,8 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 			p.current_edge_index = nemm.get_edge_index_from_node_id(candidate_edges[min_index].node0_id, candidate_edges[min_index].node1_id);
 			p.x = p.last_node_x = node0.point.x;
 			p.y = p.last_node_y = node0.point.y;
-			p.move(particle_distance_from_last_node, map.edges[p.current_edge_index].direction);
-			std::cout << "set particle[0] to edge(" << node0.id << ", " << map.edges[p.current_edge_index].node1_id << ")" << std::endl;
+			p.move(particle_distance_from_last_node, nemm.get_edge_from_index(p.current_edge_index).direction);
+			std::cout << "set particle[0] to edge(" << node0.id << ", " << nemm.get_edge_from_index(p.current_edge_index).node1_id << ")" << std::endl;
 		}
 	}
 }
