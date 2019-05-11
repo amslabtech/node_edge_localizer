@@ -5,10 +5,15 @@ NodeEdgeMapManagement::NodeEdgeMapManagement(void)
 
 }
 
-void NodeEdgeMapManagement::set_parameters(double continuous_line_threshold, double min_line_length)
+void NodeEdgeMapManagement::set_parameters(int init_node0_id, int init_node1_id, double continuous_line_threshold, double min_line_length)
 {
+	INIT_NODE0_ID = init_node0_id;
+	INIT_NODE1_ID = init_node1_id;
 	CONTINUOUS_LINE_THRESHOLD = continuous_line_threshold;
 	MIN_LINE_LENGTH = min_line_length;
+	begin_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	end_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+	last_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 }
 
 void NodeEdgeMapManagement::set_map(amsl_navigation_msgs::NodeEdgeMap& _map)
@@ -47,7 +52,7 @@ int NodeEdgeMapManagement::get_edge_index_from_node_id(int node0_id, int node1_i
 	}
 }
 
-int NodeEdgeMapManagement::get_index_from_id(int id)
+int NodeEdgeMapManagement::get_node_index_from_id(int id)
 {
 	int i = 0;
 	for(auto n : map.nodes){
@@ -72,7 +77,6 @@ int NodeEdgeMapManagement::get_next_edge_index_from_edge_index(int index, double
 	for(int i=0;i<size;i++){
 		if(index != i){
 			if(map.edges[index].node1_id == map.edges[i].node0_id){
-				// double diff = map.edges[i].direction - map.edges[index].direction;
 				double diff = map.edges[i].direction - estimated_yaw;
 				diff = fabs(Calculation::pi_2_pi(diff));
 				if(min_direction_diff > diff){
@@ -103,8 +107,8 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 		if(angle_diff > CONTINUOUS_LINE_THRESHOLD){
 			end_line_edge_index = last_line_edge_index;
 			std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
-			int begin_node_index = get_index_from_id(map.edges[begin_line_edge_index].node0_id);
-			int end_node_index = get_index_from_id(map.edges[end_line_edge_index].node1_id);
+			int begin_node_index = get_node_index_from_id(map.edges[begin_line_edge_index].node0_id);
+			int end_node_index = get_node_index_from_id(map.edges[end_line_edge_index].node1_id);
 			amsl_navigation_msgs::Node begin_node = map.nodes[begin_node_index];
 			amsl_navigation_msgs::Node end_node = map.nodes[end_node_index];
 			double distance = sqrt(Calculation::square(begin_node.point.x - end_node.point.x) + Calculation::square(begin_node.point.y - end_node.point.y));
@@ -173,12 +177,34 @@ double NodeEdgeMapManagement::get_passed_line_direction(int index)
 	return passed_line_directions[index];
 }
 
-void NodeEdgeMapManagement::clear(void)
+void NodeEdgeMapManagement::clear(int unique_edge_index)
 {
-	// unimplemented
+	begin_line_edge_index = unique_edge_index;
+	end_line_edge_index = unique_edge_index;
+	last_line_edge_index = unique_edge_index;
 }
 
 Eigen::Vector3d NodeEdgeMapManagement::get_passed_node(int index)
 {
 	return passed_nodes[index];
+}
+
+void NodeEdgeMapManagement::show_line_edge_indices(void)
+{
+	std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
+}
+
+double NodeEdgeMapManagement::get_end_of_line_edge_distance(void)
+{
+	return map.edges[end_line_edge_index].distance;
+}
+
+void NodeEdgeMapManagement::get_begin_node_of_begin_line_edge(amsl_navigation_msgs::Node& node)
+{
+	get_node_from_id(get_edge_from_index(begin_line_edge_index).node0_id, node);
+}
+
+void NodeEdgeMapManagement::get_end_node_of_last_line_edge(amsl_navigation_msgs::Node& node)
+{
+	get_node_from_id(get_edge_from_index(last_line_edge_index).node1_id, node);
 }
