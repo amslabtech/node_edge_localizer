@@ -908,13 +908,13 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	unique_edge_marker.header.stamp = ros::Time::now();
 	unique_edge_marker.ns = "unique_edge_marker";
 	unique_edge_marker.id = 0;
+	unique_edge_marker.color.a = 0.3;
+	unique_edge_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 	if(unique_edge_flag){
 		unique_edge_marker.action = visualization_msgs::Marker::ADD;
 		unique_edge_marker.type = visualization_msgs::Marker::LINE_STRIP; 
-		unique_edge_marker.scale.x = 1.0;
 		unique_edge_marker.color.g = 1.0;
-		unique_edge_marker.color.a = 0.3;
-		unique_edge_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+		unique_edge_marker.scale.x = 1.0;
 		amsl_navigation_msgs::Node n;
 		nemm.get_node_from_id(estimated_edge.node0_id, n);
 		unique_edge_marker.points.push_back(n.point);
@@ -922,7 +922,15 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 		unique_edge_marker.points.push_back(n.point);
 		edge_marker_pub.publish(unique_edge_marker);
 	}else{
-		unique_edge_marker.action = visualization_msgs::Marker::DELETE;
+		unique_edge_marker.action = visualization_msgs::Marker::ADD;
+		unique_edge_marker.type = visualization_msgs::Marker::CYLINDER; 
+		unique_edge_marker.color.b = 1.0;
+		unique_edge_marker.scale.x = 4.0;
+		unique_edge_marker.scale.y = 4.0;
+		unique_edge_marker.scale.z = 0.1;
+		amsl_navigation_msgs::Node n;
+		nemm.get_end_node_of_last_line_edge(n);
+		unique_edge_marker.pose.position = n.point;
 		edge_marker_pub.publish(unique_edge_marker);
 	}
 
