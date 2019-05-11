@@ -56,12 +56,14 @@
 - edge_decision_threshold
   - when the robot passes the node by this distance, the particles determine the next edge according to the robot's orientation (default: 0.5[m])
 - same_trajectory_angle_threshold
-  - the continuous trajectories with less orientation difference than this angle is considered to be same trajectory (default: 0.523598[rad])
+  - the continuous trajectories with less orientation difference than this angle is considered to be same trajectory (default: M_PI/6[rad])
 - continuous_line_threshold 
-  - connected edges with angles smaller than the threshold are considered straight (default: 0.448798[rad])
+  - connected edges with angles smaller than the threshold are considered straight (default: M_PI/7[rad])
 - line_edge_ratio_threshold (deprecated)
   - linear trajectories shorter than the threshold aren't used for correction (default: 0.5[m])
 - enable_odom_tf
   - if this param is true, this node publishes internally calculated odometry (default: false)
 - correction_rejection_angle_difference_threshold
-  - if yaw of the correction result is greater than this threshold, the correction is rejected (default: 0.523598[rad])
+  - if yaw of the correction result is greater than this threshold, the correction is rejected (default: M_PI/6[rad])
+- resampling_interval
+  - (default: 5)
