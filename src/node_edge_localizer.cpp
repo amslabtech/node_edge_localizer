@@ -6,6 +6,7 @@
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 
+#include <std_msgs/Bool.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Odometry.h>
@@ -29,6 +30,7 @@ public:
 
 	void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr&);
 	void odom_callback(const nav_msgs::OdometryConstPtr&);
+	void intersection_callback(const std_msgs::BoolConstPtr&);
 	void process(void);
 	void clustering_trajectories(void);
 	void initialize(void);
@@ -81,6 +83,7 @@ private:
 	ros::Publisher edge_marker_pub;
 	ros::Subscriber map_sub;
 	ros::Subscriber odom_sub;
+	ros::Subscriber intersection_sub;
 
 	tf::TransformListener listener;
 	tf::TransformBroadcaster broadcaster;
@@ -89,6 +92,7 @@ private:
 	amsl_navigation_msgs::Edge estimated_edge;
 	bool map_subscribed;
 	bool odom_updated;
+	bool intersection_flag;
 	Eigen::Vector3d estimated_pose;
 	Eigen::Vector3d init_estimated_pose;
 	double estimated_yaw;
@@ -129,6 +133,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 {
 	map_sub = nh.subscribe("/node_edge_map/map", 1, &NodeEdgeLocalizer::map_callback, this);
 	odom_sub = nh.subscribe("/odom/complement", 1 ,&NodeEdgeLocalizer::odom_callback, this);
+	intersection_sub = nh.subscribe("/intersection_flag", 1 ,&NodeEdgeLocalizer::intersection_callback, this);
 	edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
 	odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/pose", 1);
 	particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);
@@ -160,6 +165,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	init_flag = true;
 	clear_flag = false;
 	first_edge_flag = true;
+	intersection_flag = false;
 	robot_frame_id = "base_link";
 	odom_frame_id = "odom";
 	particles.resize(PARTICLES_NUM);
@@ -274,6 +280,11 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 	}else{
 		std::cout << "not initialized !!!" << std::endl;
 	}
+}
+
+void NodeEdgeLocalizer::intersection_callback(const std_msgs::BoolConstPtr& msg)
+{
+	intersection_flag = msg->data;
 }
 
 void NodeEdgeLocalizer::process(void)
