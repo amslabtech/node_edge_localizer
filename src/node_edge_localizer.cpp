@@ -230,14 +230,10 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 			std::cout << "first odom pose: \n" << first_odom_pose << std::endl;
 		}
 		odom_pose -= first_odom_pose;
-		odom_pose << odom_pose(0) * cos(-first_odom_yaw) - odom_pose(1) * sin(-first_odom_yaw),
-					 odom_pose(0) * sin(-first_odom_yaw) + odom_pose(1) * cos(-first_odom_yaw),
-					 odom_pose(2);
-		Eigen::Vector3d odom_to_map;
-		odom_to_map << odom_pose(0) * cos(INIT_YAW) - odom_pose(1) * sin(INIT_YAW),
-					   odom_pose(0) * sin(INIT_YAW) + odom_pose(1) * cos(INIT_YAW),
-					   odom_pose(2);
-		estimated_pose = odom_correction * (odom_to_map + init_estimated_pose);
+		Eigen::AngleAxis<double> first_odom_yaw_rotation(-first_odom_yaw, Eigen::Vector3d::UnitZ());
+		odom_pose = first_odom_yaw_rotation * odom_pose;
+		Eigen::AngleAxis<double> init_yaw_rotation(INIT_YAW, Eigen::Vector3d::UnitZ());
+		estimated_pose = odom_correction * (init_yaw_rotation * odom_pose + init_estimated_pose);
 
 		std::cout << "odom_pose: \n" << odom_pose << std::endl;
 		std::cout << "odom_yaw: \n" << odom_yaw << std::endl;
