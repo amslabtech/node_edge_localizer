@@ -241,10 +241,14 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 		std::cout << "yaw_correction: " << yaw_correction << "[rad]" << std::endl;
 		std::cout << "estimated_pose: \n" << estimated_pose << std::endl;
 		std::cout << "estimated_yaw: " << estimated_yaw << "[rad]" << std::endl;
-		robot_frame_id = msg->child_frame_id;
-		odom_frame_id = msg->header.frame_id;
 		odom_time = msg->header.stamp;
 		if(first_odom_callback_flag){
+			if(msg->child_frame_id != ""){
+				robot_frame_id = msg->child_frame_id;
+			}
+			if(msg->header.frame_id != ""){
+				odom_frame_id = msg->header.frame_id;
+			}
 			first_odom_callback_flag = false;
 		}else{
 			odom_updated = true;
