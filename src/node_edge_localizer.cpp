@@ -920,11 +920,11 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	unique_edge_marker.ns = "unique_edge_marker";
 	unique_edge_marker.id = 0;
 	unique_edge_marker.color.a = 0.3;
+	unique_edge_marker.color.g = 1.0;
 	unique_edge_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 	if(unique_edge_flag){
 		unique_edge_marker.action = visualization_msgs::Marker::ADD;
 		unique_edge_marker.type = visualization_msgs::Marker::LINE_STRIP; 
-		unique_edge_marker.color.g = 1.0;
 		unique_edge_marker.scale.x = 1.0;
 		amsl_navigation_msgs::Node n;
 		nemm.get_node_from_id(estimated_edge.node0_id, n);
@@ -935,7 +935,6 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	}else{
 		unique_edge_marker.action = visualization_msgs::Marker::ADD;
 		unique_edge_marker.type = visualization_msgs::Marker::CYLINDER; 
-		unique_edge_marker.color.b = 1.0;
 		unique_edge_marker.scale.x = 4.0;
 		unique_edge_marker.scale.y = 4.0;
 		unique_edge_marker.scale.z = 0.1;
