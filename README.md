@@ -19,7 +19,7 @@
 - /estimated_pose/particles
   - visualization of particle filter
 ## Subscribed topics
-- /node_edge_map (amsl_navigation_msgs/NodeEdgeMap)
+- /node_edge_map/map (amsl_navigation_msgs/NodeEdgeMap)
   - the node edge map
 - /odom/complement
   - wheel odometry (complementation with IMU is recommended)
