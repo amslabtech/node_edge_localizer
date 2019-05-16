@@ -172,6 +172,8 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	odom_correction = Eigen::Affine3d::Identity();
 	robot_moved_distance = 0.0;
 	tentative_correction_count = POSE_NUM_PCA;
+	yaw_correction = 0.0;
+	estimated_pose = Eigen::Vector3d::Zero();
 
 	std::cout << "=== node_edge_localizer ===" << std::endl;
 	std::cout << "HZ: " << HZ << std::endl;
