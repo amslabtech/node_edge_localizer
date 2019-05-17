@@ -580,15 +580,23 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 		map_node_point_i << map_node_point_begin.point.x, map_node_point_begin.point.y, 0.0;
 		std::cout << "N(i): \n" << map_node_point_i << std::endl;
 
-		Eigen::Translation<double, 3> t1(map_node_point_i);
-		Eigen::Translation<double, 3> t2(-intersection_point_i);
-		Eigen::Matrix3d rotation;
-		rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
-		affine_transformation = t1 * rotation * t2;
-		yaw_correction += direction_diff;
-		std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
-		tentative_correction_count = POSE_NUM_PCA;
-		correct_trajectories(linear_trajectories.size() - 1, affine_transformation);
+		double dist_odom_map = (map_node_point_i - intersection_point_i).norm();
+		std::cout << "B(i) to N(i): " << dist_odom_map << "[m]" << std::endl;
+		if(dist_odom_map < nemm.get_end_of_line_edge_distance()){
+			Eigen::Translation<double, 3> t1(map_node_point_i);
+			Eigen::Translation<double, 3> t2(-intersection_point_i);
+			Eigen::Matrix3d rotation;
+			rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
+			affine_transformation = t1 * rotation * t2;
+			yaw_correction += direction_diff;
+			std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
+			tentative_correction_count = POSE_NUM_PCA;
+			correct_trajectories(linear_trajectories.size() - 1, affine_transformation);
+		}else{
+			std::cout << "correction was interrupted because B(i) is far away from N(i)" << std::endl;
+			tentative_correction_count = POSE_NUM_PCA;
+			affine_transformation = Eigen::Affine3d::Identity();
+		}
 	}else{
 		std::cout << "correction was interrupted because the angle difference is large" << std::endl;
 		tentative_correction_count = POSE_NUM_PCA;
