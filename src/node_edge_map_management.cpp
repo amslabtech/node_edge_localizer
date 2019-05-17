@@ -91,22 +91,52 @@ int NodeEdgeMapManagement::get_next_edge_index_from_edge_index(int index, double
 
 void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 {
+	static std::vector<int> line_edge_indices;
 	if(edge_index != last_line_edge_index){
 		// entered new edge
 		std::cout << "!!! new unique edge !!!" << std::endl;
 		std::cout << "index: " << edge_index << std::endl;
-		if(map.edges[last_line_edge_index].node1_id != map.edges[edge_index].node0_id){
+		amsl_navigation_msgs::Edge unique_edge = get_edge_from_index(edge_index);
+		std::cout << unique_edge << std::endl;
+		int i=0;
+		for(auto pn : passed_nodes){
+			std::cout << "passed_node[" << i << "]: \n" << pn << std::endl;
+			i++;
+		}
+		amsl_navigation_msgs::Edge last_unique_edge = get_edge_from_index(last_line_edge_index);
+		if(last_unique_edge.node1_id == unique_edge.node0_id){
+			std::cout << "\033[48;5;2m" << "entered next edge" << "\033[0m" <<  std::endl;
+		}else if(map.edges[last_line_edge_index].node1_id != map.edges[edge_index].node0_id){
 			// not connected edges 
-			int index = search_interpolating_edge(last_line_edge_index, edge_index);
-			if(index >= 0){
-				std::cout << "interpolatin with edge index: " << index << std::endl;
-				edge_index = index;
+			std::cout << "\033[48;5;1m"; 
+			std::cout << "skipped edge" << std::endl;
+			int interpolating_edge_index = search_interpolating_edge(last_line_edge_index, edge_index);
+			if(interpolating_edge_index >= 0){
+				std::cout << "interpolating with edge index: " << interpolating_edge_index << std::endl;
+				show_edge_from_index(interpolating_edge_index);
+				amsl_navigation_msgs::Edge interpolating_edge = get_edge_from_index(interpolating_edge_index);
+				if(last_unique_edge.node0_id != interpolating_edge.node1_id){
+					edge_index = interpolating_edge_index;
+					std::cout << "successfully interpolated" << std::endl;
+					show_line_edge_ids();
+				}else{
+					std::cout << "!!! interpolation was interrupted! !!!" << std::endl;
+					// inappropriate???
+					last_line_edge_index = edge_index;
+					begin_line_edge_index = end_line_edge_index;
+					show_line_edge_ids();
+				}
 			}
+			std::cout << "\033[0m" << std::endl;
+		}else if(map.edges[last_line_edge_index].node0_id == map.edges[edge_index].node0_id){
+			std::cout << "\033[48;5;4m";
+			std::cout << "maybe last unique edge was invalid" << std::endl;
+			std::cout << "\033[0m" << std::endl;
 		}
 		double angle_diff = fabs(Calculation::pi_2_pi(map.edges[edge_index].direction - map.edges[last_line_edge_index].direction));
 		if(angle_diff > CONTINUOUS_LINE_THRESHOLD){
 			end_line_edge_index = last_line_edge_index;
-			std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
+			show_line_edge_ids();
 			int begin_node_index = get_node_index_from_id(map.edges[begin_line_edge_index].node0_id);
 			int end_node_index = get_node_index_from_id(map.edges[end_line_edge_index].node1_id);
 			amsl_navigation_msgs::Node begin_node = map.nodes[begin_node_index];
@@ -121,6 +151,7 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 				Eigen::Vector3d node_point;
 				node_point << end_node.point.x, end_node.point.y, 0.0;
 				passed_nodes.push_back(node_point);
+				std::cout << "passed nodes added: " << end_node.id << std::endl; 
 				begin_line_edge_index = edge_index;
 				int i=0;
 				for(auto pn : passed_nodes){
@@ -130,7 +161,9 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 			}
 		}else{
 			// extension of a straight line
+			std::cout << "end line edge was updated" << std::endl;
 			end_line_edge_index = last_line_edge_index; 
+			show_line_edge_ids();
 		}
 		last_line_edge_index = edge_index;
 		std::cout << "line count: " << passed_line_directions.size() << std::endl;
@@ -189,9 +222,21 @@ Eigen::Vector3d NodeEdgeMapManagement::get_passed_node(int index)
 	return passed_nodes[index];
 }
 
-void NodeEdgeMapManagement::show_line_edge_indices(void)
+void NodeEdgeMapManagement::show_line_edge_ids(void)
 {
-	std::cout << begin_line_edge_index << ", " << end_line_edge_index << ", " << last_line_edge_index << std::endl;
+	std::cout << "begin: ";
+	show_edge_from_index(begin_line_edge_index);
+	std::cout << "end: ";
+	show_edge_from_index(end_line_edge_index);
+	std::cout << "last: ";
+	show_edge_from_index(last_line_edge_index);
+}
+
+void NodeEdgeMapManagement::show_edge_from_index(int index)
+{
+	amsl_navigation_msgs::Edge e;
+	e = get_edge_from_index(index);
+	std::cout << e.node0_id << " -> " << e.node1_id << std::endl;
 }
 
 double NodeEdgeMapManagement::get_end_of_line_edge_distance(void)

@@ -31,7 +31,8 @@ public:
 	double get_passed_line_direction(int);
 	void clear(int);
 	Eigen::Vector3d get_passed_node(int);
-	void show_line_edge_indices(void);
+	void show_line_edge_ids(void);
+	void show_edge_from_index(int);
 	double get_end_of_line_edge_distance(void);
 	void get_begin_node_of_begin_line_edge(amsl_navigation_msgs::Node&);
 	void get_end_node_of_last_line_edge(amsl_navigation_msgs::Node&);

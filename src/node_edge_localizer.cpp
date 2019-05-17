@@ -319,6 +319,7 @@ void NodeEdgeLocalizer::process(void)
 				if(unique_edge_flag){
 					nemm.manage_passed_edge(unique_edge_index);
 				}
+				nemm.show_line_edge_ids();
 				std::cout << "--- calculate correction ---" << std::endl;
 				correct();
 				if(clear_flag){
@@ -488,7 +489,7 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 	std::cout << "direction from map: " << direction_from_map << "[rad]" << std::endl;
 	std::cout << "direction difference: " << direction_diff << "[rad]" << std::endl;
 
-	nemm.show_line_edge_indices();
+	nemm.show_line_edge_ids();
 	// This represents B(i) in paper
 	Eigen::Vector3d intersection_point_i;
 	std::vector<Eigen::Vector3d> longest_line;
@@ -574,7 +575,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 		}
 		std::cout << "B(i): \n" << intersection_point_i << std::endl;
 		// This represents N(i) in paper
-		nemm.show_line_edge_indices();
+		nemm.show_line_edge_ids();
 		Eigen::Vector3d map_node_point_i;
 		map_node_point_i << map_node_point_begin.point.x, map_node_point_begin.point.y, 0.0;
 		std::cout << "N(i): \n" << map_node_point_i << std::endl;
