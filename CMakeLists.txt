@@ -212,3 +212,13 @@ target_link_libraries(node_edge_localizer
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+if(CATKIN_ENABLE_TESTING)
+	find_package(rostest REQUIRED)
+	add_rostest_gtest(node_edge_localizer_test 
+		test/node_edge_localizer.test
+		test/node_edge_localizer_test.cpp
+	    src/calculation.cpp
+	)
+	target_link_libraries(node_edge_localizer_test ${catkin_LIBRARIES})
+endif()
