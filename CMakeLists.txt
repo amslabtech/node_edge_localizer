@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 2.8.3)
 project(node_edge_localizer)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+#add_compile_options(-std=c++11)
+SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -215,7 +216,7 @@ target_link_libraries(node_edge_localizer
 
 if(CATKIN_ENABLE_TESTING)
 	find_package(rostest REQUIRED)
-	add_rostest_gtest(node_edge_localizer_test 
+	add_rostest_gtest(node_edge_localizer_test
 		test/node_edge_localizer.test
 		test/node_edge_localizer_test.cpp
 	    src/calculation.cpp
