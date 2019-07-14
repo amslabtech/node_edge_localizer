@@ -43,7 +43,7 @@ public:
 	void publish_particles(void);
 	void particle_filter(int&, bool&);
 	void resampling(void);
-	void correct_trajectories(int, const Eigen::Affine3d&); 
+	void correct_trajectories(int, const Eigen::Affine3d&);
 	void clear(int);
 	void visualize_lines(void);
 	void remove_curve_from_trajectory(std::vector<Eigen::Vector3d>&);
@@ -72,6 +72,7 @@ private:
 	bool ENABLE_ODOM_TF;
 	double CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD;
 	int RESAMPLING_INTERVAL;
+	double EDGE_CERTAIN_THRESHOLD;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -98,9 +99,9 @@ private:
 	double estimated_yaw;
 	bool init_flag;
 	bool clear_flag;
-	// estimated edge(line) from odom 
+	// estimated edge(line) from odom
 	std::vector<Eigen::Vector3d> trajectory;
-	// estimated edges from odom 
+	// estimated edges from odom
 	std::vector<std::vector<Eigen::Vector3d> > linear_trajectories;
 	// correct odom to edge
 	Eigen::Affine3d odom_correction;
@@ -159,6 +160,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("ENABLE_ODOM_TF", ENABLE_ODOM_TF, {false});
 	private_nh.param("CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD", CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD, {M_PI/6.0});
 	private_nh.param("RESAMPLING_INTERVAL", RESAMPLING_INTERVAL, {5});
+	private_nh.param("EDGE_CERTAIN_THRESHOLD", EDGE_CERTAIN_THRESHOLD, {0.9});
 
 	map_subscribed = false;
 	odom_updated = false;
@@ -195,6 +197,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "ENABLE_ODOM_TF: " << ENABLE_ODOM_TF << std::endl;
 	std::cout << "CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD: " << CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD << std::endl;
 	std::cout << "RESAMPLING_INTERVAL: " << RESAMPLING_INTERVAL << std::endl;
+	std::cout << "EDGE_CERTAIN_THRESHOLD: " << EDGE_CERTAIN_THRESHOLD << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -216,14 +219,14 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
 		last_estimated_pose = estimated_pose;
 
-		double odom_yaw; 
+		double odom_yaw;
 		if(!USE_ORIENTATION_Z_AS_YAW){
 			odom_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction;
 		}else{
 			odom_yaw = msg->pose.pose.orientation.z + yaw_correction;
 		}
 		if(first_odom_callback_flag){
-			first_odom_yaw = odom_yaw; 
+			first_odom_yaw = odom_yaw;
 			std::cout << "first odom yaw: " << first_odom_yaw << std::endl;
 		}
 		odom_yaw -= first_odom_yaw;
@@ -292,7 +295,7 @@ void NodeEdgeLocalizer::intersection_callback(const std_msgs::BoolConstPtr& msg)
 void NodeEdgeLocalizer::process(void)
 {
 	ros::Rate loop_rate(HZ);
-	
+
 	while(ros::ok()){
 		if(map_subscribed){
 			if(init_flag){
@@ -303,7 +306,7 @@ void NodeEdgeLocalizer::process(void)
 				double start_time = ros::Time::now().toSec();
 				std::cout << "=== node_edge_localizer ===" << std::endl;
 				int unique_edge_index;
-				bool unique_edge_flag; 
+				bool unique_edge_flag;
 				std::cout << "--- particle filter ---" << std::endl;
 				particle_filter(unique_edge_index, unique_edge_flag);
 				std::cout << "--- clustering trajectories ---" << std::endl;
@@ -376,7 +379,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 					std::cout << "trajectory length: " << Calculation::get_length_of_trajectory(linear_trajectories.back()) << std::endl;
 					std::cout << "trajectory angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 				}else{
-					// same line 
+					// same line
 					std::cout << "robot is curving but on same edge" << std::endl;
 					std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
 					Calculation::get_slope_from_trajectory(linear_trajectories.back(), last_slope);
@@ -438,8 +441,8 @@ void NodeEdgeLocalizer::initialize(void)
 		p.last_node_x = node0.point.x;
 		p.last_node_y = node0.point.y;
 		p.weight = 1.0 / (double)PARTICLES_NUM;
-		p.current_edge_index = edge_index; 
-		p.last_edge_index = -1; 
+		p.current_edge_index = edge_index;
+		p.last_edge_index = -1;
 	}
 	nemm.set_parameters(INIT_NODE0_ID, INIT_NODE1_ID, CONTINUOUS_LINE_THRESHOLD, MIN_LINE_LENGTH);
 	init_flag = false;
@@ -662,8 +665,8 @@ double NodeEdgeLocalizer::calculate_trajectory_curvature(void)
 	x_ave = x_sum / (double)POSE_NUM_PCA;
 	y_ave = y_sum / (double)POSE_NUM_PCA;
 
-	double covariance = xy_sum / (double)POSE_NUM_PCA - x_ave * y_ave; 
-	Eigen::Matrix2d covariance_matrix; 
+	double covariance = xy_sum / (double)POSE_NUM_PCA - x_ave * y_ave;
+	Eigen::Matrix2d covariance_matrix;
 	covariance_matrix << xx_sum / POSE_NUM_PCA - x_ave * x_ave, covariance,
 					     covariance, yy_sum / POSE_NUM_PCA - y_ave * y_ave;
 	//std::cout << "covariance matrix: \n" << covariance_matrix << std::endl;
@@ -731,7 +734,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 {
 	// unimplemented
 	static int resampling_count = 0;
-	static std::mt19937 mt{std::random_device{}()}; 
+	static std::mt19937 mt{std::random_device{}()};
 	std::normal_distribution<> rand(0, NOISE_SIGMA);
 
 	unique_edge_index = -1;
@@ -749,7 +752,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 
 		// evaluation
 		if(!p.near_node_flag){
-			p.evaluate(estimated_yaw);	
+			p.evaluate(estimated_yaw);
 			/*
 			if(robot_moved_distance < 0.1){
 				// This particle may have returned to the last node
@@ -781,7 +784,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 				p.current_edge_index = nemm.get_next_edge_index_from_edge_index(p.current_edge_index, estimated_yaw);
 				amsl_navigation_msgs::Node node;
 				nemm.get_node_from_id(nemm.get_edge_from_index(p.current_edge_index).node0_id, node);
-				p.x = node.point.x; 
+				p.x = node.point.x;
 				p.y = node.point.y;
 				// particle's moved distance is more suitable ??
 				p.move(particle_distance_from_last_node + rand(mt), nemm.get_edge_from_index(p.current_edge_index).direction);
@@ -789,11 +792,11 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 		}
 		//std::cout << "after move: " << p.x << ", " << p.y << std::endl;
 	}
-	
+
 	// normalize weight
 	double max_weight = 0;
 	for(auto p : particles){
-		double w = p.weight;	
+		double w = p.weight;
 		if(max_weight < w){
 			max_weight = w;
 		}
@@ -802,16 +805,26 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 		p.weight /= max_weight;
 	}
 
-	for(auto p : particles){
-		if(unique_edge_flag && ((p.current_edge_index != particles[0].current_edge_index) || p.near_node_flag)){
-			// not unique if at least one particle on an edge different from p[0].
-			unique_edge_flag = false;	
+	// edge decision
+	const int EDGE_NUM = nemm.get_edge_num();
+	std::vector<int> edge_vote_list(EDGE_NUM, 0);
+	for(const auto& p : particles){
+		if(p.near_node_flag){
+			edge_vote_list[p.current_edge_index]++;
 		}
 	}
-
-	if(unique_edge_flag){
-		// inappropriate
-		unique_edge_index = particles[0].current_edge_index;
+	int max_index = 0;
+	for(int i=0;i<EDGE_NUM;i++){
+		if(edge_vote_list[i] > edge_vote_list[max_index]){
+			max_index = i;
+		}
+	}
+	double votes_ratio = edge_vote_list[max_index] / (double)PARTICLES_NUM;
+	if(votes_ratio > EDGE_CERTAIN_THRESHOLD){
+		unique_edge_flag = true;
+		unique_edge_index = max_index;
+	}else{
+		unique_edge_flag = false;
 	}
 
 	// resampling
@@ -822,14 +835,14 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	resampling_count++;
 	std::cout << "unique edge index: " << unique_edge_index << std::endl;
 	std::cout << "unique edge flag: " << unique_edge_flag << std::endl;
-	
+
 	set_particle_to_near_edge(unique_edge_flag, unique_edge_index, particles[0]);
 }
 
 void NodeEdgeLocalizer::resampling(void)
 {
 	std::cout << "-- resampling --" << std::endl;
-	static std::mt19937 mt{std::random_device{}()}; 
+	static std::mt19937 mt{std::random_device{}()};
 	static std::vector<NodeEdgeParticle> copied_particles(PARTICLES_NUM);
 
 	double prob = 0.0;
@@ -846,9 +859,9 @@ void NodeEdgeLocalizer::resampling(void)
 		prob = 0.0;
 		t = rand(mt);
 		for(auto p : particles){
-			prob += p.weight;	
+			prob += p.weight;
 			if(t <= prob){
-				copied_particles[j] = p;	
+				copied_particles[j] = p;
 				break;
 			}
 		}
@@ -857,7 +870,7 @@ void NodeEdgeLocalizer::resampling(void)
 	std::copy(copied_particles.begin(), copied_particles.end(), particles.begin());
 }
 
-void NodeEdgeLocalizer::correct_trajectories(int count, const Eigen::Affine3d& correction) 
+void NodeEdgeLocalizer::correct_trajectories(int count, const Eigen::Affine3d& correction)
 {
 	for(auto line=(linear_trajectories.begin()+count);line!=linear_trajectories.end();line++){
 		for(auto& v : *(line)){
@@ -928,7 +941,7 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 		last_node_point << last_node.point.x, last_node.point.y, 0.0;
 	}
 	double distance_from_last_node = (estimated_pose - last_node_point).norm();
-	estimated_edge.progress = distance_from_last_node / estimated_edge.distance; 
+	estimated_edge.progress = distance_from_last_node / estimated_edge.distance;
 	edge_pub.publish(estimated_edge);
 
 	visualization_msgs::Marker unique_edge_marker;
@@ -941,7 +954,7 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 	unique_edge_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 	if(unique_edge_flag){
 		unique_edge_marker.action = visualization_msgs::Marker::ADD;
-		unique_edge_marker.type = visualization_msgs::Marker::LINE_STRIP; 
+		unique_edge_marker.type = visualization_msgs::Marker::LINE_STRIP;
 		unique_edge_marker.scale.x = 1.0;
 		amsl_navigation_msgs::Node n;
 		nemm.get_node_from_id(estimated_edge.node0_id, n);
@@ -951,7 +964,7 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 		edge_marker_pub.publish(unique_edge_marker);
 	}else{
 		unique_edge_marker.action = visualization_msgs::Marker::ADD;
-		unique_edge_marker.type = visualization_msgs::Marker::CYLINDER; 
+		unique_edge_marker.type = visualization_msgs::Marker::CYLINDER;
 		unique_edge_marker.scale.x = 4.0;
 		unique_edge_marker.scale.y = 4.0;
 		unique_edge_marker.scale.z = 0.1;
@@ -973,13 +986,13 @@ void NodeEdgeLocalizer::publish_odom_tf(Eigen::Vector3d& odom, double yaw)
 	transform.setRotation(q);
 	odom_time = ros::Time::now();
 	tf::StampedTransform odom_tf(transform, odom_time, odom_frame_id, robot_frame_id);
-	broadcaster.sendTransform(odom_tf);	
+	broadcaster.sendTransform(odom_tf);
 }
 
 void NodeEdgeLocalizer::remove_shorter_line_from_trajectories(const int count)
 {
 	std::cout << "remove shorter line from trajectories" << std::endl;
-	int longest_line_index = -1;	
+	int longest_line_index = -1;
 	double longest_length = 0;
 	int size = linear_trajectories.size();
 	for(int i=count;i<size-1;i++){
@@ -1012,7 +1025,7 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 		nemm.get_candidate_edges(estimated_yaw, last_node_id, candidate_edges);
 		int edge_num = candidate_edges.size();
 		amsl_navigation_msgs::Node node0;
-		nemm.get_node_from_id(candidate_edges[0].node0_id, node0);	
+		nemm.get_node_from_id(candidate_edges[0].node0_id, node0);
 		if(edge_num > 0){
 			double min_distance = 1000;
 			int min_index = 0;
@@ -1032,7 +1045,7 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 					std::cout << "distance to edge(" << node0.id << ", " << node1.id << "): " << distance << "[m]" << std::endl;
 				}
 				if(min_distance > distance){
-					min_distance = distance;			
+					min_distance = distance;
 					min_index = i;
 				}
 			}
