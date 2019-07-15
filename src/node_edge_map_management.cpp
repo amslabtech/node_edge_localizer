@@ -50,6 +50,7 @@ int NodeEdgeMapManagement::get_edge_index_from_node_id(int node0_id, int node1_i
 		}
 		index++;
 	}
+	return -1;
 }
 
 int NodeEdgeMapManagement::get_node_index_from_id(int id)
@@ -169,7 +170,7 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 					std::cout << "line angle added !!!: " << line_angle << std::endl;
 				}
 				begin_line_edge_index = edge_index;
-				for(int i=0;i<passed_nodes.size();i++){
+				for(unsigned int i=0;i<passed_nodes.size();i++){
 					std::cout << "passed_node[" << i << "]: \n" << passed_nodes[i] << std::endl;
 					std::cout << "passed_line_directions[" << i << "]: \n" << passed_line_directions[i] << std::endl;
 				}

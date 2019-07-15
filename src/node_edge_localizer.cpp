@@ -352,9 +352,9 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 		std::cout << "linear_trajectory length: " << Calculation::get_length_of_trajectory(linear_trajectories.back()) << std::endl;
 	}
 	if(trajectory_curvature > CURVATURE_THRESHOLD || trajectory_length > MIN_LINE_LENGTH){
-		if(trajectory.size() > MIN_LINE_SIZE){
+		if((int)trajectory.size() > MIN_LINE_SIZE){
 			static Eigen::Vector2d last_slope;
-			static double last_yaw = 0;
+			//static double last_yaw = 0.0;
 			if(!first_edge_flag){
 				Eigen::Vector2d slope;
 				// get slope of current trajectory
@@ -386,7 +386,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 						std::cout << "tentatively corrected line angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
 						odom_correction = diff_correction * odom_correction;
 					}
-					last_yaw = estimated_yaw;
+					//last_yaw = estimated_yaw;
 					std::cout << "the last of trajectories was extended" << std::endl;
 					std::cout << "trajectory length: " << Calculation::get_length_of_trajectory(linear_trajectories.back()) << std::endl;
 					std::cout << "trajectory angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
@@ -397,7 +397,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 				if(trajectory_length > MIN_LINE_LENGTH){
 					Calculation::get_slope_from_trajectory(trajectory, last_slope);
 					linear_trajectories.push_back(trajectory);
-					last_yaw = estimated_yaw;
+					//last_yaw = estimated_yaw;
 					first_edge_flag = false;
 					std::cout << "first edge trajectory was added to trajectories" << std::endl;
 					std::cout << "trajectory length: " << Calculation::get_length_of_trajectory(linear_trajectories.back()) << std::endl;
@@ -452,7 +452,7 @@ void NodeEdgeLocalizer::correct(void)
 	std::cout << "passed lines: " <<  passed_lines_size << std::endl;
 	std::cout << "correction_count: " << correction_count << std::endl;
 
-	if(passed_lines_size > correction_count && linear_trajectories.size() > correction_count + 1){
+	if(passed_lines_size > correction_count && (int)linear_trajectories.size() > correction_count + 1){
 		std::cout << "--- correction ---" << std::endl;
 		double ratio;
 		double direction_diff;
@@ -743,7 +743,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 		//std::cout << "before move: " << p.x << ", " << p.y << std::endl;
 		// move particles
 		//std::cout << "last node xy: " << p.last_node_x << ", " << p.last_node_y << std::endl;
-		double current_robot_distance_from_last_node = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1));
+		//double current_robot_distance_from_last_node = p.get_distance_from_last_node(estimated_pose(0), estimated_pose(1));
 		//std::cout << "robot_moved_distance: " << robot_moved_distance << std::endl;
 		p.move(robot_moved_distance + rand(mt), nemm.get_edge_from_index(p.current_edge_index).direction);
 
