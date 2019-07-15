@@ -627,7 +627,7 @@ void NodeEdgeLocalizer::get_intersection_from_trajectories(std::vector<Eigen::Ve
 	double c1 = -a1 * center_1(0) + center_1(1);
 
 	intersection_point << (-c1 + c0) / (a1 - a0),
-					      (-a0 * c1 + a1 * c0) / (a1 - a0),
+						  (-a0 * c1 + a1 * c0) / (a1 - a0),
 						  0.0;
 }
 
@@ -668,7 +668,7 @@ double NodeEdgeLocalizer::calculate_trajectory_curvature(void)
 	double covariance = xy_sum / (double)POSE_NUM_PCA - x_ave * y_ave;
 	Eigen::Matrix2d covariance_matrix;
 	covariance_matrix << xx_sum / POSE_NUM_PCA - x_ave * x_ave, covariance,
-					     covariance, yy_sum / POSE_NUM_PCA - y_ave * y_ave;
+						 covariance, yy_sum / POSE_NUM_PCA - y_ave * y_ave;
 	//std::cout << "covariance matrix: \n" << covariance_matrix << std::endl;
 
 	Eigen::EigenSolver<Eigen::Matrix2d> es(covariance_matrix);
@@ -809,7 +809,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	const int EDGE_NUM = nemm.get_edge_num();
 	std::vector<int> edge_vote_list(EDGE_NUM, 0);
 	for(const auto& p : particles){
-		if(p.near_node_flag){
+		if(!p.near_node_flag){
 			edge_vote_list[p.current_edge_index]++;
 		}
 	}
@@ -820,6 +820,8 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 		}
 	}
 	double votes_ratio = edge_vote_list[max_index] / (double)PARTICLES_NUM;
+	std::cout << "max index: " << max_index << std::endl;
+	std::cout << "ratio: " << votes_ratio << std::endl;
 	if(votes_ratio > EDGE_CERTAIN_THRESHOLD){
 		unique_edge_flag = true;
 		unique_edge_index = max_index;
