@@ -25,45 +25,47 @@
   - wheel odometry (complementation with IMU is recommended)
 
 ## Parameters
-- hz
+- HZ
   - main loop rate (default: 20[Hz])
-- init_node0_id
+- INIT_NODE0_ID
   - node id of the begin of initial edge (default: 0)
-- init_node1_id
+- INIT_NODE1_ID
   - node id of the end of initial edge (default: 1)
-- init_progress
+- INIT_PROGRESS
   - initial progress on initial edge (default: 0.0)
-- init_yaw
+- INIT_YAW
   - initial robot yaw in map frame (default: 0.0)
-- curvature_threshold
+- CURVATURE_THRESHOLD
   - trajectories with curvature greater than this parameter are considered as curves (default: 0.010)
-- pose_num_pca
+- POSE_NUM_PCA
   - number of robot poses to calculate principal component analysis for calculating trajectory curvature and angle (default: 50)
-- min_line_size
+- MIN_LINE_SIZE
   - number of robot poses that exceed this parameter is considered a trajectory (default: 50)
     - this parameter is recommended to correspond with pose_num_pca
-- min_line_length
+- MIN_LINE_LENGTH
   - trajectories that are longer than this parameter and aren't curve is considered as straight lines (default: 3.0[m])
-- enable_tf
+- ENABLE_TF
   - if this parameter is true, this node publishes transform from map frame to robot frame (default: false)
-    - to publish transform, odom frame to robot frame tf is required 
-- use_orientation_z_as_yaw
+    - to publish transform, odom frame to robot frame tf is required
+- USE_ORIENTATION_Z_AS_YAW
   - in principle, this parameter should NOT be set to "true" (default: false)
-- particles_num
+- PARTICLES_NUM
   - number of particles (default: 1000)
-- noise_sigma
+- NOISE_SIGMA
   - standard deviation of particle motion noise (default: 0.10)
-- edge_decision_threshold
+- EDGE_DECISION_THRESHOLD
   - when the robot passes the node by this distance, the particles determine the next edge according to the robot's orientation (default: 0.5[m])
-- same_trajectory_angle_threshold
+- SAME_TRAJECTORY_ANGLE_THRESHOLD
   - the continuous trajectories with less orientation difference than this angle is considered to be same trajectory (default: M_PI/6[rad])
-- continuous_line_threshold 
+- CONTINUOUS_LINE_THRESHOLD
   - connected edges with angles smaller than the threshold are considered straight (default: M_PI/7[rad])
-- line_edge_ratio_threshold (deprecated)
+- LINE_EDGE_RATIO_THRESHOLD (DEPRECATED)
   - linear trajectories shorter than the threshold aren't used for correction (default: 0.5[m])
-- enable_odom_tf
+- ENABLE_ODOM_TF
   - if this param is true, this node publishes internally calculated odometry (default: false)
-- correction_rejection_angle_difference_threshold
+- CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD
   - if yaw of the correction result is greater than this threshold, the correction is rejected (default: M_PI/6[rad])
-- resampling_interval
+- RESAMPLING_INTERVAL
   - resampling particles once every (this param) times (default: 5)
+- EDGE_CERTAIN_THRESHOLD
+  - particles ratio for deciding estimated edge (default: 0.9)
