@@ -73,6 +73,7 @@ private:
 	double CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD;
 	int RESAMPLING_INTERVAL;
 	double EDGE_CERTAIN_THRESHOLD;
+	double OMIT_EDGE_THRESHOLD;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -161,6 +162,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD", CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD, {M_PI/6.0});
 	private_nh.param("RESAMPLING_INTERVAL", RESAMPLING_INTERVAL, {5});
 	private_nh.param("EDGE_CERTAIN_THRESHOLD", EDGE_CERTAIN_THRESHOLD, {0.9});
+	private_nh.param("OMIT_EDGE_THRESHOLD", OMIT_EDGE_THRESHOLD, {M_PI/6.0});
 
 	map_subscribed = false;
 	odom_updated = false;
@@ -198,6 +200,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD: " << CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD << std::endl;
 	std::cout << "RESAMPLING_INTERVAL: " << RESAMPLING_INTERVAL << std::endl;
 	std::cout << "EDGE_CERTAIN_THRESHOLD: " << EDGE_CERTAIN_THRESHOLD << std::endl;
+	std::cout << "OMIT_EDGE_THRESHOLD: " << OMIT_EDGE_THRESHOLD << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -1045,6 +1048,9 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 				}else{
 					distance = fabs(estimated_pose(0) - node1.point.x);
 					std::cout << "distance to edge(" << node0.id << ", " << node1.id << "): " << distance << "[m]" << std::endl;
+				}
+				if( M_PI - fabs(Calculation::pi_2_pi(candidate_edges[i].direction - estimated_yaw)) < OMIT_EDGE_THRESHOLD){
+					continue;
 				}
 				if(min_distance > distance){
 					min_distance = distance;
