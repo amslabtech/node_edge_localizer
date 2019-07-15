@@ -18,7 +18,7 @@ void NodeEdgeMapManagement::set_parameters(int init_node0_id, int init_node1_id,
 
 void NodeEdgeMapManagement::set_map(amsl_navigation_msgs::NodeEdgeMap& _map)
 {
-	map = _map;	
+	map = _map;
 }
 
 void NodeEdgeMapManagement::get_node_from_id(int id, amsl_navigation_msgs::Node& node)
@@ -103,8 +103,8 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 		if(last_unique_edge.node1_id == unique_edge.node0_id){
 			std::cout << "\033[48;5;2m" << "entered next edge" << "\033[0m" <<  std::endl;
 		}else if(map.edges[last_line_edge_index].node1_id != map.edges[edge_index].node0_id){
-			// not connected edges 
-			std::cout << "\033[48;5;1m"; 
+			// not connected edges
+			std::cout << "\033[48;5;1m";
 			std::cout << "skipped edge" << std::endl;
 			int interpolating_edge_index = search_interpolating_edge(last_line_edge_index, edge_index);
 			if(interpolating_edge_index >= 0){
@@ -157,7 +157,7 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 				if(passed_nodes.size() > 0){
 					if((passed_nodes.back() - node_point).norm() > 1e-3){
 						passed_nodes.push_back(node_point);
-						std::cout << "passed nodes added: " << end_node.id << std::endl; 
+						std::cout << "passed nodes added: " << end_node.id << std::endl;
 						passed_line_directions.push_back(line_angle);
 						std::cout << "line angle added !!!: " << line_angle << std::endl;
 					}else{
@@ -165,7 +165,7 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 					}
 				}else{
 					passed_nodes.push_back(node_point);
-					std::cout << "passed nodes added: " << end_node.id << std::endl; 
+					std::cout << "passed nodes added: " << end_node.id << std::endl;
 					passed_line_directions.push_back(line_angle);
 					std::cout << "line angle added !!!: " << line_angle << std::endl;
 				}
@@ -178,7 +178,7 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
 		}else{
 			// extension of a straight line
 			std::cout << "end line edge was updated" << std::endl;
-			end_line_edge_index = last_line_edge_index; 
+			end_line_edge_index = last_line_edge_index;
 			show_line_edge_ids();
 		}
 		last_line_edge_index = edge_index;
@@ -210,7 +210,7 @@ void NodeEdgeMapManagement::get_candidate_edges(double estimated_yaw, int node_i
 	for(auto e : map.edges){
 		if(e.node0_id == node_id){
 			if(M_PI - fabs(Calculation::pi_2_pi(e.direction - estimated_yaw)) > CONTINUOUS_LINE_THRESHOLD){
-				candidate_edges.push_back(e);	
+				candidate_edges.push_back(e);
 			}
 		}
 	}
@@ -268,4 +268,9 @@ void NodeEdgeMapManagement::get_begin_node_of_begin_line_edge(amsl_navigation_ms
 void NodeEdgeMapManagement::get_end_node_of_last_line_edge(amsl_navigation_msgs::Node& node)
 {
 	get_node_from_id(get_edge_from_index(last_line_edge_index).node1_id, node);
+}
+
+int NodeEdgeMapManagement::get_edge_num(void)
+{
+	return map.edges.size();
 }
