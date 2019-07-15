@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 	<arg name="hz" default="20"/>
 	<arg name="init_node0_id" default="0"/>
