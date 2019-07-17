@@ -73,7 +73,6 @@ private:
 	double CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD;
 	int RESAMPLING_INTERVAL;
 	double EDGE_CERTAIN_THRESHOLD;
-	double OMIT_EDGE_THRESHOLD;
 
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh;
@@ -162,7 +161,6 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	private_nh.param("CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD", CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD, {M_PI/6.0});
 	private_nh.param("RESAMPLING_INTERVAL", RESAMPLING_INTERVAL, {5});
 	private_nh.param("EDGE_CERTAIN_THRESHOLD", EDGE_CERTAIN_THRESHOLD, {0.9});
-	private_nh.param("OMIT_EDGE_THRESHOLD", OMIT_EDGE_THRESHOLD, {M_PI/6.0});
 
 	map_subscribed = false;
 	odom_updated = false;
@@ -200,7 +198,6 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 	std::cout << "CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD: " << CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD << std::endl;
 	std::cout << "RESAMPLING_INTERVAL: " << RESAMPLING_INTERVAL << std::endl;
 	std::cout << "EDGE_CERTAIN_THRESHOLD: " << EDGE_CERTAIN_THRESHOLD << std::endl;
-	std::cout << "OMIT_EDGE_THRESHOLD: " << OMIT_EDGE_THRESHOLD << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -1025,9 +1022,9 @@ void NodeEdgeLocalizer::remove_shorter_line_from_trajectories(const int count)
 void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int unique_edge_index, NodeEdgeParticle& p)
 {
 	if(unique_edge_flag){
-		int last_node_id = nemm.get_edge_from_index(unique_edge_index).node0_id;
+		amsl_navigation_msgs::Edge last_edge = nemm.get_edge_from_index(unique_edge_index);
 		std::vector<amsl_navigation_msgs::Edge> candidate_edges;
-		nemm.get_candidate_edges(estimated_yaw, last_node_id, candidate_edges);
+		nemm.get_candidate_edges(estimated_yaw, last_edge.node0_id, last_edge.direction, candidate_edges);
 		int edge_num = candidate_edges.size();
 		amsl_navigation_msgs::Node node0;
 		nemm.get_node_from_id(candidate_edges[0].node0_id, node0);
@@ -1048,9 +1045,6 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 				}else{
 					distance = fabs(estimated_pose(0) - node1.point.x);
 					std::cout << "distance to edge(" << node0.id << ", " << node1.id << "): " << distance << "[m]" << std::endl;
-				}
-				if( M_PI - fabs(Calculation::pi_2_pi(candidate_edges[i].direction - estimated_yaw)) < OMIT_EDGE_THRESHOLD){
-					continue;
 				}
 				if(min_distance > distance){
 					min_distance = distance;

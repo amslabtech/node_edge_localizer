@@ -26,7 +26,7 @@ public:
 	int get_next_edge_index_from_edge_index(int, double);
 	void manage_passed_edge(int);
 	amsl_navigation_msgs::Edge get_edge_from_index(int);
-	void get_candidate_edges(double, int, std::vector<amsl_navigation_msgs::Edge>&);
+	void get_candidate_edges(double, int, double,std::vector<amsl_navigation_msgs::Edge>&);
 	int get_passed_line_directions_size(void);
 	double get_passed_line_direction(int);
 	void clear(int);

@@ -205,12 +205,14 @@ amsl_navigation_msgs::Edge NodeEdgeMapManagement::get_edge_from_index(int edge_i
 	return map.edges[edge_index];
 }
 
-void NodeEdgeMapManagement::get_candidate_edges(double estimated_yaw, int node_id, std::vector<amsl_navigation_msgs::Edge>& candidate_edges)
+void NodeEdgeMapManagement::get_candidate_edges(double estimated_yaw, int node_id, double edge_direction, std::vector<amsl_navigation_msgs::Edge>& candidate_edges)
 {
 	for(auto e : map.edges){
 		if(e.node0_id == node_id){
 			if(M_PI - fabs(Calculation::pi_2_pi(e.direction - estimated_yaw)) > CONTINUOUS_LINE_THRESHOLD){
-				candidate_edges.push_back(e);
+				if( M_PI - fabs(Calculation::pi_2_pi(e.direction - edge_direction)) > CONTINUOUS_LINE_THRESHOLD){
+					candidate_edges.push_back(e);
+				}
 			}
 		}
 	}
