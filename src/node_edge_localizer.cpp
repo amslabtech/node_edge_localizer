@@ -1022,19 +1022,18 @@ void NodeEdgeLocalizer::remove_shorter_line_from_trajectories(const int count)
 void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int unique_edge_index, NodeEdgeParticle& p)
 {
 	if(unique_edge_flag){
-		amsl_navigation_msgs::Edge last_edge = nemm.get_edge_from_index(unique_edge_index);
 		std::vector<amsl_navigation_msgs::Edge> candidate_edges;
-		nemm.get_candidate_edges(estimated_yaw, last_edge.node0_id, last_edge.direction, candidate_edges);
+		nemm.get_candidate_edges(estimated_yaw, unique_edge_index, candidate_edges);
 		int edge_num = candidate_edges.size();
 		amsl_navigation_msgs::Node node0;
 		nemm.get_node_from_id(candidate_edges[0].node0_id, node0);
 		if(edge_num > 0){
-			double min_distance = 1000;
+			double min_distance = 1e6;
 			int min_index = 0;
 			for(int i=0;i<edge_num;i++){
 				amsl_navigation_msgs::Node node1;
 				nemm.get_node_from_id(candidate_edges[i].node1_id, node1);
-				double distance = 1000;
+				double distance = 1e6;
 				if(node1.point.x - node0.point.x != 0.0){
 					// ax+by+c=0
 					double a = (node1.point.y - node0.point.y) / (node1.point.x - node0.point.x);
