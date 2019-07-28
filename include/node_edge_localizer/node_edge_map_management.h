@@ -37,6 +37,7 @@ public:
 	void get_begin_node_of_begin_line_edge(amsl_navigation_msgs::Node&);
 	void get_end_node_of_last_line_edge(amsl_navigation_msgs::Node&);
 	int get_edge_num(void);
+	void get_edge_from_estimated_pose(double estimated_x, double estimated_y, double estimated_yaw, amsl_navigation_msgs::Edge& edge);
 
 private:
 	int search_interpolating_edge(int, int);

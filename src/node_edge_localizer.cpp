@@ -51,6 +51,7 @@ public:
 	void publish_odom_tf(Eigen::Vector3d&, double);
 	void remove_shorter_line_from_trajectories(const int);
 	void set_particle_to_near_edge(bool, int, NodeEdgeParticle&);
+	void set_dead_end_particle_to_edge_near_robot(bool, int, NodeEdgeParticle&);
 
 private:
 	double HZ;
@@ -839,6 +840,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 	std::cout << "unique edge flag: " << unique_edge_flag << std::endl;
 
 	set_particle_to_near_edge(unique_edge_flag, unique_edge_index, particles[0]);
+	set_dead_end_particle_to_edge_near_robot(unique_edge_flag, unique_edge_index, particles[0]);
 }
 
 void NodeEdgeLocalizer::resampling(void)
@@ -1058,5 +1060,27 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 			p.move(particle_distance_from_last_node, nemm.get_edge_from_index(p.current_edge_index).direction);
 			std::cout << "set particle[0] to edge(" << node0.id << ", " << nemm.get_edge_from_index(p.current_edge_index).node1_id << ")" << std::endl;
 		}
+	}
+}
+
+void NodeEdgeLocalizer::set_dead_end_particle_to_edge_near_robot(bool unique_edge_flag, int unique_edge_index, NodeEdgeParticle& p)
+{
+	double weight_sum = 0.0;
+
+	for(auto particle : particles){
+		weight_sum += particle.weight;
+	}
+	if(weight_sum / PARTICLES_NUM < EDGE_DECISION_THRESHOLD){
+		amsl_navigation_msgs::Edge edge_near_robot;
+		nemm.get_edge_from_estimated_pose(estimated_pose(0), estimated_pose(1), estimated_yaw, edge_near_robot);
+		double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
+		p.last_edge_index = p.current_edge_index;
+		p.current_edge_index = nemm.get_edge_index_from_node_id(edge_near_robot.node0_id, edge_near_robot.node1_id);
+		amsl_navigation_msgs::Node node0;
+		nemm.get_node_from_id(edge_near_robot.node0_id, node0);
+		p.x = p.last_node_x = node0.point.x;
+		p.y = p.last_node_y = node0.point.y;
+		p.move(particle_distance_from_last_node, nemm.get_edge_from_index(p.current_edge_index).direction);
+		std::cout << "set particle[0] to edge(" << edge_near_robot.node0_id << ", " << edge_near_robot.node1_id << ")" << std::endl;
 	}
 }

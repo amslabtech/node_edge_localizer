@@ -278,3 +278,48 @@ int NodeEdgeMapManagement::get_edge_num(void)
 {
 	return map.edges.size();
 }
+
+void NodeEdgeMapManagement::get_edge_from_estimated_pose(double estimated_x, double estimated_y, double estimated_yaw, amsl_navigation_msgs::Edge& edge)
+{
+	int index = 0;
+	int nearest_index = -1;
+	double distance = 1e6;
+
+	for(auto e : map.edges){
+
+		amsl_navigation_msgs::Node node0;
+		get_node_from_id(e.node0_id, node0);
+		amsl_navigation_msgs::Node node1;
+		get_node_from_id(e.node1_id, node1);
+		double distance_from_estimated_pose_to_edge;
+
+		if(node1.point.x - node0.point.x != 0.0){
+			// ax+by+c=0
+			double a = (node1.point.y - node0.point.y) / (node1.point.x - node0.point.x);
+			double b = -1;
+			double c = node0.point.y - a * node0.point.x;
+			double distance_from_point_to_line = fabs(a * estimated_x + b * estimated_y + c) / sqrt(Calculation::square(a) + Calculation::square(b));
+			// check the position of particle
+			double square_distance_from_point_to_line = Calculation::square(distance_from_point_to_line);
+			double square_distance_from_point_to_node0 = Calculation::square(estimated_x - node0.point.x) + Calculation::square(estimated_y - node0.point.y);
+			double square_distance_from_point_to_node1 = Calculation::square(estimated_x - node1.point.x) + Calculation::square(estimated_y - node1.point.y);
+			double square_distance_from_node0_to_node1 = Calculation::square(node0.point.x - node1.point.x) + Calculation::square(node0.point.y - node1.point.y);
+			if(sqrt(square_distance_from_point_to_node0 - square_distance_from_point_to_line) + sqrt(square_distance_from_point_to_node1 - square_distance_from_point_to_line) == sqrt(square_distance_from_node0_to_node1)){
+				distance_from_estimated_pose_to_edge = distance_from_point_to_line;
+			}else if(square_distance_from_point_to_node0 > square_distance_from_point_to_node1){
+				distance_from_estimated_pose_to_edge = sqrt(square_distance_from_point_to_node1);
+			}else if(square_distance_from_point_to_node0 < square_distance_from_point_to_node1){
+				distance_from_estimated_pose_to_edge = sqrt(square_distance_from_point_to_node0);
+			}
+		}else{
+			distance_from_estimated_pose_to_edge = fabs(estimated_x - node1.point.x);
+		}
+
+		if(distance_from_estimated_pose_to_edge < distance && fabs(Calculation::pi_2_pi(e.direction - estimated_yaw)) < M_PI / 2){
+			nearest_index = index;
+			distance = distance_from_estimated_pose_to_edge;
+		}
+		index++;
+	}
+	edge = map.edges[nearest_index];
+}
