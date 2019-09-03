@@ -70,19 +70,36 @@ std::string NodeEdgeMapManagement::get_map_header_frame_id(void)
     return map.header.frame_id;
 }
 
-int NodeEdgeMapManagement::get_next_edge_index_from_edge_index(int index, double estimated_yaw)
+int NodeEdgeMapManagement::get_next_edge_index_from_edge_index(int index, int id, double estimated_yaw)
 {
     double min_direction_diff = 100;
     int min_index = -1;
     int size = map.edges.size();
-    for(int i=0;i<size;i++){
-        if(index != i){
-            if(map.edges[index].node1_id == map.edges[i].node0_id){
-                double diff = map.edges[i].direction - estimated_yaw;
-                diff = fabs(Calculation::pi_2_pi(diff));
-                if(min_direction_diff > diff){
-                    min_direction_diff = diff;
-                    min_index = i;
+    if(id == get_edge_from_index(index).node1_id){
+        // forward
+        for(int i=0;i<size;i++){
+            if(index != i){
+                if(map.edges[index].node1_id == map.edges[i].node0_id){
+                    double diff = map.edges[i].direction - estimated_yaw;
+                    diff = fabs(Calculation::pi_2_pi(diff));
+                    if(min_direction_diff > diff){
+                        min_direction_diff = diff;
+                        min_index = i;
+                    }
+                }
+            }
+        }
+    }else{
+        // back
+        for(int i=0;i<size;i++){
+            if(index != i){
+                if(map.edges[index].node0_id == map.edges[i].node1_id){
+                    double diff = map.edges[i].direction - estimated_yaw;
+                    diff = fabs(Calculation::pi_2_pi(diff));
+                    if(min_direction_diff > diff){
+                        min_direction_diff = diff;
+                        min_index = i;
+                    }
                 }
             }
         }

@@ -23,7 +23,7 @@ public:
     int get_node_index_from_id(int);
     int get_edge_index_from_node_id(int, int);
     std::string get_map_header_frame_id(void);
-    int get_next_edge_index_from_edge_index(int, double);
+    int get_next_edge_index_from_edge_index(int, int, double);
     void manage_passed_edge(int);
     amsl_navigation_msgs::Edge get_edge_from_index(int);
     void get_candidate_edges(double, int, std::vector<amsl_navigation_msgs::Edge>&);

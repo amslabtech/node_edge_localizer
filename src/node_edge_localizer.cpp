@@ -141,13 +141,15 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
             double diff_yaw_and_moved_direction = estimated_yaw - moved_direction;
             diff_yaw_and_moved_direction = Calculation::pi_2_pi(diff_yaw_and_moved_direction);
             robot_moved_distance *= cos(diff_yaw_and_moved_direction);
-            if(fabs(diff_yaw_and_moved_direction) < M_PI / 2.0){
-                // forward
-                robot_moved_distance = robot_moved_distance;
-            }else{
-                // back
-                robot_moved_distance = -robot_moved_distance;
-            }
+            // if(fabs(diff_yaw_and_moved_direction) < M_PI / 2.0){
+            //     // forward
+            //     robot_moved_distance = robot_moved_distance;
+            //     std::cout << "f: " << robot_moved_distance << "[m]" << std::endl;
+            // }else{
+            //     // back
+            //     robot_moved_distance = -robot_moved_distance;
+            //     std::cout << "b: " << robot_moved_distance << "[m]" << std::endl;
+            // }
         }
         if(ENABLE_ODOM_TF){
             publish_odom_tf(odom_pose, odom_yaw);
@@ -309,6 +311,7 @@ void NodeEdgeLocalizer::initialize(void)
         p.y = estimated_pose(1);
         p.yaw = estimated_yaw;
         p.move(estimated_edge.distance * estimated_edge.progress, estimated_edge.direction);
+        p.last_node_id = node0.id;
         p.last_node_x = node0.point.x;
         p.last_node_y = node0.point.y;
         p.weight = 1.0 / (double)PARTICLES_NUM;
@@ -612,6 +615,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
     unique_edge_flag = true;
 
     std::cout << "robot moved_distance: " << robot_moved_distance << "[m]" << std::endl;
+    int idx = 0;
     for(auto& p : particles){
         //std::cout << "--" << std::endl;
         //std::cout << "before move: " << p.x << ", " << p.y << std::endl;
@@ -624,46 +628,61 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
         // evaluation
         if(!p.near_node_flag){
             p.evaluate(estimated_yaw);
-            /*
-            if(robot_moved_distance < 0.1){
-                // This particle may have returned to the last node
-                if(p.last_edge_index == 0){
-                    // first edge
-                    p.near_node_flag = true;
-                }
-            }
-            */
-            if(nemm.get_edge_from_index(p.current_edge_index).distance < p.get_particle_distance_from_last_node()){
-                // arrived ???
+            double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
+            // std::cout << "dist: " << particle_distance_from_last_node << std::endl;
+            if(nemm.get_edge_from_index(p.current_edge_index).distance < particle_distance_from_last_node){
+                // arrived
                 //std::cout << "particle arrived at node" << std::endl;
                 p.near_node_flag = true;
                 amsl_navigation_msgs::Node last_node;
                 nemm.get_node_from_id(nemm.get_edge_from_index(p.current_edge_index).node1_id, last_node);
-                p.last_node_x = last_node.point.x;
-                p.last_node_y = last_node.point.y;
-                p.x = p.last_node_x;
-                p.y = p.last_node_y;
+                p.last_node_id = last_node.id;
+                p.x = p.last_node_x = last_node.point.x;
+                p.y = p.last_node_y = last_node.point.y;
+            }else if(particle_distance_from_last_node < EDGE_DECISION_THRESHOLD * 0.5){
+                // return to last node
+                p.near_node_flag = true;
+                // std::cout << "\033[31mreturn to last node\033[0m" << std::endl;
+                amsl_navigation_msgs::Node last_node;
+                nemm.get_node_from_id(nemm.get_edge_from_index(p.current_edge_index).node0_id, last_node);
+                // std::cout << last_node << std::endl;
+                p.last_node_id = last_node.id;
+                p.x = p.last_node_x = last_node.point.x;
+                p.y = p.last_node_y = last_node.point.y;
+                // std::cout << "\033[031m";
+                // std::cout << idx << ": " << p.x << ", " << p.y << ", " << p.current_edge_index << std::endl;
+                // std::cout << "\033[0m";
             }
         }else{
             // go out of range of the last node
             // it should be a constant
             double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
             if(particle_distance_from_last_node > EDGE_DECISION_THRESHOLD){
-                //std::cout << "particle put on next edge" << std::endl;
+                // std::cout << "\033[034m";
+                // std::cout << "particle put on next edge" << std::endl;
+                // std::cout << p.last_node_id << ", " << p.last_node_x << ", " << p.last_node_y << ", " << p.current_edge_index << std::endl;
                 p.near_node_flag = false;
                 p.last_edge_index = p.current_edge_index;
-                p.current_edge_index = nemm.get_next_edge_index_from_edge_index(p.current_edge_index, estimated_yaw);
+                p.current_edge_index = nemm.get_next_edge_index_from_edge_index(p.last_edge_index, p.last_node_id, estimated_yaw);
                 amsl_navigation_msgs::Node node;
-                nemm.get_node_from_id(nemm.get_edge_from_index(p.current_edge_index).node0_id, node);
-                p.x = node.point.x;
-                p.y = node.point.y;
-                // particle's moved distance is more suitable ??
-                p.move(particle_distance_from_last_node + rand(mt), nemm.get_edge_from_index(p.current_edge_index).direction);
+                amsl_navigation_msgs::Edge current_edge = nemm.get_edge_from_index(p.current_edge_index);
+                nemm.get_node_from_id(current_edge.node0_id, node);
+                p.last_node_id = current_edge.node0_id;
+                p.x = p.last_node_x = node.point.x;
+                p.y = p.last_node_y = node.point.y;
+                if(p.last_node_id != nemm.get_edge_from_index(p.last_edge_index).node1_id){
+                    // return to last node
+                    particle_distance_from_last_node = current_edge.distance - particle_distance_from_last_node;
+                    // std::cout << "\033[31m" << particle_distance_from_last_node << "[m]" << "\033[0m" << std::endl;
+                }
+                p.move(particle_distance_from_last_node + rand(mt), current_edge.direction);
+                // std::cout << p.last_node_id << ", " << p.last_node_x << ", " << p.last_node_y << ", " << p.current_edge_index << std::endl;
+                // std::cout << "\033[0m";
             }
         }
         //std::cout << "after move: " << p.x << ", " << p.y << std::endl;
+        idx++;
     }
-
     // normalize weight
     double max_weight = 0;
     for(auto p : particles){
@@ -924,6 +943,7 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
             double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
             p.last_edge_index = p.current_edge_index;
             p.current_edge_index = nemm.get_edge_index_from_node_id(candidate_edges[min_index].node0_id, candidate_edges[min_index].node1_id);
+            p.last_node_id = node0.id;
             p.x = p.last_node_x = node0.point.x;
             p.y = p.last_node_y = node0.point.y;
             p.move(particle_distance_from_last_node, nemm.get_edge_from_index(p.current_edge_index).direction);
