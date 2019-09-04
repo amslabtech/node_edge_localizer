@@ -1070,7 +1070,7 @@ void NodeEdgeLocalizer::set_dead_end_particle_to_edge_near_robot(bool unique_edg
 	for(auto particle : particles){
 		weight_sum += particle.weight;
 	}
-	if(weight_sum / PARTICLES_NUM < EDGE_DECISION_THRESHOLD){
+	if(weight_sum / (double)PARTICLES_NUM < EDGE_DECISION_THRESHOLD){
 		amsl_navigation_msgs::Edge edge_near_robot;
 		nemm.get_edge_from_estimated_pose(estimated_pose(0), estimated_pose(1), estimated_yaw, edge_near_robot);
 		double particle_distance_from_last_node = p.get_particle_distance_from_last_node();

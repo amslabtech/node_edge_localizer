@@ -281,8 +281,7 @@ int NodeEdgeMapManagement::get_edge_num(void)
 
 void NodeEdgeMapManagement::get_edge_from_estimated_pose(double estimated_x, double estimated_y, double estimated_yaw, amsl_navigation_msgs::Edge& edge)
 {
-	int index = 0;
-	int nearest_index = -1;
+    amsl_navigation_msgs::Edge nearest_edge;
 	double distance = 1e6;
 
 	for(auto e : map.edges){
@@ -291,7 +290,7 @@ void NodeEdgeMapManagement::get_edge_from_estimated_pose(double estimated_x, dou
 		get_node_from_id(e.node0_id, node0);
 		amsl_navigation_msgs::Node node1;
 		get_node_from_id(e.node1_id, node1);
-		double distance_from_estimated_pose_to_edge;
+		double distance_from_estimated_pose_to_edge = 10e6;
 
 		if(node1.point.x - node0.point.x != 0.0){
 			// ax+by+c=0
@@ -316,10 +315,9 @@ void NodeEdgeMapManagement::get_edge_from_estimated_pose(double estimated_x, dou
 		}
 
 		if(distance_from_estimated_pose_to_edge < distance && fabs(Calculation::pi_2_pi(e.direction - estimated_yaw)) < M_PI / 2){
-			nearest_index = index;
+			nearest_edge = e;
 			distance = distance_from_estimated_pose_to_edge;
 		}
-		index++;
 	}
-	edge = map.edges[nearest_index];
+	edge = nearest_edge;
 }
