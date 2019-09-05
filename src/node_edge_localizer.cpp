@@ -32,6 +32,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     private_nh.param("CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD", CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD, {M_PI/6.0});
     private_nh.param("RESAMPLING_INTERVAL", RESAMPLING_INTERVAL, {5});
     private_nh.param("EDGE_CERTAIN_THRESHOLD", EDGE_CERTAIN_THRESHOLD, {0.9});
+    private_nh.param("ENABLE_TENTATIVE_CORRECTION", ENABLE_TENTATIVE_CORRECTION, {false});
 
     map_subscribed = false;
     odom_updated = false;
@@ -183,14 +184,16 @@ void NodeEdgeLocalizer::process(void)
                 std::cout << "--- particle filter ---" << std::endl;
                 particle_filter(unique_edge_index, unique_edge_flag);
                 std::cout << "--- clustering trajectories ---" << std::endl;
-                if(!unique_edge_flag){
-                    tentative_correction_count = POSE_NUM_PCA;
+                if(ENABLE_TENTATIVE_CORRECTION){
+                    if(!unique_edge_flag){
+                        tentative_correction_count = POSE_NUM_PCA;
+                    }
+                    clustering_trajectories();
+                    if(tentative_correction_count > 0){
+                        tentative_correction_count--;
+                    }
+                    std::cout << "tentative correction count: " << tentative_correction_count << std::endl;
                 }
-                clustering_trajectories();
-                if(tentative_correction_count > 0){
-                    tentative_correction_count--;
-                }
-                std::cout << "tentative correction count: " << tentative_correction_count << std::endl;
                 std::cout << "--- manage passed edge ---" << std::endl;
                 if(unique_edge_flag){
                     nemm.manage_passed_edge(unique_edge_index);
@@ -256,11 +259,13 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
                     std::cout << "robot is curving but on same edge" << std::endl;
                     std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
                     Calculation::get_slope_from_trajectory(linear_trajectories.back(), last_slope);
-                    if(tentative_correction_count == 0){
-                        Eigen::Affine3d diff_correction;
-                        calculate_affine_transformation_tentatively(diff_correction);
-                        std::cout << "tentatively corrected line angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
-                        odom_correction = diff_correction * odom_correction;
+                    if(ENABLE_TENTATIVE_CORRECTION){
+                        if(tentative_correction_count == 0){
+                            Eigen::Affine3d diff_correction;
+                            calculate_affine_transformation_tentatively(diff_correction);
+                            std::cout << "tentatively corrected line angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
+                            odom_correction = diff_correction * odom_correction;
+                        }
                     }
                     //last_yaw = estimated_yaw;
                     std::cout << "the last of trajectories was extended" << std::endl;
@@ -343,7 +348,9 @@ void NodeEdgeLocalizer::correct(void)
             std::cout << "corrected" << std::endl;
             correction_count++;
             std::cout << "corrected line angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
-            tentative_correction_count = POSE_NUM_PCA;
+            if(ENABLE_TENTATIVE_CORRECTION){
+                tentative_correction_count = POSE_NUM_PCA;
+            }
         }else{
             std::cout << "### failed to correct ###" << std::endl;
             std::cout << "### correction reset ###" << std::endl;

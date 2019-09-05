@@ -77,6 +77,7 @@ private:
     double CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD;
     int RESAMPLING_INTERVAL;
     double EDGE_CERTAIN_THRESHOLD;
+    bool ENABLE_TENTATIVE_CORRECTION;
 
     ros::NodeHandle nh;
     ros::NodeHandle private_nh;

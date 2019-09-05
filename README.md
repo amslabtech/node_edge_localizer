@@ -69,3 +69,5 @@
   - resampling particles once every (this param) times (default: 5)
 - EDGE_CERTAIN_THRESHOLD
   - particles ratio for deciding estimated edge (default: 0.9)
+- ENABLE_TENTATIVE_CORRECTION
+  - if true, perform tentavice correction (default: false)
