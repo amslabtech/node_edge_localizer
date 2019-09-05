@@ -188,7 +188,9 @@ void NodeEdgeLocalizer::process(void)
                     if(!unique_edge_flag){
                         tentative_correction_count = POSE_NUM_PCA;
                     }
-                    clustering_trajectories();
+                }
+                clustering_trajectories();
+                if(ENABLE_TENTATIVE_CORRECTION){
                     if(tentative_correction_count > 0){
                         tentative_correction_count--;
                     }
