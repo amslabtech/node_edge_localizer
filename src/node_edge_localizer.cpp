@@ -280,7 +280,6 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
                 if(trajectory_length > MIN_LINE_LENGTH){
                     Calculation::get_slope_from_trajectory(trajectory, last_slope);
                     linear_trajectories.push_back(trajectory);
-                    //last_yaw = estimated_yaw;
                     first_edge_flag = false;
                     std::cout << "first edge trajectory was added to trajectories" << std::endl;
                     std::cout << "trajectory length: " << Calculation::get_length_of_trajectory(linear_trajectories.back()) << std::endl;
@@ -300,6 +299,11 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
     std::cout << "trajectory.size(): " << trajectory.size() << std::endl;
     std::cout << "trajectory length: " << Calculation::get_length_of_trajectory(trajectory) << std::endl;
     std::cout << "linear_trajectories.size(): " << linear_trajectories.size() << std::endl;
+    int saved_pose_num = 0;
+    for(const auto& traj : linear_trajectories){
+        saved_pose_num += traj.size();
+    }
+    std::cout << "saved pose num: " << saved_pose_num << std::endl;;
 }
 
 void NodeEdgeLocalizer::initialize(void)
@@ -354,8 +358,10 @@ void NodeEdgeLocalizer::correct(void)
                 tentative_correction_count = POSE_NUM_PCA;
             }
         }else{
+            std::cout << "\033[31m";
             std::cout << "### failed to correct ###" << std::endl;
             std::cout << "### correction reset ###" << std::endl;
+            std::cout << "\033[0m" << std::endl;;
             clear_flag = true;
         }
     }
@@ -429,11 +435,11 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
             std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
             return true;
         }else{
-            std::cout << "correction was rejected due to large direction difference between edge and trajectory line" << std::endl;
+            std::cout << "\033[31mcorrection was rejected due to large direction difference between edge and trajectory line\033[0m" << std::endl;
             return false;
         }
     }else{
-        std::cout << "correction was rejected due to too long trajectory line" << std::endl;
+        std::cout << "\033[31mcorrection was rejected due to too long trajectory line\33[0m" << std::endl;
         return false;
     }
 }
