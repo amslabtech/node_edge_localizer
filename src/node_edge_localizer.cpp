@@ -638,8 +638,18 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
             p.evaluate(estimated_yaw);
             double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
             // std::cout << "dist: " << particle_distance_from_last_node << std::endl;
-            if(nemm.get_edge_from_index(p.current_edge_index).distance < particle_distance_from_last_node){
-                // arrived
+            double diff_yaw = fabs(Calculation::pi_2_pi(nemm.get_edge_from_index(p.current_edge_index).direction - estimated_yaw));
+            if(diff_yaw > M_PI * 0.5){
+                // switch to reversed edge
+                int reversed_edge_index = nemm.get_reversed_edge_index_from_edge_index(p.current_edge_index);
+                amsl_navigation_msgs::Node reversed_node0;
+                nemm.get_node_from_id(nemm.get_edge_from_index(reversed_edge_index).node0_id, reversed_node0);
+                p.current_edge_index = p.last_edge_index = reversed_edge_index;
+                p.last_node_id = reversed_node0.id;
+                p.last_node_x = reversed_node0.point.x;
+                p.last_node_y = reversed_node0.point.y;
+            }else if(nemm.get_edge_from_index(p.current_edge_index).distance < particle_distance_from_last_node){
+                // arrived at node
                 //std::cout << "particle arrived at node" << std::endl;
                 p.near_node_flag = true;
                 amsl_navigation_msgs::Node last_node;
