@@ -16,59 +16,59 @@ void NodeEdgeMapManagement::set_parameters(int init_node0_id, int init_node1_id,
     last_line_edge_index = get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
 }
 
-void NodeEdgeMapManagement::set_map(amsl_navigation_msgs::NodeEdgeMap& _map)
-{
-    map = _map;
-}
-
-void NodeEdgeMapManagement::get_node_from_id(int id, amsl_navigation_msgs::Node& node)
-{
-    for(auto n : map.nodes){
-        if(n.id == id){
-            node = n;
-            return;
-        }
-    }
-}
-
-void NodeEdgeMapManagement::get_edge_from_node_id(int node0_id, int node1_id, amsl_navigation_msgs::Edge& edge)
-{
-    for(auto e : map.edges){
-        if(e.node0_id == node0_id && e.node1_id == node1_id){
-            edge = e;
-            return;
-        }
-    }
-}
-
-int NodeEdgeMapManagement::get_edge_index_from_node_id(int node0_id, int node1_id)
-{
-    int index = 0;
-    for(auto e : map.edges){
-        if(e.node0_id == node0_id && e.node1_id == node1_id){
-            return index;
-        }
-        index++;
-    }
-    return -1;
-}
-
-int NodeEdgeMapManagement::get_node_index_from_id(int id)
-{
-    int i = 0;
-    for(auto n : map.nodes){
-        if(n.id == id){
-            return i;
-        }
-        i++;
-    }
-    return -1;
-}
-
-std::string NodeEdgeMapManagement::get_map_header_frame_id(void)
-{
-    return map.header.frame_id;
-}
+// void NodeEdgeMapManagement::set_map(amsl_navigation_msgs::NodeEdgeMap& _map)
+// {
+//     map = _map;
+// }
+//
+// void NodeEdgeMapManagement::get_node_from_id(int id, amsl_navigation_msgs::Node& node)
+// {
+//     for(auto n : map.nodes){
+//         if(n.id == id){
+//             node = n;
+//             return;
+//         }
+//     }
+// }
+//
+// void NodeEdgeMapManagement::get_edge_from_node_id(int node0_id, int node1_id, amsl_navigation_msgs::Edge& edge)
+// {
+//     for(auto e : map.edges){
+//         if(e.node0_id == node0_id && e.node1_id == node1_id){
+//             edge = e;
+//             return;
+//         }
+//     }
+// }
+//
+// int NodeEdgeMapManagement::get_edge_index_from_node_id(int node0_id, int node1_id)
+// {
+//     int index = 0;
+//     for(auto e : map.edges){
+//         if(e.node0_id == node0_id && e.node1_id == node1_id){
+//             return index;
+//         }
+//         index++;
+//     }
+//     return -1;
+// }
+//
+// int NodeEdgeMapManagement::get_node_index_from_id(int id)
+// {
+//     int i = 0;
+//     for(auto n : map.nodes){
+//         if(n.id == id){
+//             return i;
+//         }
+//         i++;
+//     }
+//     return -1;
+// }
+//
+// std::string NodeEdgeMapManagement::get_map_header_frame_id(void)
+// {
+//     return map.header.frame_id;
+// }
 
 int NodeEdgeMapManagement::get_next_edge_index_from_edge_index(int index, int id, double estimated_yaw)
 {
@@ -217,10 +217,10 @@ int NodeEdgeMapManagement::search_interpolating_edge(int edge0_index, int edge1_
     return -1;
 }
 
-amsl_navigation_msgs::Edge NodeEdgeMapManagement::get_edge_from_index(int edge_index)
-{
-    return map.edges[edge_index];
-}
+// amsl_navigation_msgs::Edge NodeEdgeMapManagement::get_edge_from_index(int edge_index)
+// {
+//     return map.edges[edge_index];
+// }
 
 void NodeEdgeMapManagement::get_candidate_edges(double estimated_yaw, int current_edge_index, std::vector<amsl_navigation_msgs::Edge>& candidate_edges)
 {
@@ -291,10 +291,10 @@ void NodeEdgeMapManagement::get_end_node_of_last_line_edge(amsl_navigation_msgs:
     get_node_from_id(get_edge_from_index(last_line_edge_index).node1_id, node);
 }
 
-int NodeEdgeMapManagement::get_edge_num(void)
-{
-    return map.edges.size();
-}
+// int NodeEdgeMapManagement::get_edge_num(void)
+// {
+//     return map.edges.size();
+// }
 
 void NodeEdgeMapManagement::get_edge_from_estimated_pose(double estimated_x, double estimated_y, double estimated_yaw, amsl_navigation_msgs::Edge& edge)
 {

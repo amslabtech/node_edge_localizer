@@ -10,6 +10,7 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   amsl_navigation_msgs
+  amsl_navigation_managers
   roscpp
   rospy
   std_msgs
@@ -164,6 +165,7 @@ add_dependencies(node_edge_localizer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catki
 # )
 target_link_libraries(node_edge_localizer
   ${catkin_LIBRARIES}
+  node_edge_map_interface
 )
 
 #############
@@ -215,11 +217,11 @@ target_link_libraries(node_edge_localizer
 # catkin_add_nosetests(test)
 
 if(CATKIN_ENABLE_TESTING)
-	find_package(rostest REQUIRED)
-	add_rostest_gtest(node_edge_localizer_test
-		test/node_edge_localizer.test
-		test/node_edge_localizer_test.cpp
-	    src/calculation.cpp
-	)
-	target_link_libraries(node_edge_localizer_test ${catkin_LIBRARIES})
+    find_package(rostest REQUIRED)
+    add_rostest_gtest(node_edge_localizer_test
+        test/node_edge_localizer.test
+        test/node_edge_localizer_test.cpp
+        src/calculation.cpp
+    )
+    target_link_libraries(node_edge_localizer_test ${catkin_LIBRARIES})
 endif()
