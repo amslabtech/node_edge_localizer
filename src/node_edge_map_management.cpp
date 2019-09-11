@@ -193,6 +193,9 @@ void NodeEdgeMapManagement::clear(int unique_edge_index)
     begin_line_edge_index = unique_edge_index;
     end_line_edge_index = unique_edge_index;
     last_line_edge_index = unique_edge_index;
+    manage_passed_edge(unique_edge_index);
+    passed_nodes.clear();
+    passed_line_directions.clear();
 }
 
 Eigen::Vector3d NodeEdgeMapManagement::get_passed_node(int index)

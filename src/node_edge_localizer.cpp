@@ -204,7 +204,7 @@ void NodeEdgeLocalizer::process(void)
                 std::cout << "--- calculate correction ---" << std::endl;
                 correct();
                 if(clear_flag){
-                    //clear(unique_edge_index);
+                    clear(unique_edge_index);
                 }
                 std::cout << "--- publish ---" << std::endl;
                 publish_pose();
@@ -798,9 +798,12 @@ void NodeEdgeLocalizer::correct_trajectories(int count, const Eigen::Affine3d& c
 
 void NodeEdgeLocalizer::clear(int unique_edge_index)
 {
-    std::cout << "--- clear ---" << std::endl;;
+    std::cout << "\033[33m-------------\033[0m" << std::endl;;
+    std::cout << "\033[33m--- clear ---\033[0m" << std::endl;;
+    std::cout << "\033[33m-------------\033[0m" << std::endl;;
     nemm.clear(unique_edge_index);
     linear_trajectories.clear();
+    correction_count = 0;
     clear_flag = false;
 }
 
