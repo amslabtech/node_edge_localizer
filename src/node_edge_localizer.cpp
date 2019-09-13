@@ -855,6 +855,13 @@ void NodeEdgeLocalizer::publish_edge(int unique_edge_index, bool unique_edge_fla
 {
     static amsl_navigation_msgs::Node last_node;
     static Eigen::Vector3d last_node_point;
+    static bool first_flag = true;
+    if(first_flag){
+        nemm.get_node_from_id(INIT_NODE0_ID, last_node);
+        last_node_point << last_node.point.x, last_node.point.y, last_node.point.z;
+        first_flag = false;
+    }
+
     if(unique_edge_flag){
         estimated_edge = nemm.get_edge_from_index(unique_edge_index);
         nemm.get_node_from_id(estimated_edge.node0_id, last_node);
