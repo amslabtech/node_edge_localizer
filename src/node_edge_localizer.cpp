@@ -6,7 +6,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     map_sub = nh.subscribe("/node_edge_map/map", 1, &NodeEdgeLocalizer::map_callback, this);
     odom_sub = nh.subscribe("/odom/complement", 1 ,&NodeEdgeLocalizer::odom_callback, this);
     intersection_sub = nh.subscribe("/intersection_flag", 1 ,&NodeEdgeLocalizer::intersection_callback, this);
-    odom_sub = nh.subscribe("/observed_position", 1 ,&NodeEdgeLocalizer::observed_position_callback, this);
+    observed_position_sub = nh.subscribe("/observed_position", 1 ,&NodeEdgeLocalizer::observed_position_callback, this);
     edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
     odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/pose", 1);
     particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);

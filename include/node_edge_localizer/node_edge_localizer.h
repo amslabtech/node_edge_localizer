@@ -91,6 +91,7 @@ private:
     ros::Subscriber map_sub;
     ros::Subscriber odom_sub;
     ros::Subscriber intersection_sub;
+    ros::Subscriber observed_position_sub;
 
     tf::TransformListener listener;
     tf::TransformBroadcaster broadcaster;

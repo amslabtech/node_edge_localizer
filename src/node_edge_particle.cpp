@@ -55,7 +55,7 @@ void NodeEdgeParticle::evaluate(double robot_orientation, Eigen::Vector2d& posit
     weight *= weight;
 
     Eigen::Vector2d particle_position(x, y);
-    weight += (particle_position - position).norm();
+    weight += 1.0 / (particle_position - position).norm();
 
     if(weight < MIN_WEIGHT){
         weight = MIN_WEIGHT;
