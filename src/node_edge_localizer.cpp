@@ -6,6 +6,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     map_sub = nh.subscribe("/node_edge_map/map", 1, &NodeEdgeLocalizer::map_callback, this);
     odom_sub = nh.subscribe("/odom/complement", 1 ,&NodeEdgeLocalizer::odom_callback, this);
     intersection_sub = nh.subscribe("/intersection_flag", 1 ,&NodeEdgeLocalizer::intersection_callback, this);
+    observed_position_sub = nh.subscribe("/observed_position", 1 ,&NodeEdgeLocalizer::observed_position_callback, this);
     edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
     odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/pose", 1);
     particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);
@@ -40,6 +41,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     clear_flag = false;
     first_edge_flag = true;
     intersection_flag = false;
+    observed_position_updated = false;
     robot_frame_id = "base_link";
     odom_frame_id = "odom";
     particles.resize(PARTICLES_NUM);
@@ -48,6 +50,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     tentative_correction_count = POSE_NUM_PCA;
     yaw_correction = 0.0;
     estimated_pose = Eigen::Vector3d::Zero();
+    observed_position = Eigen::Vector2d::Zero();
 
     std::cout << "=== node_edge_localizer ===" << std::endl;
     std::cout << "HZ: " << HZ << std::endl;
@@ -164,6 +167,12 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 void NodeEdgeLocalizer::intersection_callback(const std_msgs::BoolConstPtr& msg)
 {
     intersection_flag = msg->data;
+}
+
+void NodeEdgeLocalizer::observed_position_callback(const nav_msgs::OdometryConstPtr& msg)
+{
+    observed_position << msg->pose.pose.position.x, msg->pose.pose.position.y;
+    observed_position_updated = true;
 }
 
 void NodeEdgeLocalizer::process(void)
@@ -641,7 +650,11 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 
         // evaluation
         if(!p.near_node_flag){
-            p.evaluate(estimated_yaw);
+            if(!observed_position_updated){
+                p.evaluate(estimated_yaw);
+            }else{
+                p.evaluate(estimated_yaw, observed_position);
+            }
             double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
             // std::cout << "dist: " << particle_distance_from_last_node << std::endl;
             double diff_yaw = fabs(Calculation::pi_2_pi(nemm.get_edge_from_index(p.current_edge_index).direction - estimated_yaw));
@@ -754,6 +767,8 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 
     set_particle_to_near_edge(unique_edge_flag, unique_edge_index, particles[0]);
     set_dead_end_particle_to_edge_near_robot(unique_edge_flag, unique_edge_index, particles[0]);
+
+    observed_position_updated = false;
 }
 
 void NodeEdgeLocalizer::resampling(void)

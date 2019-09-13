@@ -45,3 +45,19 @@ void NodeEdgeParticle::evaluate(double robot_orientation)
         weight = MIN_WEIGHT;
     }
 }
+
+void NodeEdgeParticle::evaluate(double robot_orientation, Eigen::Vector2d& position)
+{
+    double diff = yaw - robot_orientation;
+    diff = fabs(atan2(sin(diff), cos(diff)));
+    weight = (1 - diff / M_PI);
+
+    weight *= weight;
+
+    Eigen::Vector2d particle_position(x, y);
+    weight += 1.0 / (particle_position - position).norm();
+
+    if(weight < MIN_WEIGHT){
+        weight = MIN_WEIGHT;
+    }
+}
