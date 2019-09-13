@@ -16,6 +16,7 @@ public:
     double square(double);
     void move(double, double);
     void evaluate(double);
+    void evaluate(double, Eigen::Vector2d&);
 
     static constexpr double MIN_WEIGHT = 1e-5;
 

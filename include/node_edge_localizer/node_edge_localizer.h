@@ -34,6 +34,7 @@ public:
     void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr&);
     void odom_callback(const nav_msgs::OdometryConstPtr&);
     void intersection_callback(const std_msgs::BoolConstPtr&);
+    void observed_position_callback(const nav_msgs::OdometryConstPtr&);
     void process(void);
     void clustering_trajectories(void);
     void initialize(void);
@@ -119,6 +120,10 @@ private:
     // for particle filter
     std::vector<NodeEdgeParticle> particles;
     double robot_moved_distance;
+
+    // for evaluating particle
+    Eigen::Vector2d observed_position;
+    bool observed_position_updated;
 
     int correction_count = 0;// count up
     int tentative_correction_count;// count down
