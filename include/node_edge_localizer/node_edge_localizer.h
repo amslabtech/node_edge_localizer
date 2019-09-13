@@ -79,6 +79,7 @@ private:
     int RESAMPLING_INTERVAL;
     double EDGE_CERTAIN_THRESHOLD;
     bool ENABLE_TENTATIVE_CORRECTION;
+    bool USE_OBSERVED_POSITION_AS_ESTIMATED_POSE;
 
     ros::NodeHandle nh;
     ros::NodeHandle private_nh;
@@ -123,7 +124,7 @@ private:
     double robot_moved_distance;
 
     // for evaluating particle
-    Eigen::Vector2d observed_position;
+    geometry_msgs::Pose observed_position;
     bool observed_position_updated;
 
     int correction_count = 0;// count up

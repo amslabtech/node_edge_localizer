@@ -34,6 +34,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     private_nh.param("RESAMPLING_INTERVAL", RESAMPLING_INTERVAL, {5});
     private_nh.param("EDGE_CERTAIN_THRESHOLD", EDGE_CERTAIN_THRESHOLD, {0.9});
     private_nh.param("ENABLE_TENTATIVE_CORRECTION", ENABLE_TENTATIVE_CORRECTION, {false});
+    private_nh.param("USE_OBSERVED_POSITION_AS_ESTIMATED_POSE", USE_OBSERVED_POSITION_AS_ESTIMATED_POSE, {false});
 
     map_subscribed = false;
     odom_updated = false;
@@ -50,7 +51,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     tentative_correction_count = POSE_NUM_PCA;
     yaw_correction = 0.0;
     estimated_pose = Eigen::Vector3d::Zero();
-    observed_position = Eigen::Vector2d::Zero();
+    observed_position.orientation = tf::createQuaternionMsgFromYaw(0.0);
 
     std::cout << "=== node_edge_localizer ===" << std::endl;
     std::cout << "HZ: " << HZ << std::endl;
@@ -119,6 +120,20 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         Eigen::AngleAxis<double> first_odom_yaw_rotation(-first_odom_yaw, Eigen::Vector3d::UnitZ());
         odom_pose = first_odom_yaw_rotation * odom_pose;
         Eigen::AngleAxis<double> init_yaw_rotation(INIT_YAW, Eigen::Vector3d::UnitZ());
+        if(USE_OBSERVED_POSITION_AS_ESTIMATED_POSE){
+            static Eigen::Affine3d observed_correction = Eigen::Affine3d::Identity();
+            if(observed_position_updated){
+                double observed_yaw = tf::getYaw(observed_position.orientation);
+                Eigen::AngleAxis<double> observed_rotation(observed_yaw - (odom_yaw + INIT_YAW), Eigen::Vector3d::UnitZ());
+                Eigen::Vector3d observed_vector(observed_position.position.x, observed_position.position.y, observed_position.position.z);
+                Eigen::Translation<double, 3> trans(observed_vector - (init_yaw_rotation * odom_pose + init_estimated_pose));
+                // observed_correction = observed_rotation * trans;
+                observed_correction = trans;
+                estimated_yaw = observed_yaw;
+            }else{
+            }
+            odom_correction = observed_correction;
+        }
         estimated_pose = odom_correction * (init_yaw_rotation * odom_pose + init_estimated_pose);
 
         std::cout << "odom_pose: \n" << odom_pose << std::endl;
@@ -171,7 +186,7 @@ void NodeEdgeLocalizer::intersection_callback(const std_msgs::BoolConstPtr& msg)
 
 void NodeEdgeLocalizer::observed_position_callback(const nav_msgs::OdometryConstPtr& msg)
 {
-    observed_position << msg->pose.pose.position.x, msg->pose.pose.position.y;
+    observed_position = msg->pose.pose;
     observed_position_updated = true;
 }
 
@@ -649,11 +664,12 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
         p.move(robot_moved_distance + rand(mt), nemm.get_edge_from_index(p.current_edge_index).direction);
 
         // evaluation
+        Eigen::Vector2d observed_vector(observed_position.position.x, observed_position.position.y);
         if(!p.near_node_flag){
             if(!observed_position_updated){
                 p.evaluate(estimated_yaw);
             }else{
-                p.evaluate(estimated_yaw, observed_position);
+                p.evaluate(estimated_yaw, observed_vector);
             }
             double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
             // std::cout << "dist: " << particle_distance_from_last_node << std::endl;
