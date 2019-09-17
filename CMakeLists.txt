@@ -165,7 +165,6 @@ add_dependencies(node_edge_localizer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catki
 # )
 target_link_libraries(node_edge_localizer
   ${catkin_LIBRARIES}
-  node_edge_map_interface
 )
 
 #############
