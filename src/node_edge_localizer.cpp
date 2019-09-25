@@ -282,12 +282,12 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
                     std::cout << "trajectory angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
                 }else{
                     // same line
-                    
                     std::cout << "robot is curving but on same edge" << std::endl;
-                    if(linear_trajectories.empty())
+                    if(linear_trajectories.empty()){
                         linear_trajectories.push_back(trajectory);
-                    else
+                    }else{
                         std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
+                    }
                     Calculation::get_slope_from_trajectory(linear_trajectories.back(), last_slope);
                     if(ENABLE_TENTATIVE_CORRECTION){
                         if(tentative_correction_count == 0){
