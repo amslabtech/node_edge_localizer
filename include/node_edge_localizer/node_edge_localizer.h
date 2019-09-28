@@ -130,6 +130,10 @@ private:
     int correction_count = 0;// count up
     int tentative_correction_count;// count down
 
+    // for clear
+    int init_node_id;
+    Eigen::Vector3d init_intersection_point;
+
     ros::Time odom_time;
 };
 

@@ -337,6 +337,7 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
 void NodeEdgeLocalizer::initialize(void)
 {
     nemm.get_edge_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID, estimated_edge);
+    init_node_id = INIT_NODE0_ID;
     estimated_edge.progress = INIT_PROGRESS;
     amsl_navigation_msgs::Node node0;
     nemm.get_node_from_id(estimated_edge.node0_id, node0);
@@ -344,6 +345,7 @@ void NodeEdgeLocalizer::initialize(void)
     estimated_pose(1) = node0.point.y + estimated_edge.distance * estimated_edge.progress * sin(estimated_edge.direction);
     estimated_yaw = INIT_YAW;
     init_estimated_pose = estimated_pose;
+    init_intersection_point = init_estimated_pose;
     int edge_index = nemm.get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
     for(auto& p : particles){
         p.x = estimated_pose(0);
@@ -425,7 +427,7 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
         map_node_point_i_1 = nemm.get_passed_node(count - 1);
     }else{
         amsl_navigation_msgs::Node init_node;
-        nemm.get_node_from_id(INIT_NODE0_ID, init_node);
+        nemm.get_node_from_id(init_node_id, init_node);
         map_node_point_i_1 << init_node.point.x, init_node.point.y, 0.0;
     }
     std::cout << "N(i-1): \n" << map_node_point_i_1 << std::endl;
@@ -497,7 +499,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
         if(correction_count > 0){
             get_intersection_from_trajectories(*(linear_trajectories.begin() + correction_count - 1), *(linear_trajectories.end() - 1), intersection_point_i);
         }else{
-            intersection_point_i = init_estimated_pose;
+            intersection_point_i = init_intersection_point;
         }
         std::cout << "B(i): \n" << intersection_point_i << std::endl;
         // This represents N(i) in paper
@@ -836,10 +838,15 @@ void NodeEdgeLocalizer::clear(int unique_edge_index)
     std::cout << "\033[33m-------------\033[0m" << std::endl;;
     std::cout << "\033[33m--- clear ---\033[0m" << std::endl;;
     std::cout << "\033[33m-------------\033[0m" << std::endl;;
+    std::cout << "unique edge index: " << unique_edge_index << std::endl;
     nemm.clear(unique_edge_index);
     linear_trajectories.clear();
     correction_count = 0;
     clear_flag = false;
+    amsl_navigation_msgs::Edge unique_edge = nemm.get_edge_from_index(unique_edge_index);
+    init_intersection_point = estimated_pose;
+    init_node_id = unique_edge.node0_id;
+    std::cout << "cleared" << std::endl;
 }
 
 void NodeEdgeLocalizer::visualize_lines(void)
