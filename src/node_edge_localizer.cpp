@@ -203,10 +203,14 @@ void NodeEdgeLocalizer::process(void)
             }else if(odom_updated){
                 double start_time = ros::Time::now().toSec();
                 std::cout << "=== node_edge_localizer ===" << std::endl;
-                int unique_edge_index;
-                bool unique_edge_flag;
+                int unique_edge_index = nemm.get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
+                bool unique_edge_flag = false;
+                static int last_unique_edge_index = unique_edge_index;
                 std::cout << "--- particle filter ---" << std::endl;
                 particle_filter(unique_edge_index, unique_edge_flag);
+                if(unique_edge_flag){
+                    last_unique_edge_index = unique_edge_index;
+                }
                 std::cout << "--- clustering trajectories ---" << std::endl;
                 if(ENABLE_TENTATIVE_CORRECTION){
                     if(!unique_edge_flag){
@@ -228,7 +232,7 @@ void NodeEdgeLocalizer::process(void)
                 std::cout << "--- calculate correction ---" << std::endl;
                 correct();
                 if(clear_flag){
-                    clear(unique_edge_index);
+                    clear(last_unique_edge_index);
                 }
                 std::cout << "--- publish ---" << std::endl;
                 publish_pose();
@@ -345,7 +349,6 @@ void NodeEdgeLocalizer::initialize(void)
     estimated_pose(1) = node0.point.y + estimated_edge.distance * estimated_edge.progress * sin(estimated_edge.direction);
     estimated_yaw = INIT_YAW;
     init_estimated_pose = estimated_pose;
-    init_intersection_point = init_estimated_pose;
     int edge_index = nemm.get_edge_index_from_node_id(INIT_NODE0_ID, INIT_NODE1_ID);
     for(auto& p : particles){
         p.x = estimated_pose(0);
@@ -499,7 +502,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
         if(correction_count > 0){
             get_intersection_from_trajectories(*(linear_trajectories.begin() + correction_count - 1), *(linear_trajectories.end() - 1), intersection_point_i);
         }else{
-            intersection_point_i = init_intersection_point;
+            intersection_point_i = *(linear_trajectories.begin()->begin());
         }
         std::cout << "B(i): \n" << intersection_point_i << std::endl;
         // This represents N(i) in paper
@@ -844,7 +847,6 @@ void NodeEdgeLocalizer::clear(int unique_edge_index)
     correction_count = 0;
     clear_flag = false;
     amsl_navigation_msgs::Edge unique_edge = nemm.get_edge_from_index(unique_edge_index);
-    init_intersection_point = estimated_pose;
     init_node_id = unique_edge.node0_id;
     std::cout << "cleared" << std::endl;
 }

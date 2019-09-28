@@ -132,7 +132,6 @@ private:
 
     // for clear
     int init_node_id;
-    Eigen::Vector3d init_intersection_point;
 
     ros::Time odom_time;
 };
