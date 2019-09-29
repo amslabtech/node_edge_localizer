@@ -57,7 +57,7 @@ public:
     void remove_shorter_line_from_trajectories(const int);
     void set_particle_to_near_edge(bool, int, NodeEdgeParticle&);
     void set_dead_end_particle_to_edge_near_robot(bool, int, NodeEdgeParticle&);
-    void judge_intersection(const std::vector<double>&, int, double);
+    bool judge_intersection(const std::vector<double>&, int, double);
 
 private:
     double HZ;
@@ -137,6 +137,7 @@ private:
 
     ros::Time odom_time;
 
+    // for intersection matching
     std::vector<double> intersection_directions;
 };
 

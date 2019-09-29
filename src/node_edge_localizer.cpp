@@ -232,7 +232,7 @@ void NodeEdgeLocalizer::process(void)
                 if(estimated_edge.progress >= 0.8){
                     if(intersection_directions.size() > 0){
                         std::cout << "--- intersection matching ---" << std::endl;
-                        judge_intersection(intersection_directions, estimated_edge.node1_id, estimated_yaw);
+                        intersection_flag = judge_intersection(intersection_directions, estimated_edge.node1_id, estimated_yaw);
                     }
                 }else{
                     std::cout << "progress is not enough for intersection matching" << std::endl;
@@ -377,7 +377,6 @@ void NodeEdgeLocalizer::initialize(void)
 
 void NodeEdgeLocalizer::correct(void)
 {
-
     int passed_lines_size = nemm.get_passed_line_directions_size();
     std::cout << "passed lines: " <<  passed_lines_size << std::endl;
     std::cout << "correction_count: " << correction_count << std::endl;
@@ -406,7 +405,19 @@ void NodeEdgeLocalizer::correct(void)
             std::cout << "\033[0m" << std::endl;;
             clear_flag = true;
         }
+    }else if(intersection_flag){
+        std::cout << "correct by intersection" << std::endl;
+        amsl_navigation_msgs::Node next_node;
+        nemm.get_node_from_id(estimated_edge.node1_id, next_node);
+        Eigen::Translation<double, 3> translation(next_node.point.x - estimated_pose(0), next_node.point.y - estimated_pose(1), 0.0);
+        Eigen::Matrix3d rotation;
+        rotation = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ());
+        Eigen::Affine3d diff_correction = translation * rotation;
+        odom_correction = diff_correction * odom_correction;
+        correct_trajectories(correction_count, diff_correction);
+        std::cout << diff_correction.matrix() << std::endl;
     }
+    intersection_flag = false;
 }
 
 bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
@@ -1040,12 +1051,13 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
     }
 }
 
-void NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_directions, int node_id, double estimated_yaw)
+
+bool NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_directions, int node_id, double estimated_yaw)
 {
     static int last_matched_intersection_node_id = -1;
     if(last_matched_intersection_node_id == node_id){
         std::cout << "this intersection is already detected" << std::endl;
-        return;
+        return false;
     }
     std::cout << "size of road_directions: " << road_directions.size() << std::endl;
     std::vector<double> road_directions_ = road_directions;
@@ -1059,10 +1071,10 @@ void NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
     std::vector<int> assigned_road_list(edge_directions.size(), -1);
     if(edge_directions.size() - road_directions_.size() > 1){
         std::cout << "\033[31mtoo few roads\033[0m" << std::endl;
-        return;
+        return false;
     }else if(edge_directions.size() < road_directions_.size()){
         std::cout << "\033[33mtoo many roads\033[0m" << std::endl;
-        return;
+        return false;
     }
     if(edge_directions.size() > 0){
         for(unsigned int i=0;i<road_directions_.size();i++){
@@ -1113,6 +1125,7 @@ void NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
             if(range < M_PI / 12.0){
                 std::cout << "\033[32mintersection is matched!\033[0m" << std::endl;
                 last_matched_intersection_node_id = node_id;
+                return true;
             }else{
                 std::cout << "\033[31mintersection is not matched!\033[0m" << std::endl;
             }
@@ -1122,6 +1135,7 @@ void NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
     }else{
         std::cout << "\033[31mno edge is connected to node " << node_id << "\033[0m" << std::endl;
     }
+    return false;
 }
 
 int main(int argc, char** argv)
