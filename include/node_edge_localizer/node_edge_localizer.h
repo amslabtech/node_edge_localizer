@@ -10,6 +10,7 @@
 #include <tf/transform_listener.h>
 
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Odometry.h>
@@ -33,7 +34,7 @@ public:
 
     void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr&);
     void odom_callback(const nav_msgs::OdometryConstPtr&);
-    void intersection_callback(const std_msgs::BoolConstPtr&);
+    void intersection_callback(const std_msgs::Float64MultiArrayConstPtr&);
     void observed_position_callback(const nav_msgs::OdometryConstPtr&);
     void process(void);
     void clustering_trajectories(void);
@@ -56,6 +57,7 @@ public:
     void remove_shorter_line_from_trajectories(const int);
     void set_particle_to_near_edge(bool, int, NodeEdgeParticle&);
     void set_dead_end_particle_to_edge_near_robot(bool, int, NodeEdgeParticle&);
+    void judge_intersection(const std::vector<double>&, int, double);
 
 private:
     double HZ;
@@ -134,6 +136,8 @@ private:
     int init_node_id;
 
     ros::Time odom_time;
+
+    std::vector<double> intersection_directions;
 };
 
 #endif// __NODE_EDGE_LOCALIZER_H

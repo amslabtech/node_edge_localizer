@@ -5,7 +5,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
 {
     map_sub = nh.subscribe("/node_edge_map/map", 1, &NodeEdgeLocalizer::map_callback, this);
     odom_sub = nh.subscribe("/odom/complement", 1 ,&NodeEdgeLocalizer::odom_callback, this);
-    intersection_sub = nh.subscribe("/intersection_flag", 1 ,&NodeEdgeLocalizer::intersection_callback, this);
+    intersection_sub = nh.subscribe("/intersection_directions", 1 ,&NodeEdgeLocalizer::intersection_callback, this);
     observed_position_sub = nh.subscribe("/observed_position", 1 ,&NodeEdgeLocalizer::observed_position_callback, this);
     edge_pub = nh.advertise<amsl_navigation_msgs::Edge>("/estimated_pose/edge", 1);
     odom_pub = nh.advertise<nav_msgs::Odometry>("/estimated_pose/pose", 1);
@@ -179,9 +179,9 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     }
 }
 
-void NodeEdgeLocalizer::intersection_callback(const std_msgs::BoolConstPtr& msg)
+void NodeEdgeLocalizer::intersection_callback(const std_msgs::Float64MultiArrayConstPtr& msg)
 {
-    intersection_flag = msg->data;
+    intersection_directions = msg->data;
 }
 
 void NodeEdgeLocalizer::observed_position_callback(const nav_msgs::OdometryConstPtr& msg)
@@ -229,6 +229,15 @@ void NodeEdgeLocalizer::process(void)
                     nemm.manage_passed_edge(unique_edge_index);
                 }
                 nemm.show_line_edge_ids();
+                if(estimated_edge.progress >= 0.8){
+                    if(intersection_directions.size() > 0){
+                        std::cout << "--- intersection matching ---" << std::endl;
+                        judge_intersection(intersection_directions, estimated_edge.node1_id, estimated_yaw);
+                    }
+                }else{
+                    std::cout << "progress is not enough for intersection matching" << std::endl;
+                }
+                intersection_directions.clear();
                 std::cout << "--- calculate correction ---" << std::endl;
                 correct();
                 if(clear_flag){
@@ -1028,6 +1037,68 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
             p.move(particle_distance_from_last_node, nemm.get_edge_from_index(p.current_edge_index).direction);
             std::cout << "set particle[0] to edge(" << node0.id << ", " << nemm.get_edge_from_index(p.current_edge_index).node1_id << ")" << std::endl;
         }
+    }
+}
+
+void NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_directions, int node_id, double estimated_yaw)
+{
+    std::cout << "size of road_directions: " << road_directions.size() << std::endl;
+    std::vector<double> road_directions_ = road_directions;
+    for(auto& direction : road_directions_){
+        direction += estimated_yaw;
+        direction = atan2(sin(direction), cos(direction));
+    }
+    std::vector<double> edge_directions;
+    nemm.get_edge_directions_from_node_id(node_id, edge_directions);
+    std::cout << "size of edge_directions: " << edge_directions.size() << std::endl;
+    std::vector<int> assigned_road_list(edge_directions.size(), -1);
+    if(edge_directions.size() - road_directions_.size() > 1){
+        std::cout << "\033[31mtoo few roads\033[0m" << std::endl;
+        return;
+    }else if(edge_directions.size() < road_directions_.size()){
+        std::cout << "\033[33mtoo many roads\033[0m" << std::endl;
+        return;
+    }
+    if(edge_directions.size() > 0){
+        for(unsigned int i=0;i<road_directions_.size();i++){
+            double min_direction_error = M_PI;
+            int min_direction_error_index = -1;
+            for(unsigned int j=0;j<edge_directions.size();j++){
+                double direction_error = road_directions_[i] - edge_directions[j];
+                direction_error = fabs(atan2(sin(direction_error), cos(direction_error)));
+                if(min_direction_error > direction_error){
+                    min_direction_error = direction_error;
+                    min_direction_error_index = j;
+                }
+            }
+            if(min_direction_error_index >= 0){
+                assigned_road_list[min_direction_error_index] = i;
+            }
+        }
+        for(unsigned int i=0;i<edge_directions.size();i++){
+            if(assigned_road_list[i] >= 0){
+                std::cout << "road[" << assigned_road_list[i] << "]=" << road_directions_[assigned_road_list[i]]<< "[rad] is assigned to edge[" << i << "]=" << edge_directions[i] << "[rad]" << std::endl;
+            }else{
+                std::cout << "no road is assigned to edge[" << i << "]=" << edge_directions[i] << "[rad]" << std::endl;
+                double reversed_estimated_yaw = estimated_yaw - M_PI;
+                reversed_estimated_yaw = atan2(sin(reversed_estimated_yaw), cos(reversed_estimated_yaw));
+                if(fabs(edge_directions[i] - reversed_estimated_yaw) < M_PI / 12.0){
+                    std::cout << "this edge is behind robot" << std::endl;
+                    road_directions_.push_back(reversed_estimated_yaw);
+                    assigned_road_list[i] = road_directions_.size() - 1;
+                }
+            }
+        }
+        if(edge_directions.size() == road_directions_.size()){
+            // if all the roads were successfully assigned
+            for(unsigned int i=0;i<edge_directions.size();i++){
+                double error = edge_directions[i] - road_directions_[assigned_road_list[i]];
+            }
+        }else{
+            std::cout << "failed to assign roads to edges" << std::endl;
+        }
+    }else{
+        std::cout << "\033[31mno edge is connected to node " << node_id << "\033[0m" << std::endl;
     }
 }
 
