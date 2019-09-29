@@ -1042,6 +1042,11 @@ void NodeEdgeLocalizer::set_particle_to_near_edge(bool unique_edge_flag, int uni
 
 void NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_directions, int node_id, double estimated_yaw)
 {
+    static int last_matched_intersection_node_id = -1;
+    if(last_matched_intersection_node_id == node_id){
+        std::cout << "this intersection is already detected" << std::endl;
+        return;
+    }
     std::cout << "size of road_directions: " << road_directions.size() << std::endl;
     std::vector<double> road_directions_ = road_directions;
     for(auto& direction : road_directions_){
@@ -1084,6 +1089,7 @@ void NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
                 reversed_estimated_yaw = atan2(sin(reversed_estimated_yaw), cos(reversed_estimated_yaw));
                 if(fabs(edge_directions[i] - reversed_estimated_yaw) < M_PI / 12.0){
                     std::cout << "this edge is behind robot" << std::endl;
+                    std::cout << "assigned to " << i << std::endl;
                     road_directions_.push_back(reversed_estimated_yaw);
                     assigned_road_list[i] = road_directions_.size() - 1;
                 }
@@ -1091,8 +1097,24 @@ void NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
         }
         if(edge_directions.size() == road_directions_.size()){
             // if all the roads were successfully assigned
+            double avg_error = 0;
+            double max_error = 0;
+            double min_error = M_PI;
             for(unsigned int i=0;i<edge_directions.size();i++){
                 double error = edge_directions[i] - road_directions_[assigned_road_list[i]];
+                error = fabs(atan2(sin(error), cos(error)));
+                avg_error += error;
+                min_error = std::min(min_error, error);
+                max_error = std::max(max_error, error);
+            }
+            avg_error /= (double)edge_directions.size();
+            double range = max_error - min_error;
+            std::cout << "avg: " << avg_error << ", min: " << min_error << ", max: " << max_error << ", range: " << range << std::endl;
+            if(range < M_PI / 12.0){
+                std::cout << "\033[32mintersection is matched!\033[0m" << std::endl;
+                last_matched_intersection_node_id = node_id;
+            }else{
+                std::cout << "\033[31mintersection is not matched!\033[0m" << std::endl;
             }
         }else{
             std::cout << "failed to assign roads to edges" << std::endl;
