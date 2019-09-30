@@ -92,6 +92,7 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         static bool first_odom_callback_flag = true;
         static Eigen::Vector3d first_odom_pose;
         static double first_odom_yaw;
+        static Eigen::Vector3d last_odom_pose;
 
         last_estimated_pose = estimated_pose;
 
@@ -154,25 +155,18 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         }else{
             odom_updated = true;
             // robot moveed distance for particle
-            Eigen::Vector3d move_vector = estimated_pose - last_estimated_pose;
+            Eigen::Vector3d move_vector = odom_pose - last_odom_pose;
             robot_moved_distance = move_vector.norm();
             double moved_direction = atan2(move_vector(1), move_vector(0));
-            double diff_yaw_and_moved_direction = estimated_yaw - moved_direction;
+            double diff_yaw_and_moved_direction = odom_yaw - moved_direction;
             diff_yaw_and_moved_direction = Calculation::pi_2_pi(diff_yaw_and_moved_direction);
             robot_moved_distance *= cos(diff_yaw_and_moved_direction);
-            // if(fabs(diff_yaw_and_moved_direction) < M_PI / 2.0){
-            //     // forward
-            //     robot_moved_distance = robot_moved_distance;
-            //     std::cout << "f: " << robot_moved_distance << "[m]" << std::endl;
-            // }else{
-            //     // back
-            //     robot_moved_distance = -robot_moved_distance;
-            //     std::cout << "b: " << robot_moved_distance << "[m]" << std::endl;
-            // }
+            std::cout << "robot_moved_distance: " << robot_moved_distance << std::endl;
         }
         if(ENABLE_ODOM_TF){
             publish_odom_tf(odom_pose, odom_yaw);
         }
+        last_odom_pose = odom_pose;
         std::cout << "odom callback time: " << ros::Time::now().toSec() - start_time << "[s]" << std::endl;
     }else{
         std::cout << "not initialized !!!" << std::endl;
