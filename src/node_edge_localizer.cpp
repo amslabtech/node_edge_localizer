@@ -229,9 +229,10 @@ void NodeEdgeLocalizer::process(void)
                     nemm.manage_passed_edge(unique_edge_index);
                 }
                 nemm.show_line_edge_ids();
-                if(estimated_edge.progress >= 0.8){
+                if(estimated_edge.progress >= 0.9){
                     if(intersection_directions.size() > 0){
                         std::cout << "--- intersection matching ---" << std::endl;
+                        std::cout << "target node id: " << estimated_edge.node1_id << std::endl;;
                         intersection_flag = judge_intersection(intersection_directions, estimated_edge.node1_id, estimated_yaw);
                     }
                 }else{
@@ -416,6 +417,8 @@ void NodeEdgeLocalizer::correct(void)
         odom_correction = diff_correction * odom_correction;
         correct_trajectories(correction_count, diff_correction);
         std::cout << diff_correction.matrix() << std::endl;
+        // std::cout << "clear flag is raised" << std::endl;
+        // clear_flag = true;
     }
     intersection_flag = false;
 }
@@ -525,6 +528,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
             intersection_point_i = *(linear_trajectories.begin()->begin());
         }
         std::cout << "B(i): \n" << intersection_point_i << std::endl;
+        std::cout << linear_trajectories[0][0] << std::endl;
         // This represents N(i) in paper
         nemm.show_line_edge_ids();
         Eigen::Vector3d map_node_point_i;
@@ -542,7 +546,9 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
             yaw_correction += direction_diff;
             std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
             tentative_correction_count = POSE_NUM_PCA;
-            correct_trajectories(linear_trajectories.size() - 1, affine_transformation);
+            std::cout << "linear_trajectories size: " << linear_trajectories.size() << std::endl;
+            // correct_trajectories(linear_trajectories.size() - 1, affine_transformation);
+            correct_trajectories(correction_count, affine_transformation);
         }else{
             std::cout << "correction was interrupted because B(i) is far away from N(i)" << std::endl;
             tentative_correction_count = POSE_NUM_PCA;
@@ -1122,7 +1128,7 @@ bool NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
             avg_error /= (double)edge_directions.size();
             double range = max_error - min_error;
             std::cout << "avg: " << avg_error << ", min: " << min_error << ", max: " << max_error << ", range: " << range << std::endl;
-            if(range < M_PI / 12.0){
+            if(range < M_PI / 12.0 && min_error < M_PI / 4.0){
                 std::cout << "\033[32mintersection is matched!\033[0m" << std::endl;
                 last_matched_intersection_node_id = node_id;
                 return true;
