@@ -411,6 +411,19 @@ void NodeEdgeLocalizer::correct(void)
         odom_correction = diff_correction * odom_correction;
         correct_trajectories(correction_count, diff_correction);
         std::cout << diff_correction.matrix() << std::endl;
+        // move particles to node
+        for(auto& p : particles){
+            // double distance_to_next_node = sqrt(Calculation::square(next_node.point.x - p.x) + Calculation::square(next_node.point.y - p.y));
+            // double direction_to_next_node = atan2(next_node.point.y - p.y, next_node.point.x - p.x);
+            // double move_direction = p.yaw;
+            // if(fabs(direction_to_next_node) > M_PI * 0.5){
+            //     move_direction += M_PI;
+            //     move_direction = atan2(sin(move_direction), cos(move_direction));
+            // }
+            // p.move(distance_to_next_node, move_direction);
+            p.x = next_node.point.x;
+            p.y = next_node.point.y;
+        }
         // std::cout << "clear flag is raised" << std::endl;
         // clear_flag = true;
     }
@@ -541,6 +554,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
             std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
             tentative_correction_count = POSE_NUM_PCA;
             std::cout << "linear_trajectories size: " << linear_trajectories.size() << std::endl;
+            std::cout << "correction_count: " << correction_count << std::endl;
             // correct_trajectories(linear_trajectories.size() - 1, affine_transformation);
             correct_trajectories(correction_count, affine_transformation);
         }else{
