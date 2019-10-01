@@ -91,6 +91,7 @@ private:
     ros::Publisher particles_pub;
     ros::Publisher lines_pub;
     ros::Publisher edge_marker_pub;
+    ros::Publisher trajectory_marker_pub;
     ros::Subscriber map_sub;
     ros::Subscriber odom_sub;
     ros::Subscriber intersection_sub;

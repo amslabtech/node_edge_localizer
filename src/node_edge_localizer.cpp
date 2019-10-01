@@ -12,6 +12,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     particles_pub = nh.advertise<geometry_msgs::PoseArray>("/estimated_pose/particles", 1);
     lines_pub = nh.advertise<visualization_msgs::Marker>("/passed_lines/viz", 1);
     edge_marker_pub = nh.advertise<visualization_msgs::Marker>("/estimated_pose/edge/viz", 1);
+    trajectory_marker_pub = nh.advertise<visualization_msgs::Marker>("/trajectory_marker", 1);
 
     private_nh.param("HZ", HZ, {20});
     private_nh.param("INIT_NODE0_ID", INIT_NODE0_ID, {0});
@@ -167,6 +168,7 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
             publish_odom_tf(odom_pose, odom_yaw);
         }
         last_odom_pose = odom_pose;
+
         std::cout << "odom callback time: " << ros::Time::now().toSec() - start_time << "[s]" << std::endl;
     }else{
         std::cout << "not initialized !!!" << std::endl;
@@ -651,6 +653,26 @@ void NodeEdgeLocalizer::publish_pose(void)
     odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(estimated_yaw);
 
     odom_pub.publish(odom);
+
+    // publish trajectory marker
+    static int marker_id = 0;
+    if(marker_id % 1 == 0){
+        visualization_msgs::Marker trajectory;
+        trajectory.header = odom.header;
+        trajectory.id = marker_id;
+        trajectory.type = visualization_msgs::Marker::SPHERE;
+        trajectory.action = visualization_msgs::Marker::ADD;
+        trajectory.pose = odom.pose.pose;
+        trajectory.scale.x = 1;
+        trajectory.scale.y = 1;
+        trajectory.scale.z = 1;
+        trajectory.color.r = 0;
+        trajectory.color.g = 1;
+        trajectory.color.b = 0;
+        trajectory.color.a = 1;
+        trajectory_marker_pub.publish(trajectory);
+    }
+    marker_id++;
 
     if(ENABLE_TF){
         try{
