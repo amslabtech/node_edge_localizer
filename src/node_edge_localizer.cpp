@@ -552,7 +552,9 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
 
         double dist_odom_map = (map_node_point_i - intersection_point_i).norm();
         std::cout << "B(i) to N(i): " << dist_odom_map << "[m]" << std::endl;
-        if(dist_odom_map < nemm.get_end_of_line_edge_distance()){
+        double end_of_linear_edge_distance = nemm.get_end_of_line_edge_distance();
+        std::cout << "end of linear edge distance: " << end_of_linear_edge_distance;
+        if(dist_odom_map < end_of_linear_edge_distance){
             Eigen::Translation<double, 3> t1(map_node_point_i);
             Eigen::Translation<double, 3> t2(-intersection_point_i);
             Eigen::Matrix3d rotation;
