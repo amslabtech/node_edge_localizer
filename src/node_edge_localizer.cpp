@@ -208,18 +208,14 @@ void NodeEdgeLocalizer::process(void)
                     last_unique_edge_index = unique_edge_index;
                 }
                 std::cout << "--- clustering trajectories ---" << std::endl;
-                if(ENABLE_TENTATIVE_CORRECTION){
-                    if(!unique_edge_flag){
-                        tentative_correction_count = POSE_NUM_PCA;
-                    }
+                if(!unique_edge_flag){
+                    tentative_correction_count = POSE_NUM_PCA;
                 }
                 clustering_trajectories();
-                if(ENABLE_TENTATIVE_CORRECTION){
-                    if(tentative_correction_count > 0){
-                        tentative_correction_count--;
-                    }
-                    std::cout << "tentative correction count: " << tentative_correction_count << std::endl;
+                if(tentative_correction_count > 0){
+                    tentative_correction_count--;
                 }
+                std::cout << "tentative correction count: " << tentative_correction_count << std::endl;
                 std::cout << "--- manage passed edge ---" << std::endl;
                 if(unique_edge_flag){
                     nemm.manage_passed_edge(unique_edge_index);
@@ -299,12 +295,24 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
                         std::copy(trajectory.begin(), trajectory.end(), std::back_inserter(linear_trajectories.back()));
                     }
                     Calculation::get_slope_from_trajectory(linear_trajectories.back(), last_slope);
-                    if(ENABLE_TENTATIVE_CORRECTION){
-                        if(tentative_correction_count == 0){
-                            Eigen::Affine3d diff_correction;
-                            calculate_affine_transformation_tentatively(diff_correction);
-                            std::cout << "tentatively corrected line angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
-                            odom_correction = diff_correction * odom_correction;
+                    if(tentative_correction_count == 0){
+                        if(ENABLE_TENTATIVE_CORRECTION){
+                            if(Calculation::get_length_of_trajectory(linear_trajectories.back()) > estimated_edge.distance * 0.5){
+                                static boost::optional<int> last_correction_edge_node0_id = boost::none;;
+                                if(last_correction_edge_node0_id != estimated_edge.node0_id){
+                                    Eigen::Affine3d diff_correction;
+                                    calculate_affine_transformation_tentatively(diff_correction);
+                                    std::cout << "tentatively corrected line angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
+                                    odom_correction = diff_correction * odom_correction;
+                                    last_correction_edge_node0_id = estimated_edge.node0_id;
+                                }else{
+                                    std::cout << "\033[0mtentative correction on this edge has been already performed\033[0m" << std::endl;
+                                }
+                            }else{
+                                std::cout << "\033[32mlentgh of the last linear trajectory is not enough for tentative correction\033[0m" << std::endl;
+                            }
+                        }else{
+                            std::cout << "tentative correction is not enabled" << std::endl;
                         }
                     }
                     //last_yaw = estimated_yaw;
@@ -392,9 +400,7 @@ void NodeEdgeLocalizer::correct(void)
             std::cout << "corrected" << std::endl;
             correction_count++;
             std::cout << "corrected line angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
-            if(ENABLE_TENTATIVE_CORRECTION){
-                tentative_correction_count = POSE_NUM_PCA;
-            }
+            tentative_correction_count = POSE_NUM_PCA;
         }else{
             std::cout << "\033[31m";
             std::cout << "### failed to correct ###" << std::endl;

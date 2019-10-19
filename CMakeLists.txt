@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED COMPONENTS system)
 message(STATUS "Eigen: " ${EIGEN_INCLUDE_DIRS})
+find_package(Boost REQUIRED COMPONENTS)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed

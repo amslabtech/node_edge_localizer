@@ -2,6 +2,7 @@
 #define __NODE_EDGE_LOCALIZER_H
 
 #include <random>
+#include <boost/optional.hpp>
 
 #include <ros/ros.h>
 
