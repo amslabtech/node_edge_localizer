@@ -736,6 +736,19 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
         //std::cout << "robot_moved_distance: " << robot_moved_distance << std::endl;
         p.move(robot_moved_distance + rand(mt), nemm.get_edge_from_index(p.current_edge_index).direction);
 
+        double diff_yaw = fabs(Calculation::pi_2_pi(nemm.get_edge_from_index(p.current_edge_index).direction - estimated_yaw));
+        if(diff_yaw > M_PI * 2.0 / 3.0){// not M_PI * 0.5 for margin
+            // switch to reversed edge
+            int reversed_edge_index = nemm.get_reversed_edge_index_from_edge_index(p.current_edge_index);
+            amsl_navigation_msgs::Node reversed_node0;
+            nemm.get_node_from_id(nemm.get_edge_from_index(reversed_edge_index).node0_id, reversed_node0);
+            p.current_edge_index = p.last_edge_index = reversed_edge_index;
+            p.last_node_id = reversed_node0.id;
+            p.last_node_x = reversed_node0.point.x;
+            p.last_node_y = reversed_node0.point.y;
+            p.near_node_flag = false;
+            // std::cout << "reversed idx: " << idx << std::endl;
+        }
         // evaluation
         Eigen::Vector2d observed_vector(observed_position.position.x, observed_position.position.y);
         if(!p.near_node_flag){
@@ -746,17 +759,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
             }
             double particle_distance_from_last_node = p.get_particle_distance_from_last_node();
             // std::cout << "dist: " << particle_distance_from_last_node << std::endl;
-            double diff_yaw = fabs(Calculation::pi_2_pi(nemm.get_edge_from_index(p.current_edge_index).direction - estimated_yaw));
-            if(diff_yaw > M_PI * 0.5){
-                // switch to reversed edge
-                int reversed_edge_index = nemm.get_reversed_edge_index_from_edge_index(p.current_edge_index);
-                amsl_navigation_msgs::Node reversed_node0;
-                nemm.get_node_from_id(nemm.get_edge_from_index(reversed_edge_index).node0_id, reversed_node0);
-                p.current_edge_index = p.last_edge_index = reversed_edge_index;
-                p.last_node_id = reversed_node0.id;
-                p.last_node_x = reversed_node0.point.x;
-                p.last_node_y = reversed_node0.point.y;
-            }else if(nemm.get_edge_from_index(p.current_edge_index).distance < particle_distance_from_last_node){
+            if(nemm.get_edge_from_index(p.current_edge_index).distance < particle_distance_from_last_node){
                 // arrived at node
                 //std::cout << "particle arrived at node" << std::endl;
                 p.near_node_flag = true;
@@ -765,6 +768,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
                 p.last_node_id = last_node.id;
                 p.x = p.last_node_x = last_node.point.x;
                 p.y = p.last_node_y = last_node.point.y;
+                // std::cout << "arrived idx: " << idx << std::endl;
             }else if(particle_distance_from_last_node < EDGE_DECISION_THRESHOLD * 0.5){
                 // return to last node
                 p.near_node_flag = true;
@@ -778,6 +782,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
                 // std::cout << "\033[031m";
                 // std::cout << idx << ": " << p.x << ", " << p.y << ", " << p.current_edge_index << std::endl;
                 // std::cout << "\033[0m";
+                // std::cout << "return idx: " << idx << std::endl;
             }
         }else{
             // go out of range of the last node
@@ -790,6 +795,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
                 p.near_node_flag = false;
                 p.last_edge_index = p.current_edge_index;
                 p.current_edge_index = nemm.get_next_edge_index_from_edge_index(p.last_edge_index, p.last_node_id, estimated_yaw);
+                // std::cout << p.current_edge_index << ", " << p.last_edge_index << ", " << p.last_node_id << ", " << estimated_yaw << std::endl;
                 amsl_navigation_msgs::Node node;
                 amsl_navigation_msgs::Edge current_edge = nemm.get_edge_from_index(p.current_edge_index);
                 nemm.get_node_from_id(current_edge.node0_id, node);
@@ -804,6 +810,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
                 p.move(particle_distance_from_last_node + rand(mt), current_edge.direction);
                 // std::cout << p.last_node_id << ", " << p.last_node_x << ", " << p.last_node_y << ", " << p.current_edge_index << std::endl;
                 // std::cout << "\033[0m";
+                // std::cout << "change idx: " << idx << std::endl;
             }
         }
         //std::cout << "after move: " << p.x << ", " << p.y << std::endl;
@@ -822,6 +829,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
     }
 
     // edge decision
+    std::cout << "edge decision" << std::endl;
     const int EDGE_NUM = nemm.get_edge_num();
     std::vector<int> edge_vote_list(EDGE_NUM, 0);
     for(const auto& p : particles){
@@ -833,6 +841,10 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
     for(int i=0;i<EDGE_NUM;i++){
         if(edge_vote_list[i] > edge_vote_list[max_index]){
             max_index = i;
+        }
+        if(edge_vote_list[i] > 0){
+            std::cout << "index " << i << ": " << edge_vote_list[i] << std::endl;;
+            nemm.show_edge_from_index(i);
         }
     }
     double votes_ratio = edge_vote_list[max_index] / (double)PARTICLES_NUM;
@@ -856,6 +868,15 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
 
     set_particle_to_near_edge(unique_edge_flag, unique_edge_index, particles[0]);
     set_dead_end_particle_to_edge_near_robot(unique_edge_flag, unique_edge_index, particles[0]);
+
+    // for(int i=0;i<PARTICLES_NUM;i++){
+    //     std::cout << "particle idx: " << i << std::endl;
+    //     std::cout << "x, y = " << particles[i].x << ", " << particles[i].y << std::endl;
+    //     std::cout << "near_node_flag: " << particles[i].near_node_flag << std::endl;
+    //     std::cout << "edge idx: " << particles[i].current_edge_index << ", " << particles[i].last_edge_index << std::endl;
+    //     std::cout << "last_node x, y = " << particles[i].last_node_x << ", " << particles[i].last_node_y << std::endl;
+    //     std::cout << "last_node_id: " << particles[i].last_node_id << std::endl;
+    // }
 
     observed_position_updated = false;
 }
