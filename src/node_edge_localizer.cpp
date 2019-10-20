@@ -1171,6 +1171,9 @@ bool NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
                     std::cout << "assigned to " << i << std::endl;
                     road_directions_.push_back(reversed_estimated_yaw);
                     assigned_road_list[i] = road_directions_.size() - 1;
+                }else{
+                    std::cout << "\033[31mintersection is not matched!\033[0m" << std::endl;
+                    return false;
                 }
             }
         }
