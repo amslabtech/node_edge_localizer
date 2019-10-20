@@ -36,6 +36,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     private_nh.param("EDGE_CERTAIN_THRESHOLD", EDGE_CERTAIN_THRESHOLD, {0.9});
     private_nh.param("ENABLE_TENTATIVE_CORRECTION", ENABLE_TENTATIVE_CORRECTION, {false});
     private_nh.param("USE_OBSERVED_POSITION_AS_ESTIMATED_POSE", USE_OBSERVED_POSITION_AS_ESTIMATED_POSE, {false});
+    private_nh.param("WAV_PATH", WAV_PATH, {""});
 
     map_subscribed = false;
     odom_updated = false;
@@ -75,6 +76,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     std::cout << "CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD: " << CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD << std::endl;
     std::cout << "RESAMPLING_INTERVAL: " << RESAMPLING_INTERVAL << std::endl;
     std::cout << "EDGE_CERTAIN_THRESHOLD: " << EDGE_CERTAIN_THRESHOLD << std::endl;
+    std::cout << "WAV_PATH: " << WAV_PATH << std::endl;
 }
 
 void NodeEdgeLocalizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
@@ -1190,6 +1192,10 @@ bool NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
             if(range < M_PI / 12.0 && min_error < M_PI / 4.0){
                 std::cout << "\033[32mintersection is matched!\033[0m" << std::endl;
                 last_matched_intersection_node_id = node_id;
+                if(WAV_PATH != ""){
+                    std::string sound_command = "aplay " + WAV_PATH + " &";
+                    system(sound_command.c_str());
+                }
                 return true;
             }else{
                 std::cout << "\033[31mintersection is not matched!\033[0m" << std::endl;

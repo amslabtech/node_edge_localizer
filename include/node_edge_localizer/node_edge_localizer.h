@@ -83,6 +83,7 @@ private:
     double EDGE_CERTAIN_THRESHOLD;
     bool ENABLE_TENTATIVE_CORRECTION;
     bool USE_OBSERVED_POSITION_AS_ESTIMATED_POSE;
+    std::string WAV_PATH;
 
     ros::NodeHandle nh;
     ros::NodeHandle private_nh;
