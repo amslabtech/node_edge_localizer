@@ -6,7 +6,7 @@ NodeEdgeParticle::NodeEdgeParticle(void)
      robot_distance_from_last_node(0.0),
      last_node_id(-1),
      last_node_x(0.0), last_node_y(0.0),
-     weight(0.0), near_node_flag(true)
+     weight(0.0), near_node_flag(false)
 {
 
 }
