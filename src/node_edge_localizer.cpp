@@ -13,6 +13,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     lines_pub = nh.advertise<visualization_msgs::Marker>("/passed_lines/viz", 1);
     edge_marker_pub = nh.advertise<visualization_msgs::Marker>("/estimated_pose/edge/viz", 1);
     trajectory_marker_pub = nh.advertise<visualization_msgs::Marker>("/trajectory_marker", 1);
+    intersection_flag_pub = nh.advertise<std_msgs::Bool>("/intersection_flag", 1);
 
     private_nh.param("HZ", HZ, {20});
     private_nh.param("INIT_NODE0_ID", INIT_NODE0_ID, {0});
@@ -228,6 +229,9 @@ void NodeEdgeLocalizer::process(void)
                         std::cout << "--- intersection matching ---" << std::endl;
                         std::cout << "target node id: " << estimated_edge.node1_id << std::endl;;
                         intersection_flag = judge_intersection(intersection_directions, estimated_edge.node1_id, estimated_yaw);
+                        std_msgs::Bool intersection_flag_;
+                        intersection_flag_.data = intersection_flag;
+                        intersection_flag_pub.publish(intersection_flag_);
                     }
                 }else{
                     std::cout << "progress is not enough for intersection matching" << std::endl;
@@ -730,6 +734,7 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
     std::cout << "robot moved_distance: " << robot_moved_distance << "[m]" << std::endl;
     int idx = 0;
     for(auto& p : particles){
+        // std::cout <<p.current_edge_index << std::endl;
         //std::cout << "--" << std::endl;
         //std::cout << "before move: " << p.x << ", " << p.y << std::endl;
         // move particles
@@ -741,6 +746,8 @@ void NodeEdgeLocalizer::particle_filter(int& unique_edge_index, bool& unique_edg
         double diff_yaw = fabs(Calculation::pi_2_pi(nemm.get_edge_from_index(p.current_edge_index).direction - estimated_yaw));
         if(diff_yaw > M_PI * 2.0 / 3.0){// not M_PI * 0.5 for margin
             // switch to reversed edge
+            // std::cout << nemm.get_edge_from_index(p.current_edge_index).direction << std::endl;
+            // std::cout << estimated_yaw << std::endl;
             int reversed_edge_index = nemm.get_reversed_edge_index_from_edge_index(p.current_edge_index);
             amsl_navigation_msgs::Node reversed_node0;
             nemm.get_node_from_id(nemm.get_edge_from_index(reversed_edge_index).node0_id, reversed_node0);
