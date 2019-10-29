@@ -77,6 +77,8 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     std::cout << "CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD: " << CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD << std::endl;
     std::cout << "RESAMPLING_INTERVAL: " << RESAMPLING_INTERVAL << std::endl;
     std::cout << "EDGE_CERTAIN_THRESHOLD: " << EDGE_CERTAIN_THRESHOLD << std::endl;
+    std::cout << "ENABLE_TENTATIVE_CORRECTION: " << ENABLE_TENTATIVE_CORRECTION << std::endl;
+    std::cout << "USE_OBSERVED_POSITION_AS_ESTIMATED_POSE: " << USE_OBSERVED_POSITION_AS_ESTIMATED_POSE << std::endl;
     std::cout << "WAV_PATH: " << WAV_PATH << std::endl;
 }
 
