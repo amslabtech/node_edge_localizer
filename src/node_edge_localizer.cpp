@@ -104,9 +104,9 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
         double odom_yaw;
         if(!USE_ORIENTATION_Z_AS_YAW){
-            odom_yaw = tf::getYaw(msg->pose.pose.orientation) + yaw_correction;
+            odom_yaw = tf::getYaw(msg->pose.pose.orientation);
         }else{
-            odom_yaw = msg->pose.pose.orientation.z + yaw_correction;
+            odom_yaw = msg->pose.pose.orientation.z;
         }
         if(first_odom_callback_flag){
             first_odom_yaw = odom_yaw;
@@ -114,8 +114,6 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         }
         odom_yaw -= first_odom_yaw;
         odom_yaw = Calculation::pi_2_pi(odom_yaw);
-        estimated_yaw = odom_yaw + INIT_YAW;
-        estimated_yaw = Calculation::pi_2_pi(estimated_yaw);
 
         Eigen::Vector3d odom_pose;
         odom_pose << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
@@ -129,21 +127,24 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         Eigen::AngleAxis<double> init_yaw_rotation(INIT_YAW, Eigen::Vector3d::UnitZ());
         if(USE_OBSERVED_POSITION_AS_ESTIMATED_POSE){
             static Eigen::Affine3d observed_correction = Eigen::Affine3d::Identity();
-            static double observed_yaw = INIT_YAW;
+            static double observed_yaw_correction = 0;
             if(observed_position_updated){
-                observed_yaw = tf::getYaw(observed_position.orientation);
+                double observed_yaw = tf::getYaw(observed_position.orientation);
                 Eigen::AngleAxis<double> observed_rotation(observed_yaw - (odom_yaw + INIT_YAW), Eigen::Vector3d::UnitZ());
                 Eigen::Vector3d observed_vector(observed_position.position.x, observed_position.position.y, observed_position.position.z);
                 Eigen::Translation<double, 3> trans(observed_vector - (init_yaw_rotation * odom_pose + init_estimated_pose));
                 // observed_correction = observed_rotation * trans;
                 observed_correction = trans;
+                observed_yaw_correction = observed_yaw - (odom_yaw + INIT_YAW);
+                odom_correction = observed_correction;
+                yaw_correction = observed_yaw_correction;
             }else{
                 std::cout << "observed position has not been updated" << std::endl;
             }
-            odom_correction = observed_correction;
-            estimated_yaw = observed_yaw;
         }
         estimated_pose = odom_correction * (init_yaw_rotation * odom_pose + init_estimated_pose);
+        estimated_yaw = odom_yaw + INIT_YAW + yaw_correction;
+        estimated_yaw = Calculation::pi_2_pi(estimated_yaw);
 
         std::cout << "odom_pose: \n" << odom_pose << std::endl;
         std::cout << "odom_yaw: \n" << odom_yaw << std::endl;
