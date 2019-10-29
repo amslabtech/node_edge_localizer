@@ -129,17 +129,19 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         Eigen::AngleAxis<double> init_yaw_rotation(INIT_YAW, Eigen::Vector3d::UnitZ());
         if(USE_OBSERVED_POSITION_AS_ESTIMATED_POSE){
             static Eigen::Affine3d observed_correction = Eigen::Affine3d::Identity();
+            static double observed_yaw = INIT_YAW;
             if(observed_position_updated){
-                double observed_yaw = tf::getYaw(observed_position.orientation);
+                observed_yaw = tf::getYaw(observed_position.orientation);
                 Eigen::AngleAxis<double> observed_rotation(observed_yaw - (odom_yaw + INIT_YAW), Eigen::Vector3d::UnitZ());
                 Eigen::Vector3d observed_vector(observed_position.position.x, observed_position.position.y, observed_position.position.z);
                 Eigen::Translation<double, 3> trans(observed_vector - (init_yaw_rotation * odom_pose + init_estimated_pose));
                 // observed_correction = observed_rotation * trans;
                 observed_correction = trans;
-                estimated_yaw = observed_yaw;
             }else{
+                std::cout << "observed position has not been updated" << std::endl;
             }
             odom_correction = observed_correction;
+            estimated_yaw = observed_yaw;
         }
         estimated_pose = odom_correction * (init_yaw_rotation * odom_pose + init_estimated_pose);
 
