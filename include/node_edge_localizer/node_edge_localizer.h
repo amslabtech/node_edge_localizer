@@ -59,6 +59,7 @@ public:
     void set_particle_to_near_edge(bool, int, NodeEdgeParticle&);
     void set_dead_end_particle_to_edge_near_robot(bool, int, NodeEdgeParticle&);
     bool judge_intersection(const std::vector<double>&, int, double);
+    void get_perpendicular_intersection_point(double, double, double, double, double, Eigen::Vector3d&);
 
 private:
     double HZ;

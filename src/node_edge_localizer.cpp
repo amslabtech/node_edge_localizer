@@ -554,7 +554,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
             intersection_point_i = *(linear_trajectories.begin()->begin());
         }
         std::cout << "B(i): \n" << intersection_point_i << std::endl;
-        std::cout << linear_trajectories[0][0] << std::endl;
+        // std::cout << linear_trajectories[0][0] << std::endl;
         // This represents N(i) in paper
         nemm.show_line_edge_ids();
         Eigen::Vector3d map_node_point_i;
@@ -564,9 +564,16 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
         double dist_odom_map = (map_node_point_i - intersection_point_i).norm();
         std::cout << "B(i) to N(i): " << dist_odom_map << "[m]" << std::endl;
         double end_of_linear_edge_distance = nemm.get_end_of_line_edge_distance();
-        std::cout << "end of linear edge distance: " << end_of_linear_edge_distance;
+        std::cout << "end of linear edge distance: " << end_of_linear_edge_distance << std::endl;;
+
+        double tan_direction_map = tan(direction_from_map);
+        double distance_to_edge_from_bi = fabs(tan_direction_map * intersection_point_i(0) - intersection_point_i(1) + (map_node_point_i(1) - tan_direction_map * map_node_point_i(0))) / sqrt(tan_direction_map * tan_direction_map + 1);
+        std::cout << "distance to edge from B(i): " << distance_to_edge_from_bi << "[s]" << std::endl;
+        Eigen::Vector3d perpendicular_intersection_point;
+        get_perpendicular_intersection_point(tan_direction_map, -1, map_node_point_i(1) - tan_direction_map * map_node_point_i(0), intersection_point_i(0), intersection_point_i(1), perpendicular_intersection_point);
+        std::cout << "perpendicular_intersection_point: \n" << perpendicular_intersection_point << std::endl;
         if(dist_odom_map < end_of_linear_edge_distance){
-            Eigen::Translation<double, 3> t1(map_node_point_i);
+            Eigen::Translation<double, 3> t1(perpendicular_intersection_point);
             Eigen::Translation<double, 3> t2(-intersection_point_i);
             Eigen::Matrix3d rotation;
             rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
@@ -1222,6 +1229,18 @@ bool NodeEdgeLocalizer::judge_intersection(const std::vector<double>& road_direc
         std::cout << "\033[31mno edge is connected to node " << node_id << "\033[0m" << std::endl;
     }
     return false;
+}
+
+void NodeEdgeLocalizer::get_perpendicular_intersection_point(double a, double b, double c, double p, double q, Eigen::Vector3d& point)
+{
+    /*
+     * intersection of perpendicular line from (p, q) to ax + by + c = 0
+     */
+    double a_ = - a / b;
+    double c_ = - c / b;
+    double x = - (a * (b * q + c) + b * p) / (a * a - b);
+    double y = a_ * x + c_;
+    point << x, y, 0.0;
 }
 
 int main(int argc, char** argv)
