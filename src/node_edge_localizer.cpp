@@ -312,9 +312,12 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
                                 static boost::optional<int> last_correction_edge_node0_id = boost::none;;
                                 if(last_correction_edge_node0_id != estimated_edge.node0_id){
                                     Eigen::Affine3d diff_correction;
-                                    calculate_affine_transformation_tentatively(diff_correction);
+                                    double diff_direction;
+                                    calculate_affine_transformation_tentatively(diff_direction, diff_correction);
                                     std::cout << "tentatively corrected line angle: " << Calculation::get_angle_from_trajectory(linear_trajectories.back()) << std::endl;
                                     odom_correction = diff_correction * odom_correction;
+                                    yaw_correction += diff_direction;
+                                    yaw_correction = Calculation::pi_2_pi(yaw_correction);
                                     last_correction_edge_node0_id = estimated_edge.node0_id;
                                 }else{
                                     std::cout << "\033[0mtentative correction on this edge has been already performed\033[0m" << std::endl;
@@ -526,7 +529,7 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
     }
 }
 
-void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affine3d& affine_transformation)
+void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(double& direction_diff, Eigen::Affine3d& affine_transformation)
 {
     // current line correction
     std::cout << "# correct tentatively #" << std::endl;
@@ -538,7 +541,7 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
     nemm.get_end_node_of_last_line_edge(map_node_point_last);
     double direction_from_map = atan2(map_node_point_last.point.y - map_node_point_begin.point.y, map_node_point_last.point.x - map_node_point_begin.point.x);
     // direction_from_map = Calculation::get_slope_angle(direction_from_map);
-    double direction_diff = Calculation::pi_2_pi(direction_from_map - direction_from_odom);
+    direction_diff = Calculation::pi_2_pi(direction_from_map - direction_from_odom);
     direction_diff = Calculation::get_slope_angle(direction_diff);
 
     std::cout << "direction from odom: " << direction_from_odom << "[rad]" << std::endl;
@@ -578,7 +581,6 @@ void NodeEdgeLocalizer::calculate_affine_transformation_tentatively(Eigen::Affin
             Eigen::Matrix3d rotation;
             rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
             affine_transformation = t1 * rotation * t2;
-            yaw_correction += direction_diff;
             std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
             tentative_correction_count = POSE_NUM_PCA;
             std::cout << "linear_trajectories size: " << linear_trajectories.size() << std::endl;

@@ -42,7 +42,7 @@ public:
     void initialize(void);
     void correct(void);
     bool calculate_affine_tranformation(const int, double&, double&, Eigen::Affine3d&);
-    void calculate_affine_transformation_tentatively(Eigen::Affine3d&);
+    void calculate_affine_transformation_tentatively(double&, Eigen::Affine3d&);
     void get_intersection_from_trajectories(std::vector<Eigen::Vector3d>&, std::vector<Eigen::Vector3d>&, Eigen::Vector3d&);
     double calculate_trajectory_curvature(void);
     void publish_pose(void);
