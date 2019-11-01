@@ -229,7 +229,7 @@ void NodeEdgeLocalizer::process(void)
                     nemm.manage_passed_edge(unique_edge_index);
                 }
                 nemm.show_line_edge_ids();
-                if(estimated_edge.progress >= 0.9){
+                if(estimated_edge.progress >= 0.9 && estimated_edge.progress <= 1.1){
                     if(intersection_directions.size() > 0){
                         std::cout << "--- intersection matching ---" << std::endl;
                         std::cout << "target node id: " << estimated_edge.node1_id << std::endl;;
