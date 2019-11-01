@@ -90,6 +90,10 @@ void NodeEdgeMapManagement::manage_passed_edge(int edge_index)
                         end_line_edge_index = begin_line_edge_index;
                         last_line_edge_index = begin_line_edge_index;
                         show_line_edge_ids();
+                    }else if(get_edge_from_index(end_line_edge_index).node1_id == interpolating_edge.node1_id){
+                        std::cout << "last_line_edge_index was updated to end_line_edge_index" << std::endl;
+                        last_line_edge_index = end_line_edge_index;
+                        show_line_edge_ids();
                     }else{
                         std::cout << "!!! unknown error !!!" << std::endl;
                     }
