@@ -402,10 +402,9 @@ void NodeEdgeLocalizer::correct(void)
 
     if(passed_lines_size > correction_count && (int)linear_trajectories.size() > correction_count + 1){
         std::cout << "--- correction ---" << std::endl;
-        double ratio;
         double direction_diff;
         Eigen::Affine3d diff_correction;
-        bool succeeded = calculate_affine_tranformation(correction_count, ratio, direction_diff, diff_correction);
+        bool succeeded = calculate_affine_tranformation(correction_count, direction_diff, diff_correction);
 
         if(succeeded){
             odom_correction = diff_correction * odom_correction;
@@ -452,7 +451,7 @@ void NodeEdgeLocalizer::correct(void)
     intersection_flag = false;
 }
 
-bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& ratio, double& direction_diff, Eigen::Affine3d& affine_transformation)
+bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& direction_diff, Eigen::Affine3d& affine_transformation)
 {
     remove_shorter_line_from_trajectories(count);
     double direction_from_odom = Calculation::get_angle_from_trajectory(linear_trajectories[count]);
@@ -492,15 +491,8 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
     // distance from N(i) to N(i-1)
     double dist_from_map = (map_node_point_i - map_node_point_i_1).norm();
 
-    if(count){
-        ratio = dist_from_odom / dist_from_map;
-    }else{
-        ratio = 1.0;
-    }
-
     std::cout << "B(i-1) to B(i): " << dist_from_odom << "[m]" << std::endl;
     std::cout << "N(i-1) to N(i): " << dist_from_map << "[m]" << std::endl;
-    std::cout << "ratio: " << ratio << std::endl;
     std::cout << "count: " << count << std::endl;
 
     double dist_odom_map = (map_node_point_i - intersection_point_i).norm();
