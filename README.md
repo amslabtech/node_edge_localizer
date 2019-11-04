@@ -58,7 +58,7 @@
 - SAME_TRAJECTORY_ANGLE_THRESHOLD
   - the continuous trajectories with less orientation difference than this angle is considered to be same trajectory (default: M_PI/6[rad])
 - CONTINUOUS_LINE_THRESHOLD
-  - connected edges with angles smaller than the threshold are considered straight (default: M_PI/7[rad])
+  - connected edges with angles smaller than the threshold are considered straight (default: M_PI/6[rad])
 - LINE_EDGE_RATIO_THRESHOLD (DEPRECATED)
   - linear trajectories shorter than the threshold aren't used for correction (default: 0.5[m])
 - ENABLE_ODOM_TF

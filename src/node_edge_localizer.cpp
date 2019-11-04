@@ -30,7 +30,7 @@ NodeEdgeLocalizer::NodeEdgeLocalizer(void)
     private_nh.param("NOISE_SIGMA", NOISE_SIGMA, {0.10});
     private_nh.param("EDGE_DECISION_THRESHOLD", EDGE_DECISION_THRESHOLD, {0.5});
     private_nh.param("SAME_TRAJECTORY_ANGLE_THRESHOLD", SAME_TRAJECTORY_ANGLE_THRESHOLD, {M_PI/6.0});
-    private_nh.param("CONTINUOUS_LINE_THRESHOLD", CONTINUOUS_LINE_THRESHOLD, {M_PI/7.0});
+    private_nh.param("CONTINUOUS_LINE_THRESHOLD", CONTINUOUS_LINE_THRESHOLD, {M_PI/6.0});
     private_nh.param("ENABLE_ODOM_TF", ENABLE_ODOM_TF, {false});
     private_nh.param("CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD", CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD, {M_PI/6.0});
     private_nh.param("RESAMPLING_INTERVAL", RESAMPLING_INTERVAL, {5});
@@ -497,10 +497,6 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
     }else{
         ratio = 1.0;
     }
-
-    /*
-     * weight has been omitted
-     */
 
     std::cout << "B(i-1) to B(i): " << dist_from_odom << "[m]" << std::endl;
     std::cout << "N(i-1) to N(i): " << dist_from_map << "[m]" << std::endl;

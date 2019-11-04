@@ -15,7 +15,7 @@
     <arg name="noise_sigma" default="0.10"/>
     <arg name="edge_decision_threshold" default="0.5"/>
     <arg name="same_trajectory_angle_threshold" default="0.523598"/>
-    <arg name="continuous_line_threshold" default="0.448798"/>
+    <arg name="continuous_line_threshold" default="0.523598"/>
     <arg name="line_edge_ratio_threshold" default="0.5"/>
     <arg name="enable_odom_tf" default="false"/>
     <arg name="correction_rejection_angle_difference_threshold" default="0.523598"/>
