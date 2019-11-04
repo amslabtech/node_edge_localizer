@@ -356,6 +356,18 @@ void NodeEdgeLocalizer::clustering_trajectories(void)
         trajectory.push_back(estimated_pose);
         std::cout << "pose was added to trajectory" << std::endl;
     }
+    if(linear_trajectories.size() > 1){
+        unsigned int linear_trajectories_size = linear_trajectories.size();
+        double current_linear_trajectory_angle = Calculation::get_angle_from_trajectory(linear_trajectories[linear_trajectories_size - 1]);
+        double last_linear_trajectory_angle = Calculation::get_angle_from_trajectory(linear_trajectories[linear_trajectories_size - 2]);
+        double diff_angle = current_linear_trajectory_angle - last_linear_trajectory_angle;
+        diff_angle = Calculation::pi_2_pi(diff_angle);
+        if(fabs(diff_angle) < SAME_TRAJECTORY_ANGLE_THRESHOLD){
+            std::cout << "current linear trajectory is merged with the last trajectory" << std::endl;
+            std::copy(linear_trajectories[linear_trajectories_size - 1].begin(), linear_trajectories[linear_trajectories_size - 1].end(), std::back_inserter(linear_trajectories[linear_trajectories_size - 2]));
+            linear_trajectories.pop_back();
+        }
+    }
     std::cout << "trajectory.size(): " << trajectory.size() << std::endl;
     std::cout << "trajectory length: " << Calculation::get_length_of_trajectory(trajectory) << std::endl;
     std::cout << "linear_trajectories.size(): " << linear_trajectories.size() << std::endl;
