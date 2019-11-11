@@ -169,8 +169,11 @@ void NodeEdgeLocalizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
             double moved_direction = atan2(move_vector(1), move_vector(0));
             double diff_yaw_and_moved_direction = odom_yaw - moved_direction;
             diff_yaw_and_moved_direction = Calculation::pi_2_pi(diff_yaw_and_moved_direction);
+            static double total_robot_moved_distance = 0.0;
+            total_robot_moved_distance += robot_moved_distance;
             robot_moved_distance *= cos(diff_yaw_and_moved_direction);
             std::cout << "robot_moved_distance: " << robot_moved_distance << std::endl;
+            std::cout << "total robot moved distance: " << total_robot_moved_distance << std::endl;
         }
         if(ENABLE_ODOM_TF){
             publish_odom_tf(odom_pose, odom_yaw);
