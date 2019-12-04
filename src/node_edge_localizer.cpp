@@ -512,22 +512,32 @@ bool NodeEdgeLocalizer::calculate_affine_tranformation(const int count, double& 
 
     double dist_odom_map = (map_node_point_i - intersection_point_i).norm();
     std::cout << "B(i) to N(i): " << dist_odom_map << "[m]" << std::endl;
-    if((dist_odom_map < nemm.get_end_of_line_edge_distance())){
-        if(fabs(direction_diff) < CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD){
-            // correction succeeded
-            Eigen::Translation<double, 3> t1(map_node_point_i);
-            Eigen::Translation<double, 3> t2(-intersection_point_i);
-            Eigen::Matrix3d rotation;
-            rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
-            affine_transformation = t1 * rotation * t2;
-            std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
-            return true;
-        }else{
-            std::cout << "\033[31mcorrection was rejected due to large direction difference between edge and trajectory line\033[0m" << std::endl;
-            return false;
-        }
-    }else{
+    double end_of_line_edge_distance = nemm.get_end_of_line_edge_distance();
+    std::cout << "end_of_line_edge_distance: " << end_of_line_edge_distance << "[m]" << std::endl;
+    if((dist_odom_map > end_of_line_edge_distance)){
         std::cout << "\033[31mcorrection was rejected due to too long trajectory line\33[0m" << std::endl;
+        return false;
+    }
+    if(fabs(Calculation::pi_2_pi(direction_from_map - estimated_edge.direction)) < CONTINUOUS_LINE_THRESHOLD){
+        std::cout << "\033[31mcorrection was rejected because the robot was on continuous line edges\33[0m" << std::endl;
+        return false;
+    }
+    if(nemm.get_end_line_edge_index() == nemm.get_reversed_edge_index_from_edge_index(nemm.get_last_line_edge_index())){
+        std::cout << "\033[31mcorrection was held because the robot turned\33[0m" << std::endl;
+        affine_transformation = Eigen::Affine3d::Identity();
+        return true;
+    }
+    if(fabs(direction_diff) < CORRECTION_REJECTION_ANGLE_DIFFERENCE_THRESHOLD){
+        // correction succeeded
+        Eigen::Translation<double, 3> t1(map_node_point_i);
+        Eigen::Translation<double, 3> t2(-intersection_point_i);
+        Eigen::Matrix3d rotation;
+        rotation = Eigen::AngleAxisd(direction_diff, Eigen::Vector3d::UnitZ());
+        affine_transformation = t1 * rotation * t2;
+        std::cout << "affine transformation: \n" << affine_transformation.translation() << "\n" << affine_transformation.rotation().eulerAngles(0,1,2) << std::endl;
+        return true;
+    }else{
+        std::cout << "\033[31mcorrection was rejected due to large direction difference between edge and trajectory line\033[0m" << std::endl;
         return false;
     }
 }

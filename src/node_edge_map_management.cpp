@@ -281,3 +281,18 @@ void NodeEdgeMapManagement::get_edge_from_estimated_pose(double estimated_x, dou
     }
     edge = nearest_edge;
 }
+
+int NodeEdgeMapManagement::get_begin_line_edge_index(void)
+{
+    return begin_line_edge_index;
+}
+
+int NodeEdgeMapManagement::get_last_line_edge_index(void)
+{
+    return last_line_edge_index;
+}
+
+int NodeEdgeMapManagement::get_end_line_edge_index(void)
+{
+    return end_line_edge_index;
+}
