@@ -76,7 +76,7 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
 void Localizer::initialize(void)
 {
     // initialize particles
-    particles.clear();
+    particles_.clear();
     std::normal_distribution<> noise_xy(0.0, INIT_SIGMA_XY_);
     std::normal_distribution<> noise_yaw(0.0, INIT_SIGMA_YAW_);
     for(int i=0;i<PARTICLE_NUM_;i++){
