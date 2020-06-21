@@ -9,9 +9,11 @@ namespace node_edge_localizer
 {
 Localizer::Localizer(void)
 : local_nh_("~")
+, map_subscribed_(false)
 {
     nh_.advertise<nav_msgs::Odometry>("estimated_pose", 1);
     nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
+    nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
 }
 
 void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
@@ -27,6 +29,13 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     estimated_pose.header = msg->header;
     estimated_pose.pose.covariance = msg->pose.covariance;
     estimated_pose_pub_.publish(estimated_pose);
+}
+
+void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
+{
+    amsl_navigation_msgs::NodeEdgeMap map = *msg;
+    nemi_.set_map(map);
+    map_subscribed_ = true;
 }
 
 void Localizer::initialize(void)

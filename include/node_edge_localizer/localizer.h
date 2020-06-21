@@ -14,6 +14,11 @@
 
 #include <Eigen/Dense>
 
+#include "amsl_navigation_msgs/Node.h"
+#include "amsl_navigation_msgs/Edge.h"
+#include "amsl_navigation_msgs/NodeEdgeMap.h"
+#include "amsl_navigation_managers/node_edge_map_interface.h"
+
 namespace node_edge_localizer
 {
 struct Pose
@@ -29,6 +34,7 @@ public:
     Localizer(void);
 
     void odom_callback(const nav_msgs::OdometryConstPtr& msg);
+    void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg);
     void initialize(void);
     nav_msgs::Odometry convert_pose_to_msg(const Pose& p);
     void process(void);
@@ -37,7 +43,10 @@ protected:
     ros::NodeHandle local_nh_;
     ros::Publisher estimated_pose_pub_;
     ros::Subscriber odom_sub_;
+    ros::Subscriber map_sub_;
     Pose estimated_pose_;
+    NodeEdgeMapInterface nemi_;
+    bool map_subscribed_;
 };
 }// namespace node_edge_localizer
 
