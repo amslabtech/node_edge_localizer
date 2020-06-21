@@ -11,6 +11,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <tf2/utils.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/buffer.h>
 
 #include <Eigen/Dense>
 
@@ -37,13 +38,18 @@ public:
     void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg);
     void initialize(void);
     nav_msgs::Odometry convert_pose_to_msg(const Pose& p);
+    void publish_map_to_odom_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& child_frame_id, const geometry_msgs::Pose& pose);
     void process(void);
 protected:
+    bool ENABLE_TF_;
+
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;
     ros::Publisher estimated_pose_pub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber map_sub_;
+    std::shared_ptr<tf2_ros::Buffer> tf_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tfb_;
     Pose estimated_pose_;
     NodeEdgeMapInterface nemi_;
     bool map_subscribed_;
