@@ -47,6 +47,9 @@ protected:
     Pose estimated_pose_;
     NodeEdgeMapInterface nemi_;
     bool map_subscribed_;
+    double last_odom_timestamp_;
+    bool first_odom_callback_;
+    Pose last_odom_pose_;
 };
 }// namespace node_edge_localizer
 

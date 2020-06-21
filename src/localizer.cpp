@@ -10,6 +10,8 @@ namespace node_edge_localizer
 Localizer::Localizer(void)
 : local_nh_("~")
 , map_subscribed_(false)
+, last_odom_timestamp_(0)
+, first_odom_callback_(true)
 {
     nh_.advertise<nav_msgs::Odometry>("estimated_pose", 1);
     nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
@@ -24,11 +26,21 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
                         msg->pose.pose.position.z),
         tf2::getYaw(msg->pose.pose.orientation)
     };
-    estimated_pose_ = p;
+    double odom_timestamp = msg->header.stamp.toSec();
+    
+    if(first_odom_callback_){
+        first_odom_callback_ = false;
+        last_odom_timestamp_ = odom_timestamp;
+        last_odom_pose_ = p;
+        return;
+    }
+
     nav_msgs::Odometry estimated_pose = convert_pose_to_msg(estimated_pose_);
     estimated_pose.header = msg->header;
     estimated_pose.pose.covariance = msg->pose.covariance;
     estimated_pose_pub_.publish(estimated_pose);
+    last_odom_timestamp_ = odom_timestamp;
+    last_odom_pose_ = p;
 }
 
 void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
