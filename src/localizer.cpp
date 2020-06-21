@@ -12,12 +12,23 @@ Localizer::Localizer(void)
 , map_subscribed_(false)
 , last_odom_timestamp_(0)
 , first_odom_callback_(true)
+, engine_(rd_())
 {
     nh_.advertise<nav_msgs::Odometry>("estimated_pose", 1);
     nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
 
     local_nh_.param<bool>("ENABLE_TF", ENABLE_TF_, true);
+    local_nh_.param<int>("PARTICLE_NUM", PARTICLE_NUM_, 1000);
+    local_nh_.param<double>("INIT_X", INIT_X_, 0.0);
+    local_nh_.param<double>("INIT_Y", INIT_Y_, 0.0);
+    local_nh_.param<double>("INIT_YAW", INIT_YAW_, 0.0);
+    local_nh_.param<double>("INIT_SIGMA_XY", INIT_SIGMA_XY_, 1.0);
+    local_nh_.param<double>("INIT_SIGMA_YAW", INIT_SIGMA_YAW_, M_PI / 3.0);
+    local_nh_.param<double>("SIGMA_XY", SIGMA_XY_, 0.1);
+    local_nh_.param<double>("SIGMA_YAW", SIGMA_YAW_, 0.1);
+
+    initialize();
 }
 
 void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
@@ -64,7 +75,20 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
 
 void Localizer::initialize(void)
 {
-
+    // initialize particles
+    particles.clear();
+    std::normal_distribution<> noise_xy(0.0, INIT_SIGMA_XY_);
+    std::normal_distribution<> noise_yaw(0.0, INIT_SIGMA_YAW_);
+    for(int i=0;i<PARTICLE_NUM_;i++){
+        Particle p{
+            Pose{
+                Eigen::Vector3d(INIT_X_ + noise_xy(engine_), INIT_Y_ + noise_xy(engine_), 0),
+                INIT_YAW_ + noise_yaw(engine_)
+            },
+            1.0 / (double)(PARTICLE_NUM_)
+        };
+        particles_.push_back(p);
+    }
 }
 
 nav_msgs::Odometry Localizer::convert_pose_to_msg(const Pose& p)
