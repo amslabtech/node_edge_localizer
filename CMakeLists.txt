@@ -29,14 +29,24 @@ include_directories(
   ${EIGEN_INCLUDE_DIRS}
 )
 
-add_executable(node_edge_localizer src/node_edge_localizer.cpp
-                                   src/node_edge_particle.cpp
-                                   src/calculation.cpp
-                                   src/node_edge_map_management.cpp)
+add_executable(node_edge_localizer
+  src/node_edge_localizer.cpp
+  src/node_edge_particle.cpp
+  src/calculation.cpp
+  src/node_edge_map_management.cpp
+)
+add_executable(localizer
+  src/localizer_node.cpp
+  src/localizer.cpp
+)
 
 add_dependencies(node_edge_localizer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(localizer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(node_edge_localizer
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(localizer
   ${catkin_LIBRARIES}
 )
 
