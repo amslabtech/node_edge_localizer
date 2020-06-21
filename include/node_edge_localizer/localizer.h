@@ -21,6 +21,7 @@
 #include "amsl_navigation_msgs/Edge.h"
 #include "amsl_navigation_msgs/NodeEdgeMap.h"
 #include "amsl_navigation_managers/node_edge_map_interface.h"
+#include "node_edge_localizer/calculation.h"
 
 namespace node_edge_localizer
 {
@@ -47,6 +48,7 @@ public:
     void initialize(void);
     nav_msgs::Odometry convert_pose_to_msg(const Pose& p);
     void publish_map_to_odom_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& child_frame_id, const geometry_msgs::Pose& pose);
+    void move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt);
     void process(void);
 protected:
     bool ENABLE_TF_;
@@ -82,6 +84,7 @@ protected:
     std::vector<Particle> particles_;
     std::random_device rd_;
     std::mt19937 engine_;
+    Pose first_odom_pose_;
 };
 }// namespace node_edge_localizer
 

@@ -41,6 +41,7 @@ add_executable(node_edge_localizer
 add_executable(localizer
   src/localizer_node.cpp
   src/localizer.cpp
+  src/calculation.cpp
 )
 
 add_dependencies(node_edge_localizer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

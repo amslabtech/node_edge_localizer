@@ -43,10 +43,29 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     
     if(first_odom_callback_){
         first_odom_callback_ = false;
+        first_odom_pose_ = p;
         last_odom_timestamp_ = odom_timestamp;
-        last_odom_pose_ = p;
         return;
     }
+    // offset odometry
+    p.yaw_ -= first_odom_pose_.yaw_;
+    Calculation::pi_2_pi(p.yaw_);
+    p.position_ -= first_odom_pose_.position_;
+    Eigen::AngleAxis<double> first_odom_yaw_rotation(-first_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
+    p.position_ = first_odom_yaw_rotation * p.position_;
+
+    // get robot motion
+    double dt = odom_timestamp - last_odom_timestamp_;
+    if(dt == 0.0){
+        std::cout << "error: dt must be > 0" << std::endl;
+        return;
+    }
+    Eigen::Vector3d velocity = (p.position_ - last_odom_pose_.position_) / dt;
+    Eigen::AngleAxis<double> last_yaw_rotation(-last_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
+    velocity = last_yaw_rotation * velocity; 
+    double yawrate = Calculation::pi_2_pi(p.yaw_ - last_odom_pose_.yaw_) / dt;
+
+    move_particles(velocity, yawrate, dt);
 
     // publish estiamted pose
     nav_msgs::Odometry estimated_pose = convert_pose_to_msg(estimated_pose_);
@@ -75,6 +94,9 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
 
 void Localizer::initialize(void)
 {
+    first_odom_pose_.position_ = Eigen::Vector3d::Zero();
+    first_odom_pose_.yaw_ = 0.0;
+
     // initialize particles
     particles_.clear();
     std::normal_distribution<> noise_xy(0.0, INIT_SIGMA_XY_);
@@ -126,6 +148,21 @@ void Localizer::publish_map_to_odom_tf(const ros::Time& stamp, const std::string
     map_to_odom_tf.child_frame_id = child_frame_id;
     tf2::convert(odom_to_map_tf.inverse(), map_to_odom_tf.transform);
     tfb_->sendTransform(map_to_odom_tf);
+}
+
+void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt)
+{
+    std::normal_distribution<> noise_xy(0.0, SIGMA_XY_);
+    std::normal_distribution<> noise_yaw(0.0, SIGMA_YAW_);
+    for(auto& particle : particles_){
+        double dx = (velocity(0) + noise_xy(engine_)) * dt;
+        double dy = (velocity(1) + noise_xy(engine_)) * dt;
+        double dyaw = (yawrate + noise_yaw(engine_)) * dt;
+        Eigen::Vector3d t(dx, dy, 0.0);
+        Eigen::Matrix3d r;
+        r = Eigen::AngleAxisd(dyaw + particle.pose_.yaw_, Eigen::Vector3d::UnitZ());
+        particle.pose_.position_ = r * t + particle.pose_.position_;
+    }
 }
 
 void Localizer::process(void)
