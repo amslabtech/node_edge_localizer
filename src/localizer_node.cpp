@@ -8,5 +8,7 @@
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "localizer");
+    node_edge_localizer::Localizer localizer;
+    localizer.process();
     return 0;
 }
