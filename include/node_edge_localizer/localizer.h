@@ -51,6 +51,7 @@ public:
     void publish_map_to_odom_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& child_frame_id, const geometry_msgs::Pose& pose);
     void move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt);
     void publish_particles(const ros::Time& stamp, const std::string& frame_id);
+    std::tuple<Pose, std::vector<double>> get_estimation_result_from_particles(void);
     void process(void);
 protected:
     bool ENABLE_TF_;

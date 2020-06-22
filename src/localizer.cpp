@@ -68,10 +68,13 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
     move_particles(velocity, yawrate, dt);
 
+    std::vector<double> covariance;
+    std::tie(estimated_pose_, covariance) = get_estimation_result_from_particles();
+
     // publish estiamted pose
     nav_msgs::Odometry estimated_pose = convert_pose_to_msg(estimated_pose_);
     estimated_pose.header = msg->header;
-    estimated_pose.pose.covariance = msg->pose.covariance;
+    estimated_pose.pose.covariance = covariance;
     estimated_pose_pub_.publish(estimated_pose);
 
     publish_particles(estimated_pose.header.stamp, estimated_pose.header.frame_id);
@@ -185,6 +188,37 @@ void Localizer::publish_particles(const ros::Time& stamp, const std::string& fra
         particles_msg.poses[i] = p;
     }
     particles_pub_.publish(particles_msg);
+}
+
+std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_particles(void)
+{
+    Pose p;
+    std::vector<double> cov(36);
+    double direction_x = 0;
+    double direction_y = 0;
+    const unsigned int num = particles_.size();
+    // calculate mean
+    for(const auto& particle : particles_){
+        p.position_ += particle.likelihood_ * particle.pose_.position_;
+        direction_x += particle.likelihood_ * cos(particle.pose_.yaw_);
+        direction_y += particle.likelihood_ * sin(particle.pose_.yaw_);
+    }
+    p.position_ /= (double)num;
+    direction_x /= (double)num;
+    direction_y /= (double)num;
+    p.yaw_ = atan2(direction_y, direction_x);
+    // calculate covariance
+    for(const auto& particle : particles_){
+        cov[0 * 6 + 0] += Calculation::square(p.position_(0) - particle.pose_.position_(0));
+        cov[0 * 6 + 1] += (p.position_(0) - particle.pose_.position_(0)) * (p.position_(1) - particle.pose_.position_(1));
+        cov[1 * 6 + 1] += Calculation::square(p.position_(1) - particle.pose_.position_(1));
+    }
+    cov[1 * 6 + 0] = cov[0 * 6 + 1];
+    // TODO: angle covariance
+    for(auto& c : cov){
+        c /= (double)num;
+    }
+    return std::forward_as_tuple(p, cov);
 }
 
 void Localizer::process(void)
