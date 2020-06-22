@@ -18,6 +18,7 @@ Localizer::Localizer(void)
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose", 1);
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
+    initial_pose_sub_ = nh_.subscribe("initial_pose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
 
     local_nh_.param<bool>("ENABLE_TF", ENABLE_TF_, true);
     local_nh_.param<int>("PARTICLE_NUM", PARTICLE_NUM_, 1000);
@@ -74,7 +75,9 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     // publish estiamted pose
     nav_msgs::Odometry estimated_pose = convert_pose_to_msg(estimated_pose_);
     estimated_pose.header = msg->header;
+    for(unsigned int i=0;i<36;i++){
         estimated_pose.pose.covariance[i] = covariance[i];
+    }
     estimated_pose_pub_.publish(estimated_pose);
 
     publish_particles(estimated_pose.header.stamp, estimated_pose.header.frame_id);
@@ -98,20 +101,32 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     map_subscribed_ = true;
 }
 
+void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
+{
+    if(msg->header.frame_id != nemi_.get_map_header_frame_id()){
+        std::cout << "Initial pose must be in the global frame: " << nemi_.get_map_header_frame_id() << std::endl;
+        return;
+    }
+    initialize_particles(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
+}
+
 void Localizer::initialize(void)
 {
     first_odom_pose_.position_ = Eigen::Vector3d::Zero();
     first_odom_pose_.yaw_ = 0.0;
+    initialize_particles(INIT_X_, INIT_Y_, INIT_YAW_);
+}
 
-    // initialize particles
+void Localizer::initialize_particles(double x, double y, double yaw)
+{
     particles_.clear();
     std::normal_distribution<> noise_xy(0.0, INIT_SIGMA_XY_);
     std::normal_distribution<> noise_yaw(0.0, INIT_SIGMA_YAW_);
     for(int i=0;i<PARTICLE_NUM_;i++){
         Particle p{
             Pose{
-                Eigen::Vector3d(INIT_X_ + noise_xy(engine_), INIT_Y_ + noise_xy(engine_), 0),
-                INIT_YAW_ + noise_yaw(engine_)
+                Eigen::Vector3d(x + noise_xy(engine_), y + noise_xy(engine_), 0),
+                yaw + noise_yaw(engine_)
             },
             1.0 / (double)(PARTICLE_NUM_)
         };

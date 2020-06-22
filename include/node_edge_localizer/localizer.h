@@ -46,7 +46,9 @@ public:
 
     void odom_callback(const nav_msgs::OdometryConstPtr& msg);
     void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg);
+    void initial_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
     void initialize(void);
+    void initialize_particles(double x, double y, double yaw);
     nav_msgs::Odometry convert_pose_to_msg(const Pose& p);
     void publish_map_to_odom_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& child_frame_id, const geometry_msgs::Pose& pose);
     void move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt);
@@ -77,6 +79,7 @@ protected:
     ros::Publisher particles_pub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber map_sub_;
+    ros::Subscriber initial_pose_sub_;
     std::shared_ptr<tf2_ros::Buffer> tf_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tfb_;
     Pose estimated_pose_;
