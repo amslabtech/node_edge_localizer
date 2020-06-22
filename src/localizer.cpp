@@ -74,7 +74,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     // publish estiamted pose
     nav_msgs::Odometry estimated_pose = convert_pose_to_msg(estimated_pose_);
     estimated_pose.header = msg->header;
-    estimated_pose.pose.covariance = covariance;
+        estimated_pose.pose.covariance[i] = covariance[i];
     estimated_pose_pub_.publish(estimated_pose);
 
     publish_particles(estimated_pose.header.stamp, estimated_pose.header.frame_id);
