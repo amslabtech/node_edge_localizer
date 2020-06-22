@@ -55,11 +55,6 @@ target_link_libraries(localizer
 )
 
 if(CATKIN_ENABLE_TESTING)
-    find_package(rostest REQUIRED)
-    add_rostest_gtest(node_edge_localizer_test
-        test/node_edge_localizer.test
-        test/node_edge_localizer_test.cpp
-        src/calculation.cpp
-    )
-    target_link_libraries(node_edge_localizer_test ${catkin_LIBRARIES})
+  find_package(rostest REQUIRED)
+  add_subdirectory(test)
 endif()
