@@ -14,6 +14,7 @@ Localizer::Localizer(void)
 , first_odom_callback_(true)
 , engine_(rd_())
 {
+    particles_pub_ = nh_.advertise<geometry_msgs::PoseArray>("estimated_pose/particles", 1);
     nh_.advertise<nav_msgs::Odometry>("estimated_pose", 1);
     nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
@@ -72,6 +73,8 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     estimated_pose.header = msg->header;
     estimated_pose.pose.covariance = msg->pose.covariance;
     estimated_pose_pub_.publish(estimated_pose);
+
+    publish_particles(estimated_pose.header.stamp, estimated_pose.header.frame_id);
 
     // publish tf from map to odom
     if(ENABLE_TF_){
@@ -163,6 +166,25 @@ void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yaw
         r = Eigen::AngleAxisd(dyaw + particle.pose_.yaw_, Eigen::Vector3d::UnitZ());
         particle.pose_.position_ = r * t + particle.pose_.position_;
     }
+}
+
+void Localizer::publish_particles(const ros::Time& stamp, const std::string& frame_id)
+{
+    geometry_msgs::PoseArray particles_msg;
+    particles_msg.header.stamp = stamp;
+    particles_msg.header.frame_id = frame_id;
+    const unsigned int size = particles_.size();
+    particles_msg.poses.resize(size);
+    for(unsigned int i=0;i<size;i++){
+        geometry_msgs::Pose p;
+        p.position.x = particles_[i].pose_.position_(0);
+        p.position.y = particles_[i].pose_.position_(1);
+        tf2::Quaternion q;
+        q.setEuler(particles_[i].pose_.yaw_, 0, 0);
+        p.orientation = tf2::toMsg(q);
+        particles_msg.poses[i] = p;
+    }
+    particles_pub_.publish(particles_msg);
 }
 
 void Localizer::process(void)

@@ -11,6 +11,7 @@
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/PoseArray.h>
 #include <tf2/utils.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/buffer.h>
@@ -49,6 +50,7 @@ public:
     nav_msgs::Odometry convert_pose_to_msg(const Pose& p);
     void publish_map_to_odom_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& child_frame_id, const geometry_msgs::Pose& pose);
     void move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt);
+    void publish_particles(const ros::Time& stamp, const std::string& frame_id);
     void process(void);
 protected:
     bool ENABLE_TF_;
@@ -71,6 +73,7 @@ protected:
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;
     ros::Publisher estimated_pose_pub_;
+    ros::Publisher particles_pub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber map_sub_;
     std::shared_ptr<tf2_ros::Buffer> tf_;
