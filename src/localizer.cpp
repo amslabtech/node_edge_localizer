@@ -183,6 +183,7 @@ void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yaw
         Eigen::Matrix3d r;
         r = Eigen::AngleAxisd(dyaw + particle.pose_.yaw_, Eigen::Vector3d::UnitZ());
         particle.pose_.position_ = r * t + particle.pose_.position_;
+        particle.pose_.yaw_ = Calculation::pi_2_pi(particle.pose_.yaw_ + dyaw);
     }
 }
 
@@ -207,7 +208,10 @@ void Localizer::publish_particles(const ros::Time& stamp, const std::string& fra
 
 std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_particles(void)
 {
-    Pose p;
+    Pose p{
+        Eigen::Vector3d::Zero(),
+        0.0
+    };
     std::vector<double> cov(36);
     double direction_x = 0;
     double direction_y = 0;
@@ -218,9 +222,6 @@ std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_part
         direction_x += particle.likelihood_ * cos(particle.pose_.yaw_);
         direction_y += particle.likelihood_ * sin(particle.pose_.yaw_);
     }
-    p.position_ /= (double)num;
-    direction_x /= (double)num;
-    direction_y /= (double)num;
     p.yaw_ = atan2(direction_y, direction_x);
     // calculate covariance
     for(const auto& particle : particles_){
