@@ -82,7 +82,7 @@ TEST_F(OdomSubTest, LinearCase)
         std::cout << "loop..." << std::endl;
         if(count_ > 10) break;
         odom.header.stamp = ros::Time::now();
-        odom.pose.pose.position.x += 0.1;
+        odom.pose.pose.position.x += 0.01;
         odom_pub_.publish(odom);
         ros::spinOnce();
         ros::Duration(0.1).sleep();
