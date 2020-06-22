@@ -15,9 +15,9 @@ Localizer::Localizer(void)
 , engine_(rd_())
 {
     particles_pub_ = nh_.advertise<geometry_msgs::PoseArray>("estimated_pose/particles", 1);
-    nh_.advertise<nav_msgs::Odometry>("estimated_pose", 1);
-    nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
-    nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
+    estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose", 1);
+    odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
+    map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
 
     local_nh_.param<bool>("ENABLE_TF", ENABLE_TF_, true);
     local_nh_.param<int>("PARTICLE_NUM", PARTICLE_NUM_, 1000);
