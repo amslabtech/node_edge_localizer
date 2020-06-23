@@ -105,6 +105,76 @@ TEST_F(OdomSubTest, LinearCase)
     ASSERT_LT(abs(angle_diff), 0.01);
 }
 
+TEST_F(OdomSubTest, LeftCurveCase)
+{
+    ros::Duration(1.0).sleep();
+    nav_msgs::Odometry odom;
+    odom.child_frame_id = "base_link";
+    odom.header.frame_id = "odom";
+    odom.header.stamp = ros::Time::now();
+    odom.pose.pose.orientation = get_quaternion_msg_from_yaw(0);
+    odom_pub_.publish(odom);
+    ros::Duration(0.1).sleep();
+
+    while(ros::ok()){
+        std::cout << "loop..." << std::endl;
+        odom.header.stamp = ros::Time::now();
+        const double dx = 0.1;
+        odom.pose.pose.position.x += dx * cos(tf2::getYaw(odom.pose.pose.orientation));
+        odom.pose.pose.position.y += dx * sin(tf2::getYaw(odom.pose.pose.orientation));
+        odom.pose.pose.orientation = get_quaternion_msg_from_yaw(tf2::getYaw(odom.pose.pose.orientation) + 0.1);
+        std::cout << "yaw: " << tf2::getYaw(odom.pose.pose.orientation) << std::endl;;
+        odom_pub_.publish(odom);
+        ros::spinOnce();
+        ros::Duration(0.1).sleep();
+        if(count_ > 10){
+            ros::spinOnce();
+            break;
+        }
+    }
+    ros::spinOnce();
+    std::cout << "odom:\n" << odom.pose.pose << std::endl;
+    std::cout << "pose:\n" << pose_.pose.pose << std::endl;
+    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.05);
+    double angle_diff = tf2::getYaw(pose_.pose.pose.orientation) - tf2::getYaw(odom.pose.pose.orientation);
+    ASSERT_LT(abs(angle_diff), 0.01);
+}
+
+TEST_F(OdomSubTest, RightCurveCase)
+{
+    ros::Duration(1.0).sleep();
+    nav_msgs::Odometry odom;
+    odom.child_frame_id = "base_link";
+    odom.header.frame_id = "odom";
+    odom.header.stamp = ros::Time::now();
+    odom.pose.pose.orientation = get_quaternion_msg_from_yaw(0);
+    odom_pub_.publish(odom);
+    ros::Duration(0.1).sleep();
+
+    while(ros::ok()){
+        std::cout << "loop..." << std::endl;
+        odom.header.stamp = ros::Time::now();
+        const double dx = 0.1;
+        odom.pose.pose.position.x += dx * cos(tf2::getYaw(odom.pose.pose.orientation));
+        odom.pose.pose.position.y += dx * sin(tf2::getYaw(odom.pose.pose.orientation));
+        odom.pose.pose.orientation = get_quaternion_msg_from_yaw(tf2::getYaw(odom.pose.pose.orientation) - 0.1);
+        std::cout << "yaw: " << tf2::getYaw(odom.pose.pose.orientation) << std::endl;;
+        odom_pub_.publish(odom);
+        ros::spinOnce();
+        ros::Duration(0.1).sleep();
+        if(count_ > 10){
+            ros::spinOnce();
+            break;
+        }
+    }
+    ros::spinOnce();
+    std::cout << "odom:\n" << odom.pose.pose << std::endl;
+    std::cout << "pose:\n" << pose_.pose.pose << std::endl;
+    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.05);
+    double angle_diff = tf2::getYaw(pose_.pose.pose.orientation) - tf2::getYaw(odom.pose.pose.orientation);
+    ASSERT_LT(abs(angle_diff), 0.01);
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);
