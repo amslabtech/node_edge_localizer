@@ -34,7 +34,7 @@ protected:
     geometry_msgs::Quaternion get_quaternion_msg_from_yaw(const double yaw)
     {
         tf2::Quaternion q;
-        q.setEuler(0, 0, 0);
+        q.setRPY(0, 0, yaw);
         return tf2::toMsg(q);
     }
 
