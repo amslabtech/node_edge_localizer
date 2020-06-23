@@ -18,7 +18,7 @@ Localizer::Localizer(void)
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose", 1);
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
-    initial_pose_sub_ = nh_.subscribe("initial_pose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
+    initial_pose_sub_ = nh_.subscribe("initialpose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
 
     local_nh_.param<bool>("ENABLE_TF", ENABLE_TF_, true);
     local_nh_.param<int>("PARTICLE_NUM", PARTICLE_NUM_, 1000);
@@ -107,6 +107,10 @@ void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceSta
         std::cout << "Initial pose must be in the global frame: " << nemi_.get_map_header_frame_id() << std::endl;
         return;
     }
+    std::cout << "received initial pose: " 
+              << "(" << msg->pose.pose.position.x << ", " 
+              << msg->pose.pose.position.y << ", " 
+              << tf2::getYaw(msg->pose.pose.orientation) << ")" << std::endl;
     initialize_particles(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
 }
 
