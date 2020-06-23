@@ -111,14 +111,25 @@ void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceSta
               << "(" << msg->pose.pose.position.x << ", " 
               << msg->pose.pose.position.y << ", " 
               << tf2::getYaw(msg->pose.pose.orientation) << ")" << std::endl;
-    initialize_particles(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
+    initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
 }
 
 void Localizer::initialize(void)
 {
+    initialize(INIT_X_, INIT_Y_, INIT_YAW_);
+}
+
+void Localizer::initialize(double x, double y, double yaw)
+{
+    initialize_particles(x, y, yaw);
+    std::vector<double> covariance;
+    std::tie(estimated_pose_, covariance) = get_estimation_result_from_particles();
+    std::cout << "initialized pose: " << estimated_pose_.position_.transpose() << ", " << estimated_pose_.yaw_ << std::endl;
+    first_odom_callback_ = true;
     first_odom_pose_.position_ = Eigen::Vector3d::Zero();
     first_odom_pose_.yaw_ = 0.0;
-    initialize_particles(INIT_X_, INIT_Y_, INIT_YAW_);
+    last_odom_timestamp_ = 0.0;
+    last_odom_pose_ = Pose();
 }
 
 void Localizer::initialize_particles(double x, double y, double yaw)
