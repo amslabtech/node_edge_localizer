@@ -107,10 +107,8 @@ void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceSta
         std::cout << "Initial pose must be in the global frame: " << nemi_.get_map_header_frame_id() << std::endl;
         return;
     }
-    std::cout << "received initial pose: " 
-              << "(" << msg->pose.pose.position.x << ", " 
-              << msg->pose.pose.position.y << ", " 
-              << tf2::getYaw(msg->pose.pose.orientation) << ")" << std::endl;
+    std::cout << "received initial pose: " ;
+    print_pose(msg->pose.pose);
     initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
 }
 
@@ -250,6 +248,13 @@ std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_part
         c /= (double)num;
     }
     return std::forward_as_tuple(p, cov);
+}
+
+void Localizer::print_pose(const geometry_msgs::Pose& pose)
+{
+    std::cout << "(" << pose.position.x << ", " 
+              << pose.position.y << ", " 
+              << tf2::getYaw(pose.orientation) << ")" << std::endl;
 }
 
 void Localizer::process(void)
