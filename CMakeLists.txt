@@ -41,6 +41,7 @@ add_executable(node_edge_localizer
 add_executable(localizer
   src/localizer_node.cpp
   src/localizer.cpp
+  src/distance_map.cpp
   src/calculation.cpp
 )
 
