@@ -196,7 +196,7 @@ void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yaw
         double dyaw = (yawrate + noise_yaw(engine_)) * dt;
         Eigen::Vector3d t(dx, dy, 0.0);
         Eigen::Matrix3d r;
-        r = Eigen::AngleAxisd(dyaw + particle.pose_.yaw_, Eigen::Vector3d::UnitZ());
+        r = Eigen::AngleAxisd(particle.pose_.yaw_, Eigen::Vector3d::UnitZ());
         particle.pose_.position_ = r * t + particle.pose_.position_;
         particle.pose_.yaw_ = Calculation::pi_2_pi(particle.pose_.yaw_ + dyaw);
     }
