@@ -60,14 +60,16 @@ TEST_F(OdomSubTest, StopCase)
 
     while(ros::ok()){
         std::cout << "loop..." << std::endl;
-        if(count_ > 10) break;
         odom.header.stamp = ros::Time::now();
         odom_pub_.publish(odom);
         ros::spinOnce();
         ros::Duration(0.1).sleep();
+        if(count_ > 10){
+            ros::spinOnce();
+            break;
+        }
     }
-    ASSERT_LT(abs(pose_.pose.pose.position.x - odom.pose.pose.position.x), 0.01);
-    ASSERT_LT(abs(pose_.pose.pose.position.y - odom.pose.pose.position.y), 0.01);
+    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.05);
     double angle_diff = tf2::getYaw(pose_.pose.pose.orientation) - tf2::getYaw(odom.pose.pose.orientation);
     ASSERT_LT(abs(angle_diff), 0.01);
 }
@@ -85,15 +87,20 @@ TEST_F(OdomSubTest, LinearCase)
 
     while(ros::ok()){
         std::cout << "loop..." << std::endl;
-        if(count_ > 10) break;
         odom.header.stamp = ros::Time::now();
-        odom.pose.pose.position.x += 0.01;
+        odom.pose.pose.position.x += 0.1;
         odom_pub_.publish(odom);
         ros::spinOnce();
         ros::Duration(0.1).sleep();
+        if(count_ > 10){
+            ros::spinOnce();
+            break;
+        }
     }
-    ASSERT_LT(abs(pose_.pose.pose.position.x - odom.pose.pose.position.x), 0.01);
-    ASSERT_LT(abs(pose_.pose.pose.position.y - odom.pose.pose.position.y), 0.01);
+    ros::spinOnce();
+    std::cout << "odom:\n" << odom.pose.pose << std::endl;
+    std::cout << "pose:\n" << pose_.pose.pose << std::endl;
+    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.05);
     double angle_diff = tf2::getYaw(pose_.pose.pose.orientation) - tf2::getYaw(odom.pose.pose.orientation);
     ASSERT_LT(abs(angle_diff), 0.01);
 }
