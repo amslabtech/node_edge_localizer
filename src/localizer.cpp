@@ -25,8 +25,8 @@ Localizer::Localizer(void)
     local_nh_.param<double>("INIT_X", INIT_X_, 0.0);
     local_nh_.param<double>("INIT_Y", INIT_Y_, 0.0);
     local_nh_.param<double>("INIT_YAW", INIT_YAW_, 0.0);
-    local_nh_.param<double>("INIT_SIGMA_XY", INIT_SIGMA_XY_, 1.0);
-    local_nh_.param<double>("INIT_SIGMA_YAW", INIT_SIGMA_YAW_, M_PI / 3.0);
+    local_nh_.param<double>("INIT_SIGMA_XY", INIT_SIGMA_XY_, 0.5);
+    local_nh_.param<double>("INIT_SIGMA_YAW", INIT_SIGMA_YAW_, 0.2);
     local_nh_.param<double>("SIGMA_XY", SIGMA_XY_, 0.1);
     local_nh_.param<double>("SIGMA_YAW", SIGMA_YAW_, 0.1);
 
