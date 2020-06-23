@@ -156,7 +156,7 @@ nav_msgs::Odometry Localizer::convert_pose_to_msg(const Pose& p)
     o.pose.pose.position.y = p.position_(1);
     o.pose.pose.position.z = p.position_(2);
     tf2::Quaternion q;
-    q.setEuler(p.yaw_, 0, 0);
+    q.setRPY(0, 0, p.yaw_);
     o.pose.pose.orientation = tf2::toMsg(q);
     return o;
 }
@@ -214,7 +214,7 @@ void Localizer::publish_particles(const ros::Time& stamp, const std::string& fra
         p.position.x = particles_[i].pose_.position_(0);
         p.position.y = particles_[i].pose_.position_(1);
         tf2::Quaternion q;
-        q.setEuler(particles_[i].pose_.yaw_, 0, 0);
+        q.setRPY(0, 0, particles_[i].pose_.yaw_);
         p.orientation = tf2::toMsg(q);
         particles_msg.poses[i] = p;
     }
