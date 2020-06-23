@@ -69,6 +69,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
     move_particles(velocity, yawrate, dt);
 
+    normalize_particles_weight();
     std::vector<double> covariance;
     std::tie(estimated_pose_, covariance) = get_estimation_result_from_particles();
 
@@ -231,9 +232,9 @@ std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_part
     const unsigned int num = particles_.size();
     // calculate mean
     for(const auto& particle : particles_){
-        p.position_ += particle.likelihood_ * particle.pose_.position_;
-        direction_x += particle.likelihood_ * cos(particle.pose_.yaw_);
-        direction_y += particle.likelihood_ * sin(particle.pose_.yaw_);
+        p.position_ += particle.weight_ * particle.pose_.position_;
+        direction_x += particle.weight_ * cos(particle.pose_.yaw_);
+        direction_y += particle.weight_ * sin(particle.pose_.yaw_);
     }
     p.yaw_ = atan2(direction_y, direction_x);
     // calculate covariance
@@ -255,6 +256,17 @@ void Localizer::print_pose(const geometry_msgs::Pose& pose)
     std::cout << "(" << pose.position.x << ", " 
               << pose.position.y << ", " 
               << tf2::getYaw(pose.orientation) << ")" << std::endl;
+}
+
+void Localizer::normalize_particles_weight(void)
+{
+    double sum = 0;
+    for(const auto& p : particles_){
+        sum += p.weight_;
+    }
+    for(auto& p : particles_){
+        p.weight_ /= sum;
+    }
 }
 
 void Localizer::process(void)

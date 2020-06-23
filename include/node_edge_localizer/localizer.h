@@ -36,7 +36,7 @@ struct Pose
 struct Particle
 {
     Pose pose_;
-    double likelihood_;
+    double weight_;
 };
 
 class Localizer
@@ -56,6 +56,7 @@ public:
     void publish_particles(const ros::Time& stamp, const std::string& frame_id);
     std::tuple<Pose, std::vector<double>> get_estimation_result_from_particles(void);
     void print_pose(const geometry_msgs::Pose& pose);
+    void normalize_particles_weight(void);
     void process(void);
 protected:
     bool ENABLE_TF_;
