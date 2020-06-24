@@ -23,6 +23,7 @@
 #include "amsl_navigation_msgs/NodeEdgeMap.h"
 #include "amsl_navigation_managers/node_edge_map_interface.h"
 #include "node_edge_localizer/calculation.h"
+#include "node_edge_localizer/distance_map.h"
 
 namespace node_edge_localizer
 {
@@ -75,6 +76,8 @@ protected:
     double SIGMA_XY_;
     //! stddev of orientatoin transition
     double SIGMA_YAW_;
+    //! resolution of DistanceMap [m/cell]
+    double DM_RESOLUTION_;
 
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;
@@ -95,6 +98,7 @@ protected:
     std::random_device rd_;
     std::mt19937 engine_;
     Pose first_odom_pose_;
+    DistanceMap dm_;
 };
 }// namespace node_edge_localizer
 

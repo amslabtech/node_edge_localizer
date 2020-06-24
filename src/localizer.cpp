@@ -29,6 +29,7 @@ Localizer::Localizer(void)
     local_nh_.param<double>("INIT_SIGMA_YAW", INIT_SIGMA_YAW_, 0.2);
     local_nh_.param<double>("SIGMA_XY", SIGMA_XY_, 0.1);
     local_nh_.param<double>("SIGMA_YAW", SIGMA_YAW_, 0.1);
+    local_nh_.param<double>("DISTANCE_MAP/RESOLUTION", DM_RESOLUTION_, 0.1);
 
     initialize();
 }
@@ -99,6 +100,7 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
 {
     amsl_navigation_msgs::NodeEdgeMap map = *msg;
     nemi_.set_map(map);
+    dm_.make_distance_map(map, DM_RESOLUTION_);
     map_subscribed_ = true;
 }
 
