@@ -279,6 +279,13 @@ void Localizer::normalize_particles_weight(void)
     }
 }
 
+geometry_msgs::Quaternion Localizer::get_quaternion_msg_from_yaw(const double yaw)
+{
+    tf2::Quaternion q;
+    q.setRPY(0, 0, yaw);
+    return tf2::toMsg(q);
+}
+
 void Localizer::process(void)
 {
     ros::spin();

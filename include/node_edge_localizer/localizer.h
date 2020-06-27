@@ -60,6 +60,7 @@ public:
     std::tuple<Pose, std::vector<double>> get_estimation_result_from_particles(void);
     void print_pose(const geometry_msgs::Pose& pose);
     void normalize_particles_weight(void);
+    geometry_msgs::Quaternion get_quaternion_msg_from_yaw(const double yaw);
     void process(void);
 protected:
     bool ENABLE_TF_;
