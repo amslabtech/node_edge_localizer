@@ -24,6 +24,7 @@ Localizer::Localizer(void)
     tfb_ = std::make_shared<tf2_ros::TransformBroadcaster>();
 
     local_nh_.param<bool>("ENABLE_TF", ENABLE_TF_, true);
+    local_nh_.param<bool>("ENABLE_ODOM_TF", ENABLE_ODOM_TF_, false);
     local_nh_.param<int>("PARTICLE_NUM", PARTICLE_NUM_, 1000);
     local_nh_.param<double>("INIT_X", INIT_X_, 0.0);
     local_nh_.param<double>("INIT_Y", INIT_Y_, 0.0);
@@ -59,6 +60,9 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     p.position_ -= first_odom_pose_.position_;
     Eigen::AngleAxis<double> first_odom_yaw_rotation(-first_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
     p.position_ = first_odom_yaw_rotation * p.position_;
+    if(ENABLE_ODOM_TF_){
+        publish_odom_to_robot_tf(msg->header.stamp, msg->header.frame_id, msg->child_frame_id, p);
+    }
 
     // get robot motion
     double dt = odom_timestamp - last_odom_timestamp_;
@@ -193,6 +197,19 @@ void Localizer::publish_map_to_odom_tf(const ros::Time& stamp, const std::string
     map_to_odom_tf.child_frame_id = child_frame_id;
     tf2::convert(odom_to_map_tf.inverse(), map_to_odom_tf.transform);
     tfb_->sendTransform(map_to_odom_tf);
+}
+
+void Localizer::publish_odom_to_robot_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& robot_frame_id, const Pose& pose)
+{
+    geometry_msgs::TransformStamped odom_to_robot_tf;
+    odom_to_robot_tf.header.stamp = stamp;
+    odom_to_robot_tf.header.frame_id = odom_frame_id;
+    odom_to_robot_tf.child_frame_id = robot_frame_id;
+    odom_to_robot_tf.transform.translation.x = pose.position_(0);
+    odom_to_robot_tf.transform.translation.y = pose.position_(1);
+    odom_to_robot_tf.transform.translation.z = pose.position_(2);
+    odom_to_robot_tf.transform.rotation = get_quaternion_msg_from_yaw(pose.yaw_); 
+    tfb_->sendTransform(odom_to_robot_tf);
 }
 
 void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt)
