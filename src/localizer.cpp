@@ -85,6 +85,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     if(effective_num_of_particles < RESAMPLING_THRESHOLD_){
         resample_particles();
     }
+    normalize_particles_weight();
     std::vector<double> covariance;
     std::tie(estimated_pose_, covariance) = get_estimation_result_from_particles();
 
