@@ -21,6 +21,7 @@ Localizer::Localizer(void)
     initial_pose_sub_ = nh_.subscribe("initialpose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
 
     tf_ = std::make_shared<tf2_ros::Buffer>();
+    tf_->setUsingDedicatedThread(true);
     tfb_ = std::make_shared<tf2_ros::TransformBroadcaster>();
 
     local_nh_.param<bool>("ENABLE_TF", ENABLE_TF_, true);
