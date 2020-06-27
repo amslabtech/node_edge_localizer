@@ -36,6 +36,7 @@ Localizer::Localizer(void)
     local_nh_.param<double>("SIGMA_XY", SIGMA_XY_, 0.1);
     local_nh_.param<double>("SIGMA_YAW", SIGMA_YAW_, 0.1);
     local_nh_.param<double>("DISTANCE_MAP/RESOLUTION", DM_RESOLUTION_, 0.1);
+    local_nh_.param<double>("RESAMPLING_THRESHOLD", RESAMPLING_THRESHOLD_, PARTICLE_NUM_ * 0.5);
 
     initialize();
 }
@@ -80,6 +81,10 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     move_particles(velocity, yawrate, dt);
 
     normalize_particles_weight();
+    const double effective_num_of_particles = compute_num_of_effective_particles();
+    if(effective_num_of_particles < RESAMPLING_THRESHOLD_){
+        resample_particles();
+    }
     std::vector<double> covariance;
     std::tie(estimated_pose_, covariance) = get_estimation_result_from_particles();
 
@@ -303,6 +308,38 @@ geometry_msgs::Quaternion Localizer::get_quaternion_msg_from_yaw(const double ya
     tf2::Quaternion q;
     q.setRPY(0, 0, yaw);
     return tf2::toMsg(q);
+}
+
+double Localizer::compute_num_of_effective_particles(void)
+{
+    double n_e = 0.0;
+    for(const auto& p : particles_){
+        n_e += p.weight_ * p.weight_;
+    }
+    n_e = 1.0 / n_e;
+    return n_e;
+}
+
+void Localizer::resample_particles(void)
+{
+    std::uniform_real_distribution<> dist;
+    const unsigned int n = particles_.size();
+    const double epsilon = dist(engine_) / (double)n;
+    const double n_reciprocal = 1.0 / (double)n;
+    double sum_epsilon = epsilon;
+    double sum_weight = 0.0;
+    std::vector<Particle> new_particles(n);
+    unsigned int new_particle_index = 0;
+    for(unsigned int i=0;i<n;i++){
+        sum_weight += particles_[i].weight_; 
+        for(;sum_epsilon<sum_weight;sum_epsilon+=n_reciprocal){
+            if(new_particle_index < n){
+                new_particles[new_particle_index++] = particles_[i];
+            }else{
+                return;
+            }
+        }
+    }
 }
 
 void Localizer::process(void)

@@ -63,6 +63,8 @@ public:
     void print_pose(const geometry_msgs::Pose& pose);
     void normalize_particles_weight(void);
     geometry_msgs::Quaternion get_quaternion_msg_from_yaw(const double yaw);
+    double compute_num_of_effective_particles(void);
+    void resample_particles(void);
     void process(void);
 protected:
     bool ENABLE_TF_;
@@ -84,6 +86,8 @@ protected:
     double SIGMA_YAW_;
     //! resolution of DistanceMap [m/cell]
     double DM_RESOLUTION_;
+    //! threshold for reciprocal of sum of squares of particles weight
+    double RESAMPLING_THRESHOLD_;
 
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;
