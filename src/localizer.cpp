@@ -104,6 +104,11 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     map_subscribed_ = true;
 }
 
+void Localizer::observation_map_callback(const nav_msgs::OccupancyGrid& msg)
+{
+    
+}
+
 void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
 {
     if(msg->header.frame_id != nemi_.get_map_header_frame_id()){

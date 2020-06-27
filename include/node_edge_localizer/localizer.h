@@ -9,6 +9,7 @@
 
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/OccupancyGrid.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/PoseArray.h>
@@ -48,6 +49,7 @@ public:
     void odom_callback(const nav_msgs::OdometryConstPtr& msg);
     void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg);
     void initial_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
+    void observation_map_callback(const nav_msgs::OccupancyGrid& msg);
     void initialize(void);
     void initialize(double x, double y, double yaw);
     void initialize_particles(double x, double y, double yaw);
