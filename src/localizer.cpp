@@ -222,6 +222,8 @@ void Localizer::publish_odom_to_robot_tf(const ros::Time& stamp, const std::stri
 
 void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt)
 {
+    const Eigen::Vector3d dp_r = velocity * dt;
+    const double dyaw_r = yawrate * dt;
     std::normal_distribution<> noise_xy(0.0, SIGMA_XY_);
     std::normal_distribution<> noise_yaw(0.0, SIGMA_YAW_);
     for(auto& particle : particles_){
@@ -233,6 +235,7 @@ void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yaw
         r = Eigen::AngleAxisd(particle.pose_.yaw_, Eigen::Vector3d::UnitZ());
         particle.pose_.position_ = r * t + particle.pose_.position_;
         particle.pose_.yaw_ = Calculation::pi_2_pi(particle.pose_.yaw_ + dyaw);
+        particle.weight_ = compute_particle_likelihood_from_motion(dp_r, dyaw_r, t, dyaw);
     }
 }
 
@@ -341,6 +344,11 @@ void Localizer::resample_particles(void)
             }
         }
     }
+}
+
+double Localizer::compute_particle_likelihood_from_motion(const Eigen::Vector3d& dp_r, const double dyaw_r, const Eigen::Vector3d& dp, const double dyaw)
+{
+    return exp(-(dp_r - dp).norm()) + exp(-abs(dyaw_r - dyaw));
 }
 
 void Localizer::process(void)

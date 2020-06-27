@@ -65,6 +65,7 @@ public:
     geometry_msgs::Quaternion get_quaternion_msg_from_yaw(const double yaw);
     double compute_num_of_effective_particles(void);
     void resample_particles(void);
+    double compute_particle_likelihood_from_motion(const Eigen::Vector3d& dp_r, const double dyaw_r, const Eigen::Vector3d& dp, const double dyaw);
     void process(void);
 protected:
     bool ENABLE_TF_;
