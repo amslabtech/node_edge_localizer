@@ -15,6 +15,7 @@
 #include <geometry_msgs/PoseArray.h>
 #include <tf2/utils.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 
 #include <Eigen/Dense>
@@ -92,6 +93,7 @@ protected:
     ros::Subscriber map_sub_;
     ros::Subscriber initial_pose_sub_;
     std::shared_ptr<tf2_ros::Buffer> tf_;
+    std::shared_ptr<tf2_ros::TransformListener> tfl_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tfb_;
     Pose estimated_pose_;
     NodeEdgeMapInterface nemi_;

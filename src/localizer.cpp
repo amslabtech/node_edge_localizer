@@ -23,6 +23,7 @@ Localizer::Localizer(void)
     tf_ = std::make_shared<tf2_ros::Buffer>();
     tf_->setUsingDedicatedThread(true);
     tfb_ = std::make_shared<tf2_ros::TransformBroadcaster>();
+    tfl_ = std::make_shared<tf2_ros::TransformListener>(*tf_);
 
     local_nh_.param<bool>("ENABLE_TF", ENABLE_TF_, true);
     local_nh_.param<bool>("ENABLE_ODOM_TF", ENABLE_ODOM_TF_, false);
