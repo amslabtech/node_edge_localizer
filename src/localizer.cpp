@@ -43,6 +43,10 @@ Localizer::Localizer(void)
 
 void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
+    if(!map_received_){
+        std::cout << ros::this_node::getName() << ": waiting for map..." << std::endl;
+        return;
+    }
     Pose p = {
         Eigen::Vector3d(msg->pose.pose.position.x,
                         msg->pose.pose.position.y,
