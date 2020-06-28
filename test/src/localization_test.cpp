@@ -11,7 +11,7 @@ public:
     {
         odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 1, true);
         init_pose_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose", 1, true);
-        pose_sub_ = nh_.subscribe("estimated_pose", 1, &LocalizationTest::pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
+        pose_sub_ = nh_.subscribe("estimated_pose/pose", 1, &LocalizationTest::pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     }
 
     void pose_callback(const nav_msgs::OdometryConstPtr& msg)
