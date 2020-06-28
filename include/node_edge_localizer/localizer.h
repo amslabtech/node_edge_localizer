@@ -102,7 +102,7 @@ protected:
     std::shared_ptr<tf2_ros::TransformBroadcaster> tfb_;
     Pose estimated_pose_;
     NodeEdgeMapInterface nemi_;
-    bool map_subscribed_;
+    bool map_received_;
     double last_odom_timestamp_;
     bool first_odom_callback_;
     Pose last_odom_pose_;

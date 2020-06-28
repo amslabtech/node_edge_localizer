@@ -9,7 +9,7 @@ namespace node_edge_localizer
 {
 Localizer::Localizer(void)
 : local_nh_("~")
-, map_subscribed_(false)
+, map_received_(false)
 , last_odom_timestamp_(0)
 , first_odom_callback_(true)
 , engine_(rd_())
@@ -116,7 +116,7 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     amsl_navigation_msgs::NodeEdgeMap map = *msg;
     nemi_.set_map(map);
     dm_.make_distance_map(map, DM_RESOLUTION_);
-    map_subscribed_ = true;
+    map_received_ = true;
 }
 
 void Localizer::observation_map_callback(const nav_msgs::OccupancyGrid& msg)
