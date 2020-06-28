@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <ros/ros.h>
 
+#include "amsl_navigation_msgs/NodeEdgeMap.h"
 #include "node_edge_localizer/localizer.h"
 
 class OdomSubTest: public ::testing::Test
@@ -10,6 +11,7 @@ public:
     {
         odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 1, true);
         init_pose_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose", 1, true);
+        map_pub_ = nh_.advertise<amsl_navigation_msgs::NodeEdgeMap>("node_edge_map/map", 1, true);
         pose_sub_ = nh_.subscribe("estimated_pose", 1, &OdomSubTest::pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     }
 
@@ -27,8 +29,12 @@ protected:
         pose_ = nav_msgs::Odometry();
         count_ = 0;
         geometry_msgs::PoseWithCovarianceStamped init_pose;
+        init_pose.header.frame_id = "map";
         init_pose.pose.pose.orientation = get_quaternion_msg_from_yaw(0.0);
         init_pose_pub_.publish(init_pose);
+        amsl_navigation_msgs::NodeEdgeMap map;
+        map.header.frame_id = "map";
+        map_pub_.publish(map);
     }
 
     geometry_msgs::Quaternion get_quaternion_msg_from_yaw(const double yaw)
@@ -41,6 +47,7 @@ protected:
     ros::NodeHandle nh_;
     ros::Publisher odom_pub_;
     ros::Publisher init_pose_pub_;
+    ros::Publisher map_pub_;
     ros::Subscriber pose_sub_;
     bool estimated_pose_updated_;
     unsigned int count_;
