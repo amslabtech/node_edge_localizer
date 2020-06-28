@@ -5,8 +5,8 @@ add_rostest_gtest(node_edge_localizer_test
 )
 target_link_libraries(node_edge_localizer_test ${catkin_LIBRARIES})
 
-add_rostest_gtest(odom_sub_test
-    test/odom_sub.test
-    src/odom_sub_test.cpp
+add_rostest_gtest(localization_test
+    test/localization.test
+    src/localization_test.cpp
 )
-target_link_libraries(odom_sub_test ${catkin_LIBRARIES})
+target_link_libraries(localization_test ${catkin_LIBRARIES})
