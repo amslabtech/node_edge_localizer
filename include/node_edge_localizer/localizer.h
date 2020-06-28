@@ -5,6 +5,7 @@
 #ifndef __NODE_EDGE_LOCALIZER_LOCALIZER_H
 #define __NODE_EDGE_LOCALIZER_LOCALIZER_H
 
+#include <chrono>
 #include <random>
 
 #include <ros/ros.h>
