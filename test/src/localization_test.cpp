@@ -73,9 +73,9 @@ TEST_F(LocalizationTest, StopCase)
             break;
         }
     }
-    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.05);
+    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.10);
     double angle_diff = tf2::getYaw(pose_.pose.pose.orientation) - tf2::getYaw(odom.pose.pose.orientation);
-    ASSERT_LT(abs(angle_diff), 0.01);
+    ASSERT_LT(abs(angle_diff), 0.05);
 }
 
 TEST_F(LocalizationTest, LinearCase)
@@ -103,9 +103,9 @@ TEST_F(LocalizationTest, LinearCase)
     ros::spinOnce();
     std::cout << "odom:\n" << odom.pose.pose << std::endl;
     std::cout << "pose:\n" << pose_.pose.pose << std::endl;
-    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.05);
+    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.10);
     double angle_diff = tf2::getYaw(pose_.pose.pose.orientation) - tf2::getYaw(odom.pose.pose.orientation);
-    ASSERT_LT(abs(angle_diff), 0.01);
+    ASSERT_LT(abs(angle_diff), 0.05);
 }
 
 TEST_F(LocalizationTest, LeftCurveCase)
@@ -137,9 +137,9 @@ TEST_F(LocalizationTest, LeftCurveCase)
     ros::spinOnce();
     std::cout << "odom:\n" << odom.pose.pose << std::endl;
     std::cout << "pose:\n" << pose_.pose.pose << std::endl;
-    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.05);
+    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.10);
     double angle_diff = tf2::getYaw(pose_.pose.pose.orientation) - tf2::getYaw(odom.pose.pose.orientation);
-    ASSERT_LT(abs(angle_diff), 0.01);
+    ASSERT_LT(abs(angle_diff), 0.05);
 }
 
 TEST_F(LocalizationTest, RightCurveCase)
@@ -171,9 +171,9 @@ TEST_F(LocalizationTest, RightCurveCase)
     ros::spinOnce();
     std::cout << "odom:\n" << odom.pose.pose << std::endl;
     std::cout << "pose:\n" << pose_.pose.pose << std::endl;
-    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.05);
+    ASSERT_LT(sqrt(pow(pose_.pose.pose.position.x - odom.pose.pose.position.x, 2) + pow(pose_.pose.pose.position.y - odom.pose.pose.position.y, 2)), 0.10);
     double angle_diff = tf2::getYaw(pose_.pose.pose.orientation) - tf2::getYaw(odom.pose.pose.orientation);
-    ASSERT_LT(abs(angle_diff), 0.01);
+    ASSERT_LT(abs(angle_diff), 0.05);
 }
 
 int main(int argc, char** argv)
