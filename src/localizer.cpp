@@ -190,12 +190,12 @@ nav_msgs::Odometry Localizer::convert_pose_to_msg(const Pose& p)
     return o;
 }
 
-void Localizer::publish_map_to_odom_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& child_frame_id, const geometry_msgs::Pose& pose)
+void Localizer::publish_map_to_odom_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& robot_frame_id, const geometry_msgs::Pose& pose)
 {
     tf2::Transform map_to_robot_tf;
     tf2::convert(pose, map_to_robot_tf);
     geometry_msgs::PoseStamped robot_to_map_pose;
-    robot_to_map_pose.header.frame_id = child_frame_id;
+    robot_to_map_pose.header.frame_id = robot_frame_id;
     robot_to_map_pose.header.stamp = stamp;
     tf2::toMsg(map_to_robot_tf.inverse(), robot_to_map_pose.pose);
     geometry_msgs::PoseStamped odom_to_map_pose;
@@ -210,7 +210,7 @@ void Localizer::publish_map_to_odom_tf(const ros::Time& stamp, const std::string
     geometry_msgs::TransformStamped map_to_odom_tf;
     map_to_odom_tf.header.stamp = stamp;
     map_to_odom_tf.header.frame_id = nemi_.get_map_header_frame_id();
-    map_to_odom_tf.child_frame_id = child_frame_id;
+    map_to_odom_tf.child_frame_id = odom_frame_id;
     tf2::convert(odom_to_map_tf.inverse(), map_to_odom_tf.transform);
     tfb_->sendTransform(map_to_odom_tf);
 }
