@@ -6,8 +6,7 @@
     <include file="$(find amsl_navigation_managers)/launch/amsl_navigation_managers.launch"/> 
 
     <node pkg="node_edge_localizer" type="localizer" name="localizer" output="screen">
-        <param name="ENABLE_ODOM_TF" value="false"/>
-        <param name="ENABLE_TF" value="false"/>
+        <param name="ENABLE_TF" value="true"/>
     </node>
 
 </launch>
