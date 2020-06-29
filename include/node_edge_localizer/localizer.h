@@ -67,6 +67,7 @@ public:
     double compute_num_of_effective_particles(void);
     void resample_particles(void);
     double compute_particle_likelihood_from_motion(const Eigen::Vector3d& dp_r, const double dyaw_r, const Eigen::Vector3d& dp, const double dyaw);
+    void publish_distance_map(const DistanceMap& dm, const std::string& frame_id, const ros::Time& stamp);
     void process(void);
 protected:
     bool ENABLE_TF_;
@@ -95,6 +96,7 @@ protected:
     ros::NodeHandle local_nh_;
     ros::Publisher estimated_pose_pub_;
     ros::Publisher particles_pub_;
+    ros::Publisher distance_map_pub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber map_sub_;
     ros::Subscriber initial_pose_sub_;

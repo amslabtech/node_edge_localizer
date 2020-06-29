@@ -16,6 +16,7 @@ Localizer::Localizer(void)
 {
     particles_pub_ = nh_.advertise<geometry_msgs::PoseArray>("estimated_pose/particles", 1);
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
+    distance_map_pub_ = local_nh_.advertise<nav_msgs::OccupancyGrid>("distance_map", 1);
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     initial_pose_sub_ = nh_.subscribe("initialpose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
@@ -125,6 +126,7 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     auto end = std::chrono::system_clock::now();
     map_received_ = true;
     std::cout << "distance map was computed in: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "[ms]" << std::endl;
+    publish_distance_map(dm_, msg->header.frame_id, msg->header.stamp);
 }
 
 void Localizer::observation_map_callback(const nav_msgs::OccupancyGrid& msg)
@@ -357,6 +359,30 @@ void Localizer::resample_particles(void)
 double Localizer::compute_particle_likelihood_from_motion(const Eigen::Vector3d& dp_r, const double dyaw_r, const Eigen::Vector3d& dp, const double dyaw)
 {
     return exp(-(dp_r - dp).norm()) + exp(-abs(dyaw_r - dyaw));
+}
+
+void Localizer::publish_distance_map(const DistanceMap& dm, const std::string& frame_id, const ros::Time& stamp)
+{
+    std::vector<EdgeIndexWithDistance> data;
+    double min_x, max_x, min_y, max_y;
+    std::tie(data, min_x, max_x, min_y, max_y) = dm.get_data();
+    const unsigned int width = (max_y - min_y) / DM_RESOLUTION_;
+    const unsigned int height = (max_x - min_x) / DM_RESOLUTION_;
+    nav_msgs::OccupancyGrid og;
+    og.header.frame_id = frame_id;
+    og.header.stamp = stamp;
+    og.info.resolution = DM_RESOLUTION_;
+    og.info.width = width;
+    og.info.height = height;
+    og.info.origin.position.x = -0.5 * (max_x - min_x);
+    og.info.origin.position.y = -0.5 * (max_y - min_y);
+    og.info.origin.orientation = get_quaternion_msg_from_yaw(0);
+    const unsigned int size = data.size();
+    og.data.resize(size);
+    for(unsigned int i=0;i<size;i++){
+        og.data[i] = std::min(data[i].distance_, 20.0) / 20.0 * 100;
+    }
+    distance_map_pub_.publish(og);
 }
 
 void Localizer::process(void)
