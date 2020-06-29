@@ -27,6 +27,7 @@ public:
      * @param[in] y y position in (estimated) map frame
      */
     double get_min_distance_from_edge(double x, double y);
+    std::tuple<std::vector<EdgeIndexWithDistance>, double, double, double, double> get_data(void) const;
 protected:
     //! margin from min/max position of map [m]
     double margin_;

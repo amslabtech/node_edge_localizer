@@ -86,4 +86,10 @@ double DistanceMap::get_min_distance_from_edge(double x, double y)
     unsigned int index = iy * x_size_ + ix;
     return map_[index].distance_;
 }
+
+std::tuple<std::vector<EdgeIndexWithDistance>, double, double, double, double> DistanceMap::get_data(void) const
+{
+    const double margin_2 = margin_ / 2.0;
+    return std::forward_as_tuple(map_, min_x_ - margin_2, max_x_ + margin_2, min_y_ - margin_2, max_y_ + margin_2);
+}
 }
