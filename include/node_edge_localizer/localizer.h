@@ -114,6 +114,7 @@ protected:
     std::mt19937 engine_;
     Pose first_odom_pose_;
     DistanceMap dm_;
+    std::string robot_frame_;
 };
 }// namespace node_edge_localizer
 

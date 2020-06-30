@@ -13,6 +13,7 @@ Localizer::Localizer(void)
 , last_odom_timestamp_(0)
 , first_odom_callback_(true)
 , engine_(rd_())
+, robot_frame_("")
 {
     particles_pub_ = nh_.advertise<geometry_msgs::PoseArray>("estimated_pose/particles", 1);
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
@@ -60,6 +61,11 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         first_odom_callback_ = false;
         first_odom_pose_ = p;
         last_odom_timestamp_ = odom_timestamp;
+        robot_frame_ = msg->child_frame_id;
+        if(robot_frame_[0] == '/'){
+            robot_frame_.erase(0, 1);
+        }
+        std::cout << "robot frame is set to " << robot_frame_ << std::endl;
         return;
     }
     // offset odometry
