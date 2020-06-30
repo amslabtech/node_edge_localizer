@@ -51,7 +51,7 @@ public:
     void odom_callback(const nav_msgs::OdometryConstPtr& msg);
     void map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg);
     void initial_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
-    void observation_map_callback(const nav_msgs::OccupancyGrid& msg);
+    void observation_map_callback(const nav_msgs::OccupancyGridConstPtr& msg);
     void initialize(void);
     void initialize(double x, double y, double yaw);
     void initialize_particles(double x, double y, double yaw);
@@ -68,6 +68,7 @@ public:
     void resample_particles(void);
     double compute_particle_likelihood_from_motion(const Eigen::Vector3d& dp_r, const double dyaw_r, const Eigen::Vector3d& dp, const double dyaw);
     void publish_distance_map(const DistanceMap& dm, const std::string& frame_id, const ros::Time& stamp);
+    void compute_particle_likelihood(const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors);
     void process(void);
 protected:
     bool ENABLE_TF_;
@@ -91,6 +92,8 @@ protected:
     double DM_RESOLUTION_;
     //! threshold for reciprocal of sum of squares of particles weight
     double RESAMPLING_THRESHOLD_;
+    //! parameter for tuning likelihood
+    double OBSERVATION_DISTANCE_OFFSET_;
 
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;

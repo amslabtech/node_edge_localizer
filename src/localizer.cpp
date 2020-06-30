@@ -39,6 +39,7 @@ Localizer::Localizer(void)
     local_nh_.param<double>("SIGMA_YAW", SIGMA_YAW_, 0.1);
     local_nh_.param<double>("DISTANCE_MAP/RESOLUTION", DM_RESOLUTION_, 0.1);
     local_nh_.param<double>("RESAMPLING_THRESHOLD", RESAMPLING_THRESHOLD_, PARTICLE_NUM_ * 0.5);
+    local_nh_.param<double>("OBSERVATION_DISTANCE_OFFSET_", OBSERVATION_DISTANCE_OFFSET_, 3.0);
 
     initialize();
 }
@@ -135,9 +136,36 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     publish_distance_map(dm_, msg->header.frame_id, msg->header.stamp);
 }
 
-void Localizer::observation_map_callback(const nav_msgs::OccupancyGrid& msg)
+void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& msg)
 {
-    
+    if(robot_frame_.empty()){
+        std::cout << ros::this_node::getName() << ": robot frame is not set" << std::endl;
+        return;
+    }
+    if(msg->header.frame_id != robot_frame_){
+        std::cout << ros::this_node::getName() << ": observation map must be in the robot frame: " << robot_frame_ << std::endl;
+        return;
+    }
+    // get obstacle and free positions from OGM
+    const unsigned int size = msg->data.size();
+    std::vector<Eigen::Vector2d> free_vectors;
+    free_vectors.reserve(size);
+    std::vector<Eigen::Vector2d> obstacle_vectors;
+    obstacle_vectors.reserve(size);
+    for(unsigned int i=0;i<size;i++){
+        if(msg->data[i] < 0){
+            continue;
+        }
+        const double x = (i % msg->info.width) * msg->info.resolution + msg->info.origin.position.x;
+        const double y = floor(i / msg->info.width) * msg->info.resolution + msg->info.origin.position.y;
+        const Eigen::Vector2d v(x, y);
+        if(msg->data[i] == 0){
+            free_vectors.emplace_back(v); 
+        }else{
+            obstacle_vectors.emplace_back(v);
+        }
+    }
+    compute_particle_likelihood(free_vectors, obstacle_vectors);
 }
 
 void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
@@ -389,6 +417,30 @@ void Localizer::publish_distance_map(const DistanceMap& dm, const std::string& f
         og.data[i] = std::min(data[i].distance_, 20.0) / 20.0 * 100;
     }
     distance_map_pub_.publish(og);
+}
+
+void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors)
+{
+    for(auto& p : particles_){
+        // transform observed points to each particle frame
+        const Eigen::Translation2d trans(p.pose_.position_(0), p.pose_.position_(1));
+        Eigen::Matrix2d rot;
+        rot << cos(p.pose_.yaw_), -sin(p.pose_.yaw_),
+               sin(p.pose_.yaw_),  cos(p.pose_.yaw_);
+        const Eigen::Affine2d affine = rot * trans;
+        for(const auto& f : free_vectors){
+            const Eigen::Vector2d v = affine * f;
+            // TODO: to be updated
+            // if free(road) area is near edges, the likelihood should be higher
+            p.weight_ *= 1.0 - 1.0 / (1.0 + exp(-dm_.get_min_distance_from_edge(v(0), v(1)) - OBSERVATION_DISTANCE_OFFSET_)); 
+        }
+        for(const auto& o : obstacle_vectors){
+            const Eigen::Vector2d v = affine * o;
+            // TODO: to be updated
+            // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
+            p.weight_ *= 1.0 / (1.0 + exp(-dm_.get_min_distance_from_edge(v(0), v(1)) - OBSERVATION_DISTANCE_OFFSET_)); 
+        }
+    }
 }
 
 void Localizer::process(void)
