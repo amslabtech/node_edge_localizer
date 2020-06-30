@@ -1,0 +1,15 @@
+<launch>
+
+    <test pkg="node_edge_localizer" type="observation_test" test-name="observation_test" time-limit="15.0">
+    </test>
+
+    <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find node_edge_localizer)/config/node_edge_map.rviz"/> -->
+
+    <include file="$(find amsl_navigation_managers)/launch/amsl_navigation_managers.launch"/> 
+
+    <node pkg="node_edge_localizer" type="localizer" name="localizer" output="screen">
+        <param name="ENABLE_ODOM_TF" value="true"/>
+        <param name="ENABLE_TF" value="true"/>
+    </node>
+
+</launch>

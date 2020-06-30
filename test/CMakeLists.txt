@@ -10,3 +10,9 @@ add_rostest_gtest(localization_test
     src/localization_test.cpp
 )
 target_link_libraries(localization_test ${catkin_LIBRARIES})
+
+add_rostest_gtest(observation_test
+    test/observation.test
+    src/observation_test.cpp
+)
+target_link_libraries(observation_test ${catkin_LIBRARIES})
