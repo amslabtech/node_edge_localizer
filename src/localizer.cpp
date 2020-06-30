@@ -138,6 +138,10 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
 
 void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& msg)
 {
+    if(!map_received_){
+        std::cout << ros::this_node::getName() << ": map is not received" << std::endl;
+        return;
+    }
     if(robot_frame_.empty()){
         std::cout << ros::this_node::getName() << ": robot frame is not set" << std::endl;
         return;
