@@ -103,6 +103,7 @@ protected:
     ros::Subscriber odom_sub_;
     ros::Subscriber map_sub_;
     ros::Subscriber initial_pose_sub_;
+    ros::Subscriber observation_map_sub_;
     std::shared_ptr<tf2_ros::Buffer> tf_;
     std::shared_ptr<tf2_ros::TransformListener> tfl_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tfb_;

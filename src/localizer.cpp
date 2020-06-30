@@ -21,6 +21,7 @@ Localizer::Localizer(void)
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     initial_pose_sub_ = nh_.subscribe("initialpose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
+    observation_map_sub_ = nh_.subscribe("observation_map", 1, &Localizer::observation_map_callback , this, ros::TransportHints().reliable().tcpNoDelay(true));
 
     tf_ = std::make_shared<tf2_ros::Buffer>();
     tf_->setUsingDedicatedThread(true);
