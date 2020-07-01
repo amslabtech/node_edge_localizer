@@ -409,6 +409,11 @@ void Localizer::publish_distance_map(const DistanceMap& dm, const std::string& f
     std::vector<EdgeIndexWithDistance> data;
     double min_x, max_x, min_y, max_y;
     std::tie(data, min_x, max_x, min_y, max_y) = dm.get_data();
+    std::cout << "DistanceMap data:" << std::endl;
+    std::cout << "\tmin_x: " << min_x << std::endl;
+    std::cout << "\tmax_x: " << max_x << std::endl;
+    std::cout << "\tmin_y: " << min_y << std::endl;
+    std::cout << "\tmax_y: " << max_y << std::endl;
     const unsigned int width = (max_x - min_x) / DM_RESOLUTION_;
     const unsigned int height = (max_y - min_y) / DM_RESOLUTION_;
     nav_msgs::OccupancyGrid og;
