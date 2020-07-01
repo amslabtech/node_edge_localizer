@@ -31,6 +31,8 @@ public:
 protected:
     //! margin from min/max position of map [m]
     double margin_;
+    //! half of margin_
+    double margin_2_;
     unsigned int x_size_;
     unsigned int y_size_;
     double min_x_;
