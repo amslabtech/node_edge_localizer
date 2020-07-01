@@ -381,18 +381,26 @@ void Localizer::resample_particles(void)
     const double n_reciprocal = 1.0 / (double)n;
     double sum_epsilon = epsilon;
     double sum_weight = 0.0;
+    for(const auto& p : particles_){
+        sum_weight += p.weight_;
+    }
+
+    std::uniform_real_distribution<> dist(0.0, sum_weight);
     std::vector<Particle> new_particles(n);
     unsigned int new_particle_index = 0;
     for(unsigned int i=0;i<n;i++){
-        sum_weight += particles_[i].weight_; 
-        for(;sum_epsilon<sum_weight;sum_epsilon+=n_reciprocal){
-            if(new_particle_index < n){
-                new_particles[new_particle_index++] = particles_[i];
-            }else{
-                return;
+        double prob = 0.0;
+        double t = dist(engine_);
+        for(const auto& p : particles_){
+            prob += p.weight_;
+            if(t <= prob){
+                new_particles[i] = p;
+                new_particles[i].weight_ = 1;
+                break;
             }
         }
     }
+    particles_ = new_particles;
 }
 
 double Localizer::compute_particle_likelihood_from_motion(const Eigen::Vector3d& dp_r, const double dyaw_r, const Eigen::Vector3d& dp, const double dyaw)
