@@ -375,11 +375,8 @@ double Localizer::compute_num_of_effective_particles(void)
 
 void Localizer::resample_particles(void)
 {
-    std::uniform_real_distribution<> dist;
+    std::cout << "resampling" << std::endl;
     const unsigned int n = particles_.size();
-    const double epsilon = dist(engine_) / (double)n;
-    const double n_reciprocal = 1.0 / (double)n;
-    double sum_epsilon = epsilon;
     double sum_weight = 0.0;
     for(const auto& p : particles_){
         sum_weight += p.weight_;
@@ -387,7 +384,6 @@ void Localizer::resample_particles(void)
 
     std::uniform_real_distribution<> dist(0.0, sum_weight);
     std::vector<Particle> new_particles(n);
-    unsigned int new_particle_index = 0;
     for(unsigned int i=0;i<n;i++){
         double prob = 0.0;
         double t = dist(engine_);
