@@ -93,8 +93,8 @@ double DistanceMap::get_min_distance_from_edge(double x, double y)
 
 unsigned int DistanceMap::get_nearest_edge_index(double x, double y)
 {
-    const unsigned int ix = (x - min_x_ + margin_2_) / resolution_;
-    const unsigned int iy = (y - min_y_ + margin_2_) / resolution_;
+    const unsigned int ix = (x - min_x_ + margin_2_) * grid_per_meter_;
+    const unsigned int iy = (y - min_y_ + margin_2_) * grid_per_meter_;
     const unsigned int index = iy * x_size_ + ix;
     return map_[index].nearest_edge_index_;
 }
