@@ -41,6 +41,8 @@ protected:
     double min_y_;
     double max_y_;
     double resolution_;
+    //! reciprocal of resolution_
+    double grid_per_meter_;
     std::vector<EdgeIndexWithDistance> map_;
 };
 }

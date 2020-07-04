@@ -16,6 +16,7 @@ DistanceMap::DistanceMap(void)
 , min_y_(0) 
 , max_y_(0) 
 , resolution_(0.1)
+, grid_per_meter_(1.0 / resolution_)
 {
 
 }
@@ -23,6 +24,7 @@ DistanceMap::DistanceMap(void)
 void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map, double resolution)
 {
     resolution_ = resolution;
+    grid_per_meter_ = 1.0 / resolution_;
     margin_2_ = margin_ / 2.0;
     if(map.nodes.size() == 0){
         std::cout << "error: map has no node!" << std::endl;
@@ -39,8 +41,8 @@ void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map
         min_y_ = std::min(n.point.y, min_y_);
         max_y_ = std::max(n.point.y, max_y_);
     }
-    x_size_ = (max_x_ - min_x_ + margin_) / resolution_;
-    y_size_ = (max_y_ - min_y_ + margin_) / resolution_;
+    x_size_ = (max_x_ - min_x_ + margin_) * grid_per_meter_;
+    y_size_ = (max_y_ - min_y_ + margin_) * grid_per_meter_;
     map_.resize(x_size_ * y_size_);
     const unsigned int EDGE_NUM = map.edges.size();
     for(unsigned int  ix=0;ix<x_size_;ix++){
@@ -83,8 +85,8 @@ double DistanceMap::get_distance_from_edge(const amsl_navigation_msgs::NodeEdgeM
 
 double DistanceMap::get_min_distance_from_edge(double x, double y)
 {
-    const unsigned int ix = (x - min_x_ + margin_2_) / resolution_;
-    const unsigned int iy = (y - min_y_ + margin_2_) / resolution_;
+    const unsigned int ix = (x - min_x_ + margin_2_) * grid_per_meter_;
+    const unsigned int iy = (y - min_y_ + margin_2_) * grid_per_meter_;
     const unsigned int index = iy * x_size_ + ix;
     return map_[index].distance_;
 }
@@ -99,7 +101,6 @@ unsigned int DistanceMap::get_nearest_edge_index(double x, double y)
 
 std::tuple<std::vector<EdgeIndexWithDistance>, double, double, double, double> DistanceMap::get_data(void) const
 {
-    const double margin_2 = margin_2_;
-    return std::forward_as_tuple(map_, min_x_ - margin_2, max_x_ + margin_2, min_y_ - margin_2, max_y_ + margin_2);
+    return std::forward_as_tuple(map_, min_x_ - margin_2_, max_x_ + margin_2_, min_y_ - margin_2_, max_y_ + margin_2_);
 }
 }
