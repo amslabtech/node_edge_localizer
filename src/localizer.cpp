@@ -416,6 +416,8 @@ void Localizer::publish_distance_map(const DistanceMap& dm, const std::string& f
     std::cout << "\tmax_y: " << max_y << std::endl;
     const unsigned int width = (max_x - min_x) / DM_RESOLUTION_;
     const unsigned int height = (max_y - min_y) / DM_RESOLUTION_;
+    std::cout << "\twidth: " << width << std::endl;
+    std::cout << "\theight: " << height << std::endl;
     nav_msgs::OccupancyGrid og;
     og.header.frame_id = frame_id;
     og.header.stamp = stamp;
