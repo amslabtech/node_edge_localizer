@@ -436,24 +436,43 @@ void Localizer::publish_distance_map(const DistanceMap& dm, const std::string& f
 void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors)
 {
     for(auto& p : particles_){
+        const unsigned int p_edge_index = dm_.get_nearest_edge_index(p.pose_.position_(0), p.pose_.position_(1));
+        // std::cout << "p at " << p.pose_.position_.segment(0, 2).transpose() << ", " << p.pose_.yaw_ << ", " << p_edge_index << std::endl;
         // transform observed points to each particle frame
         const Eigen::Translation2d trans(p.pose_.position_(0), p.pose_.position_(1));
         Eigen::Matrix2d rot;
         rot << cos(p.pose_.yaw_), -sin(p.pose_.yaw_),
                sin(p.pose_.yaw_),  cos(p.pose_.yaw_);
         const Eigen::Affine2d affine = rot * trans;
+        double f_w = 0.0;
+        double o_w = 0.0;
+        int c = 0;
         for(const auto& f : free_vectors){
             const Eigen::Vector2d v = affine * f;
             // TODO: to be updated
             // if free(road) area is near edges, the likelihood should be higher
-            p.weight_ *= 1.0 - 1.0 / (1.0 + exp(-dm_.get_min_distance_from_edge(v(0), v(1)) - OBSERVATION_DISTANCE_OFFSET_)); 
+            // f_w += 1.0 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / OBSERVATION_DISTANCE_OFFSET_); 
+            if(c++ % 10 == 0){
+                const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / OBSERVATION_DISTANCE_OFFSET_);
+                f_w += d;
+            }
         }
+        p.weight_ *= f_w;
+        // std::cout << "f_w: " << f_w << std::endl;
         for(const auto& o : obstacle_vectors){
             const Eigen::Vector2d v = affine * o;
             // TODO: to be updated
             // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
-            p.weight_ *= 1.0 / (1.0 + exp(-dm_.get_min_distance_from_edge(v(0), v(1)) - OBSERVATION_DISTANCE_OFFSET_)); 
+            const double d = std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / OBSERVATION_DISTANCE_OFFSET_);
+            const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
+            if(o_index == p_edge_index){
+                o_w += d; 
+            }
         }
+        p.weight_ *= o_w;
+        // std::cout << "o_w: " << o_w << std::endl;
+        // std::cout << "w: " << p.weight_ << std::endl;
+        // std::cout << p.pose_.position_(0) << ", " << p.pose_.position_(1) << ", " << p.pose_.yaw_ << " >> " << p.weight_ << std::endl;
     }
 }
 
