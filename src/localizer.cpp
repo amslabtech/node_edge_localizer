@@ -242,7 +242,7 @@ void Localizer::publish_map_to_odom_tf(const ros::Time& stamp, const std::string
     geometry_msgs::PoseStamped odom_to_map_pose;
     try{
         tf_->transform(robot_to_map_pose, odom_to_map_pose, odom_frame_id);
-    }catch(tf2::TransformException ex){
+    }catch(tf2::TransformException& ex){
         std::cout << ex.what() << std::endl;
         return;
     }
