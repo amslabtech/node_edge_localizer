@@ -104,7 +104,10 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
     // publish estiamted pose
     nav_msgs::Odometry estimated_pose = convert_pose_to_msg(estimated_pose_);
-    estimated_pose.header = msg->header;
+    estimated_pose.header.stamp = msg->header.stamp;
+    estimated_pose.header.frame_id = nemi_.get_map_header_frame_id();
+    estimated_pose.child_frame_id = msg->child_frame_id;
+    estimated_pose.twist = msg->twist;
     for(unsigned int i=0;i<36;i++){
         estimated_pose.pose.covariance[i] = covariance[i];
     }
