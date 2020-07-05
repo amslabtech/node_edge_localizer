@@ -40,7 +40,7 @@ Localizer::Localizer(void)
     local_nh_.param<double>("SIGMA_YAW", SIGMA_YAW_, 0.1);
     local_nh_.param<double>("DISTANCE_MAP/RESOLUTION", DM_RESOLUTION_, 0.1);
     local_nh_.param<double>("RESAMPLING_THRESHOLD", RESAMPLING_THRESHOLD_, PARTICLE_NUM_ * 0.5);
-    local_nh_.param<double>("OBSERVATION_DISTANCE_OFFSET_", OBSERVATION_DISTANCE_OFFSET_, 3.0);
+    local_nh_.param<double>("OBSERVATION_DISTANCE_OFFSET", OBSERVATION_DISTANCE_OFFSET_, 3.0);
 
     initialize();
 }
