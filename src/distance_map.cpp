@@ -67,7 +67,6 @@ void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map
 
 double DistanceMap::get_distance_from_edge(const amsl_navigation_msgs::NodeEdgeMap& m, const amsl_navigation_msgs::Edge& e, double x, double y)
 {
-    //TODO: line segment version
     amsl_navigation_msgs::Node n0, n1;
     for(const auto& n : m.nodes){
         if(n.id == e.node0_id){
@@ -77,10 +76,20 @@ double DistanceMap::get_distance_from_edge(const amsl_navigation_msgs::NodeEdgeM
             n1 = n;
         }
     }
-    const double a = (n1.point.y - n0.point.y) / (n1.point.x - n0.point.x);
-    const double b = -1;
-    const double c = n0.point.y - a * n0.point.x;
-    return abs(a * x + b * y + c) / sqrt(a * a + b * b);
+    // ref: https://boiledorange73.qrunch.io/entries/mir1mmohtOz9qkgq
+    const double a = n1.point.x - n0.point.x;
+    const double b = n1.point.y - n0.point.y;
+    const double t = -(a * (n0.point.x - x) + b * (n0.point.y - y)); 
+    const double a_b_squared_sum = a * a + b * b;
+    if(t < 0){
+        return sqrt(get_squared_distance(n0.point.x, n0.point.y, x, y)); 
+    }else if(t > a_b_squared_sum){
+        return sqrt(get_squared_distance(n1.point.x, n1.point.y, x, y)); 
+    }else{
+        // intersection is on the edge
+        const double f = a * (n0.point.y - y) - b * (n0.point.x - x);
+        return sqrt((f * f) / a_b_squared_sum);
+    }
 }
 
 double DistanceMap::get_min_distance_from_edge(double x, double y)
@@ -102,5 +111,13 @@ unsigned int DistanceMap::get_nearest_edge_index(double x, double y)
 std::tuple<std::vector<EdgeIndexWithDistance>, double, double, double, double> DistanceMap::get_data(void) const
 {
     return std::forward_as_tuple(map_, min_x_ - margin_2_, max_x_ + margin_2_, min_y_ - margin_2_, max_y_ + margin_2_);
+}
+
+double DistanceMap::get_squared_distance(double x0, double y0, double x1, double y1)
+{
+    const double x_1_0 = x1 - x0;
+    const double y_1_0 = y1 - y0;
+    const double d2 = x_1_0 * x_1_0 + y_1_0 * y_1_0;
+    return d2;
 }
 }

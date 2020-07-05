@@ -29,6 +29,7 @@ public:
     double get_min_distance_from_edge(double x, double y);
     unsigned int get_nearest_edge_index(double x, double y);
     std::tuple<std::vector<EdgeIndexWithDistance>, double, double, double, double> get_data(void) const;
+    double get_squared_distance(double x0, double y0, double x1, double y1);
 protected:
     //! margin from min/max position of map [m]
     double margin_;
