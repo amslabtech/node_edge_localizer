@@ -142,6 +142,8 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
 
 void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& msg)
 {
+    std::cout << "observation_map_callback" << std::endl;
+    auto start = std::chrono::system_clock::now();
     if(!map_received_){
         std::cout << ros::this_node::getName() << ": map is not received" << std::endl;
         return;
@@ -173,7 +175,11 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
             obstacle_vectors.emplace_back(v);
         }
     }
+    std::cout << "observed free points: " << free_vectors.size() << std::endl;
+    std::cout << "observed obstacle points: " << obstacle_vectors.size() << std::endl;
     compute_particle_likelihood(free_vectors, obstacle_vectors);
+    auto end = std::chrono::system_clock::now();
+    std::cout << "observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]" << std::endl;
 }
 
 void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
