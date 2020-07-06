@@ -386,23 +386,42 @@ void Localizer::resample_particles(void)
 {
     std::cout << "resampling" << std::endl;
     const unsigned int n = particles_.size();
-    double sum_weight = 0.0;
-    for(const auto& p : particles_){
-        sum_weight += p.weight_;
-    }
-
-    std::uniform_real_distribution<> dist(0.0, sum_weight);
+    std::uniform_real_distribution<> dist(0.0, 1.0);
     std::vector<Particle> new_particles(n);
+
+    // noise for random sampling
+    std::normal_distribution<> noise_xy(0.0, INIT_SIGMA_XY_);
+    std::normal_distribution<> noise_yaw(0.0, INIT_SIGMA_YAW_);
+
+    // cumulative sum of particle weight
+    std::vector<double> c(n + 1);
+    c[0] = 0.0;
     for(unsigned int i=0;i<n;i++){
-        double prob = 0.0;
-        double t = dist(engine_);
-        for(const auto& p : particles_){
-            prob += p.weight_;
-            if(t <= prob){
-                new_particles[i] = p;
-                new_particles[i].weight_ = 1;
+        c[i+1] = c[i] + particles_[i].weight_;
+    }
+    std::uniform_real_distribution<> dist_for_sample(0.0, c.back());
+
+    for(unsigned int i=0;i<n;i++){
+        if(dist(engine_) < 0.9){
+            // sample from existing particles
+            double r = dist_for_sample(engine_);
+            for(unsigned int j=0;j<n;j++){
+                if((c[j] <= r) && (r < c[j+1])){
+                    new_particles[i] = particles_[j];
+                    new_particles[i].weight_ = 1.0;
                 break;
             }
+        }
+        }else{
+            // random sampling
+            Particle p{
+                Pose{
+                    Eigen::Vector3d(estimated_pose_.position_(0) + noise_xy(engine_), estimated_pose_.position_(1) + noise_xy(engine_), 0),
+                    estimated_pose_.yaw_ + noise_yaw(engine_)
+                },
+                1.0
+            };
+            new_particles[i] = p;
         }
     }
     particles_ = new_particles;
