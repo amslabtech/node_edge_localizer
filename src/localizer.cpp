@@ -14,6 +14,8 @@ Localizer::Localizer(void)
 , first_odom_callback_(true)
 , engine_(rd_())
 , robot_frame_("")
+, w_fast_(0.0)
+, w_slow_(0.0)
 {
     particles_pub_ = nh_.advertise<geometry_msgs::PoseArray>("estimated_pose/particles", 1);
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
