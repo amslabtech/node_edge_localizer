@@ -40,7 +40,8 @@ Localizer::Localizer(void)
     local_nh_.param<double>("SIGMA_YAW", SIGMA_YAW_, 0.1);
     local_nh_.param<double>("DISTANCE_MAP/RESOLUTION", DM_RESOLUTION_, 0.1);
     local_nh_.param<double>("RESAMPLING_THRESHOLD", RESAMPLING_THRESHOLD_, PARTICLE_NUM_ * 0.5);
-    local_nh_.param<double>("OBSERVATION_DISTANCE_OFFSET", OBSERVATION_DISTANCE_OFFSET_, 3.0);
+    local_nh_.param<double>("alpha_slow", alpha_slow_, 0.001);
+    local_nh_.param<double>("alpha_fast", alpha_fast_, 0.1);
 
     initialize();
 }
@@ -93,11 +94,6 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
     move_particles(velocity, yawrate, dt);
 
-    normalize_particles_weight();
-    const double effective_num_of_particles = compute_num_of_effective_particles();
-    if(effective_num_of_particles < RESAMPLING_THRESHOLD_){
-        resample_particles();
-    }
     normalize_particles_weight();
     std::vector<double> covariance;
     std::tie(estimated_pose_, covariance) = get_estimation_result_from_particles();
@@ -178,6 +174,10 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
     std::cout << "observed free points: " << free_vectors.size() << std::endl;
     std::cout << "observed obstacle points: " << obstacle_vectors.size() << std::endl;
     compute_particle_likelihood(free_vectors, obstacle_vectors);
+    const double effective_num_of_particles = compute_num_of_effective_particles();
+    if(effective_num_of_particles < RESAMPLING_THRESHOLD_){
+        resample_particles();
+    }
     auto end = std::chrono::system_clock::now();
     std::cout << "observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]" << std::endl;
 }
@@ -386,6 +386,27 @@ void Localizer::resample_particles(void)
 {
     std::cout << "resampling" << std::endl;
     const unsigned int n = particles_.size();
+
+    // compute average before normalization
+    const double w_avg = compute_average_particle_wight();
+    // std::cout << "w_avg: " << w_avg << std::endl;;
+    if(w_slow_ > 0.0){
+        w_slow_ += alpha_slow_ * (w_avg - w_slow_);
+    }else{
+        w_slow_ = w_avg;
+    }
+    if(w_fast_ > 0.0){
+        w_fast_ += alpha_fast_ * (w_avg - w_fast_);
+    }else{
+        w_fast_ = w_avg;
+    }
+    // std::cout << "w_fast: " << w_fast_ << std::endl;
+    // std::cout << "w_slow: " << w_slow_ << std::endl;;
+    normalize_particles_weight();
+    const double w_diff = std::max(1.0 - w_fast_ / w_slow_, 0.0);
+    // std::cout << "w_diff: " << w_diff << std::endl;;
+    std::cout << w_diff * 100 << " percent of particles will be randomly placed" << std::endl;
+
     std::uniform_real_distribution<> dist(0.0, 1.0);
     std::vector<Particle> new_particles(n);
 
@@ -402,7 +423,7 @@ void Localizer::resample_particles(void)
     std::uniform_real_distribution<> dist_for_sample(0.0, c.back());
 
     for(unsigned int i=0;i<n;i++){
-        if(dist(engine_) < 0.9){
+        if(dist(engine_) > w_diff){
             // sample from existing particles
             double r = dist_for_sample(engine_);
             for(unsigned int j=0;j<n;j++){
@@ -425,6 +446,10 @@ void Localizer::resample_particles(void)
         }
     }
     particles_ = new_particles;
+    if(w_diff > 0.0){
+        w_slow_ = 0.0;
+        w_fast_ = 0.0;
+    }
 }
 
 double Localizer::compute_particle_likelihood_from_motion(const Eigen::Vector3d& dp_r, const double dyaw_r, const Eigen::Vector3d& dp, const double dyaw)
@@ -504,6 +529,16 @@ void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& 
         // std::cout << "w: " << p.weight_ << std::endl;
         // std::cout << p.pose_.position_(0) << ", " << p.pose_.position_(1) << ", " << p.pose_.yaw_ << " >> " << p.weight_ << std::endl;
     }
+}
+
+double Localizer::compute_average_particle_wight(void)
+{
+    double w_avg = 0;
+    for(const auto& p : particles_){
+        w_avg += p.weight_;
+    }
+    w_avg /= particles_.size();
+    return w_avg;
 }
 
 void Localizer::process(void)

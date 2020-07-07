@@ -69,6 +69,7 @@ public:
     double compute_particle_likelihood_from_motion(const Eigen::Vector3d& dp_r, const double dyaw_r, const Eigen::Vector3d& dp, const double dyaw);
     void publish_distance_map(const DistanceMap& dm, const std::string& frame_id, const ros::Time& stamp);
     void compute_particle_likelihood(const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors);
+    double compute_average_particle_wight(void);
     void process(void);
 protected:
     bool ENABLE_TF_;
@@ -94,6 +95,8 @@ protected:
     double RESAMPLING_THRESHOLD_;
     /// parameter for tuning likelihood
     double OBSERVATION_DISTANCE_OFFSET_;
+    double alpha_fast_;
+    double alpha_slow_;
 
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;
@@ -119,6 +122,8 @@ protected:
     Pose first_odom_pose_;
     DistanceMap dm_;
     std::string robot_frame_;
+    double w_fast_;
+    double w_slow_;
 };
 }// namespace node_edge_localizer
 
