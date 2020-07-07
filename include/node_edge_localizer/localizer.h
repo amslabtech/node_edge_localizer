@@ -74,25 +74,25 @@ protected:
     bool ENABLE_TF_;
     bool ENABLE_ODOM_TF_;
     int PARTICLE_NUM_;
-    //! initial position x
+    /// initial position x
     double INIT_X_;
-    //! initial position y
+    /// initial position y
     double INIT_Y_;
-    //! initial orientation yaw
+    /// initial orientation yaw
     double INIT_YAW_;
-    //! stddev of initial position
+    /// stddev of initial position
     double INIT_SIGMA_XY_;
-    //! stddev of initial orientation 
+    /// stddev of initial orientation 
     double INIT_SIGMA_YAW_;
-    //! stddev of position transition
+    /// stddev of position transition
     double SIGMA_XY_;
-    //! stddev of orientatoin transition
+    /// stddev of orientatoin transition
     double SIGMA_YAW_;
-    //! resolution of DistanceMap [m/cell]
+    /// resolution of DistanceMap [m/cell]
     double DM_RESOLUTION_;
-    //! threshold for reciprocal of sum of squares of particles weight
+    /// threshold for reciprocal of sum of squares of particles weight
     double RESAMPLING_THRESHOLD_;
-    //! parameter for tuning likelihood
+    /// parameter for tuning likelihood
     double OBSERVATION_DISTANCE_OFFSET_;
 
     ros::NodeHandle nh_;
