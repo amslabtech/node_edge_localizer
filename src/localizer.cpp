@@ -176,10 +176,7 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
     std::cout << "observed free points: " << free_vectors.size() << std::endl;
     std::cout << "observed obstacle points: " << obstacle_vectors.size() << std::endl;
     compute_particle_likelihood(free_vectors, obstacle_vectors);
-    const double effective_num_of_particles = compute_num_of_effective_particles();
-    if(effective_num_of_particles < RESAMPLING_THRESHOLD_){
         resample_particles();
-    }
     auto end = std::chrono::system_clock::now();
     std::cout << "observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]" << std::endl;
 }
@@ -386,9 +383,7 @@ double Localizer::compute_num_of_effective_particles(void)
 
 void Localizer::resample_particles(void)
 {
-    std::cout << "resampling" << std::endl;
-    const unsigned int n = particles_.size();
-
+    std::cout << "preprocess of resampling" << std::endl;
     // compute average before normalization
     const double w_avg = compute_average_particle_wight();
     // std::cout << "w_avg: " << w_avg << std::endl;;
@@ -404,10 +399,19 @@ void Localizer::resample_particles(void)
     }
     // std::cout << "w_fast: " << w_fast_ << std::endl;
     // std::cout << "w_slow: " << w_slow_ << std::endl;;
-    normalize_particles_weight();
     const double w_diff = std::max(1.0 - w_fast_ / w_slow_, 0.0);
     // std::cout << "w_diff: " << w_diff << std::endl;;
     std::cout << w_diff * 100 << " percent of particles will be randomly placed" << std::endl;
+
+    normalize_particles_weight();
+    const double effective_num_of_particles = compute_num_of_effective_particles();
+    std::cout << "n_e: " << effective_num_of_particles << std::endl;
+    if(!(effective_num_of_particles < RESAMPLING_THRESHOLD_)){
+        return;
+    }
+
+    std::cout << "resampling" << std::endl;
+    const unsigned int n = particles_.size();
 
     std::uniform_real_distribution<> dist(0.0, 1.0);
     std::vector<Particle> new_particles(n);
