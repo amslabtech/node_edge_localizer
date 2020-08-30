@@ -72,29 +72,29 @@ public:
     double compute_average_particle_wight(void);
     void process(void);
 protected:
-    bool ENABLE_TF_;
-    bool ENABLE_ODOM_TF_;
-    int PARTICLE_NUM_;
+    bool enable_tf_;
+    bool enable_odom_tf_;
+    int particle_num_;
     /// initial position x
-    double INIT_X_;
+    double init_x_;
     /// initial position y
-    double INIT_Y_;
+    double init_y_;
     /// initial orientation yaw
-    double INIT_YAW_;
+    double init_yaw_;
     /// stddev of initial position
-    double INIT_SIGMA_XY_;
+    double init_sigma_xy_;
     /// stddev of initial orientation 
-    double INIT_SIGMA_YAW_;
+    double init_sigma_yaw_;
     /// stddev of position transition
-    double SIGMA_XY_;
+    double sigma_xy_;
     /// stddev of orientatoin transition
-    double SIGMA_YAW_;
+    double sigma_yaw_;
     /// resolution of DistanceMap [m/cell]
-    double DM_RESOLUTION_;
+    double dm_resolution_;
     /// threshold for reciprocal of sum of squares of particles weight
-    double RESAMPLING_THRESHOLD_;
+    double resampling_threshold_;
     /// parameter for tuning likelihood
-    double OBSERVATION_DISTANCE_OFFSET_;
+    double observation_distance_offset_;
     double alpha_fast_;
     double alpha_slow_;
 

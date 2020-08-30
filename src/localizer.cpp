@@ -30,18 +30,19 @@ Localizer::Localizer(void)
     tfb_ = std::make_shared<tf2_ros::TransformBroadcaster>();
     tfl_ = std::make_shared<tf2_ros::TransformListener>(*tf_);
 
-    local_nh_.param<bool>("ENABLE_TF", ENABLE_TF_, true);
-    local_nh_.param<bool>("ENABLE_ODOM_TF", ENABLE_ODOM_TF_, false);
-    local_nh_.param<int>("PARTICLE_NUM", PARTICLE_NUM_, 1000);
-    local_nh_.param<double>("INIT_X", INIT_X_, 0.0);
-    local_nh_.param<double>("INIT_Y", INIT_Y_, 0.0);
-    local_nh_.param<double>("INIT_YAW", INIT_YAW_, 0.0);
-    local_nh_.param<double>("INIT_SIGMA_XY", INIT_SIGMA_XY_, 0.5);
-    local_nh_.param<double>("INIT_SIGMA_YAW", INIT_SIGMA_YAW_, 0.2);
-    local_nh_.param<double>("SIGMA_XY", SIGMA_XY_, 0.1);
-    local_nh_.param<double>("SIGMA_YAW", SIGMA_YAW_, 0.1);
-    local_nh_.param<double>("DISTANCE_MAP/RESOLUTION", DM_RESOLUTION_, 0.1);
-    local_nh_.param<double>("RESAMPLING_THRESHOLD", RESAMPLING_THRESHOLD_, PARTICLE_NUM_ * 0.5);
+    local_nh_.param<bool>("enable_tf", enable_tf_, true);
+    local_nh_.param<bool>("enable_odom_tf", enable_odom_tf_, false);
+    local_nh_.param<int>("particle_num", particle_num_, 1000);
+    local_nh_.param<double>("init_x", init_x_, 0.0);
+    local_nh_.param<double>("init_y", init_y_, 0.0);
+    local_nh_.param<double>("init_yaw", init_yaw_, 0.0);
+    local_nh_.param<double>("init_sigma_xy", init_sigma_xy_, 0.5);
+    local_nh_.param<double>("init_sigma_yaw", init_sigma_yaw_, 0.2);
+    local_nh_.param<double>("sigma_xy", sigma_xy_, 0.1);
+    local_nh_.param<double>("simga_yaw", sigma_yaw_, 0.1);
+    local_nh_.param<double>("distance_map/resolution", dm_resolution_, 0.1);
+    local_nh_.param<double>("resampling_threshold", resampling_threshold_, particle_num_ * 0.5);
+    local_nh_.param<double>("observation_distance_offset", observation_distance_offset_, 5.0);
     local_nh_.param<double>("alpha_slow", alpha_slow_, 0.001);
     local_nh_.param<double>("alpha_fast", alpha_fast_, 0.1);
 
@@ -79,7 +80,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     p.position_ -= first_odom_pose_.position_;
     Eigen::AngleAxis<double> first_odom_yaw_rotation(-first_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
     p.position_ = first_odom_yaw_rotation * p.position_;
-    if(ENABLE_ODOM_TF_){
+    if(enable_odom_tf_){
         publish_odom_to_robot_tf(msg->header.stamp, msg->header.frame_id, msg->child_frame_id, p);
     }
 
@@ -114,7 +115,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     publish_particles(estimated_pose.header.stamp, estimated_pose.header.frame_id);
 
     // publish tf from map to odom
-    if(ENABLE_TF_){
+    if(enable_tf_){
         publish_map_to_odom_tf(msg->header.stamp, 
                                msg->header.frame_id, 
                                msg->child_frame_id, 
@@ -131,7 +132,7 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     amsl_navigation_msgs::NodeEdgeMap map = *msg;
     nemi_.set_map(map);
     auto start = std::chrono::system_clock::now();
-    dm_.make_distance_map(map, DM_RESOLUTION_);
+    dm_.make_distance_map(map, dm_resolution_);
     auto end = std::chrono::system_clock::now();
     map_received_ = true;
     std::cout << "distance map was computed in: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "[ms]" << std::endl;
@@ -194,7 +195,7 @@ void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceSta
 
 void Localizer::initialize(void)
 {
-    initialize(INIT_X_, INIT_Y_, INIT_YAW_);
+    initialize(init_x_, init_y_, init_yaw_);
 }
 
 void Localizer::initialize(double x, double y, double yaw)
@@ -213,15 +214,15 @@ void Localizer::initialize(double x, double y, double yaw)
 void Localizer::initialize_particles(double x, double y, double yaw)
 {
     particles_.clear();
-    std::normal_distribution<> noise_xy(0.0, INIT_SIGMA_XY_);
-    std::normal_distribution<> noise_yaw(0.0, INIT_SIGMA_YAW_);
-    for(int i=0;i<PARTICLE_NUM_;i++){
+    std::normal_distribution<> noise_xy(0.0, init_sigma_xy_);
+    std::normal_distribution<> noise_yaw(0.0, init_sigma_yaw_);
+    for(int i=0;i<particle_num_;i++){
         Particle p{
             Pose{
                 Eigen::Vector3d(x + noise_xy(engine_), y + noise_xy(engine_), 0),
                 yaw + noise_yaw(engine_)
             },
-            1.0 / (double)(PARTICLE_NUM_)
+            1.0 / (double)(particle_num_)
         };
         particles_.push_back(p);
     }
@@ -281,8 +282,8 @@ void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yaw
 {
     const Eigen::Vector3d dp_r = velocity * dt;
     const double dyaw_r = yawrate * dt;
-    std::normal_distribution<> noise_xy(0.0, SIGMA_XY_);
-    std::normal_distribution<> noise_yaw(0.0, SIGMA_YAW_);
+    std::normal_distribution<> noise_xy(0.0, sigma_xy_);
+    std::normal_distribution<> noise_yaw(0.0, sigma_yaw_);
     for(auto& particle : particles_){
         double dx = (velocity(0) + noise_xy(engine_)) * dt;
         double dy = (velocity(1) + noise_xy(engine_)) * dt;
@@ -406,7 +407,7 @@ void Localizer::resample_particles(void)
     normalize_particles_weight();
     const double effective_num_of_particles = compute_num_of_effective_particles();
     std::cout << "n_e: " << effective_num_of_particles << std::endl;
-    if(!(effective_num_of_particles < RESAMPLING_THRESHOLD_)){
+    if(!(effective_num_of_particles < resampling_threshold_)){
         return;
     }
 
@@ -417,8 +418,8 @@ void Localizer::resample_particles(void)
     std::vector<Particle> new_particles(n);
 
     // noise for random sampling
-    std::normal_distribution<> noise_xy(0.0, INIT_SIGMA_XY_);
-    std::normal_distribution<> noise_yaw(0.0, INIT_SIGMA_YAW_);
+    std::normal_distribution<> noise_xy(0.0, init_sigma_xy_);
+    std::normal_distribution<> noise_yaw(0.0, init_sigma_yaw_);
 
     // cumulative sum of particle weight
     std::vector<double> c(n + 1);
@@ -473,14 +474,14 @@ void Localizer::publish_distance_map(const DistanceMap& dm, const std::string& f
     std::cout << "\tmax_x: " << max_x << std::endl;
     std::cout << "\tmin_y: " << min_y << std::endl;
     std::cout << "\tmax_y: " << max_y << std::endl;
-    const unsigned int width = (max_x - min_x) / DM_RESOLUTION_;
-    const unsigned int height = (max_y - min_y) / DM_RESOLUTION_;
+    const unsigned int width = (max_x - min_x) / dm_resolution_;
+    const unsigned int height = (max_y - min_y) / dm_resolution_;
     std::cout << "\twidth: " << width << std::endl;
     std::cout << "\theight: " << height << std::endl;
     nav_msgs::OccupancyGrid og;
     og.header.frame_id = frame_id;
     og.header.stamp = stamp;
-    og.info.resolution = DM_RESOLUTION_;
+    og.info.resolution = dm_resolution_;
     og.info.width = width;
     og.info.height = height;
     og.info.origin.position.x = min_x;
@@ -512,9 +513,9 @@ void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& 
             const Eigen::Vector2d v = affine * f;
             // TODO: to be updated
             // if free(road) area is near edges, the likelihood should be higher
-            // f_w += 1.0 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / OBSERVATION_DISTANCE_OFFSET_); 
+            // f_w += 1.0 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_); 
             if(c++ % 10 == 0){
-                const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / OBSERVATION_DISTANCE_OFFSET_);
+                const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
                 f_w += d;
             }
         }
@@ -524,7 +525,7 @@ void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& 
             const Eigen::Vector2d v = affine * o;
             // TODO: to be updated
             // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
-            const double d = std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / OBSERVATION_DISTANCE_OFFSET_);
+            const double d = std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
             const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
             if(o_index == p_edge_index){
                 o_w += d; 
