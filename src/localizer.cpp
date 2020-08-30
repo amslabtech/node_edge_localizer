@@ -46,6 +46,22 @@ Localizer::Localizer(void)
     local_nh_.param<double>("alpha_slow", alpha_slow_, 0.001);
     local_nh_.param<double>("alpha_fast", alpha_fast_, 0.1);
 
+    ROS_INFO_STREAM("enable_tf: " << enable_tf_);
+    ROS_INFO_STREAM("enable_odom_tf: " << enable_odom_tf_);
+    ROS_INFO_STREAM("particle_num: " << particle_num_);
+    ROS_INFO_STREAM("init_x: " << init_x_);
+    ROS_INFO_STREAM("init_y: " << init_y_);
+    ROS_INFO_STREAM("init_yaw: " << init_yaw_);
+    ROS_INFO_STREAM("init_sigma_xy: " << init_sigma_xy_);
+    ROS_INFO_STREAM("init_sigma_yaw: " << init_sigma_yaw_);
+    ROS_INFO_STREAM("sigma_xy: " << sigma_xy_);
+    ROS_INFO_STREAM("sigma_yaw: " << sigma_yaw_);
+    ROS_INFO_STREAM("dm_resolution: " << dm_resolution_);
+    ROS_INFO_STREAM("resampling_threshold: " << resampling_threshold_);
+    ROS_INFO_STREAM("observation_distance_offset: " << observation_distance_offset_);
+    ROS_INFO_STREAM("alpha_slow: " << alpha_slow_);
+    ROS_INFO_STREAM("alpha_fast: " << alpha_fast_);
+
     initialize();
 }
 
