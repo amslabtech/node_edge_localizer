@@ -193,7 +193,7 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
     std::cout << "observed free points: " << free_vectors.size() << std::endl;
     std::cout << "observed obstacle points: " << obstacle_vectors.size() << std::endl;
     compute_particle_likelihood(free_vectors, obstacle_vectors);
-        resample_particles();
+    resample_particles();
     auto end = std::chrono::system_clock::now();
     std::cout << "observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]" << std::endl;
 }
