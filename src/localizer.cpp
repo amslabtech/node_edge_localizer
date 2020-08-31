@@ -530,10 +530,8 @@ void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& 
             // TODO: to be updated
             // if free(road) area is near edges, the likelihood should be higher
             // f_w += 1.0 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_); 
-            if(c++ % 10 == 0){
-                const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
-                f_w += d;
-            }
+            const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
+            f_w += d;
         }
         p.weight_ *= f_w;
         // std::cout << "f_w: " << f_w << std::endl;
