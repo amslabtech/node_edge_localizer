@@ -32,7 +32,7 @@ Localizer::Localizer(void)
 
     local_nh_.param<bool>("enable_tf", enable_tf_, true);
     local_nh_.param<bool>("enable_odom_tf", enable_odom_tf_, false);
-    local_nh_.param<int>("particle_num", particle_num_, 1000);
+    local_nh_.param<int>("particle_num", particle_num_, 100);
     local_nh_.param<double>("init_x", init_x_, 0.0);
     local_nh_.param<double>("init_y", init_y_, 0.0);
     local_nh_.param<double>("init_yaw", init_yaw_, 0.0);
@@ -42,7 +42,7 @@ Localizer::Localizer(void)
     local_nh_.param<double>("simga_yaw", sigma_yaw_, 0.1);
     local_nh_.param<double>("distance_map/resolution", dm_resolution_, 0.1);
     local_nh_.param<double>("resampling_threshold", resampling_threshold_, particle_num_ * 0.5);
-    local_nh_.param<double>("observation_distance_offset", observation_distance_offset_, 5.0);
+    local_nh_.param<double>("observation_distance_offset", observation_distance_offset_, 2.0);
     local_nh_.param<double>("alpha_slow", alpha_slow_, 0.001);
     local_nh_.param<double>("alpha_fast", alpha_fast_, 0.1);
 
