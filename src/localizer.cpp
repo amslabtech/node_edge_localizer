@@ -546,6 +546,9 @@ void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& 
             }
         }
         p.weight_ *= o_w;
+        if(p.weight_ < 1e-6){
+            p.weight_ = 1e-6;
+        }
         // std::cout << "o_w: " << o_w << std::endl;
         // std::cout << "w: " << p.weight_ << std::endl;
         // std::cout << p.pose_.position_(0) << ", " << p.pose_.position_(1) << ", " << p.pose_.yaw_ << " >> " << p.weight_ << std::endl;
