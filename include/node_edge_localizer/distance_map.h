@@ -45,6 +45,8 @@ protected:
     //! reciprocal of resolution_
     double grid_per_meter_;
     std::vector<EdgeIndexWithDistance> map_;
+    unsigned int map_size_;
+    unsigned int edge_num_;
 };
 }
 #endif// __NODE_EDGE_LOCALIZER_DISTANCE_MAP_H

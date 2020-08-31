@@ -17,6 +17,8 @@ DistanceMap::DistanceMap(void)
 , max_y_(0) 
 , resolution_(0.1)
 , grid_per_meter_(1.0 / resolution_)
+, map_size_(0)
+, edge_num_(0)
 {
 
 }
@@ -43,7 +45,8 @@ void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map
     }
     x_size_ = (max_x_ - min_x_ + margin_) * grid_per_meter_;
     y_size_ = (max_y_ - min_y_ + margin_) * grid_per_meter_;
-    map_.resize(x_size_ * y_size_);
+    map_size_ = x_size_ * y_size_;
+    map_.resize(map_size_);
     const unsigned int EDGE_NUM = map.edges.size();
     for(unsigned int  ix=0;ix<x_size_;ix++){
         for(unsigned int iy=0;iy<y_size_;iy++){
@@ -63,6 +66,7 @@ void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map
             map_[grid_index] = ei;
         }
     }
+    edge_num_ = map.edges.size();
 }
 
 double DistanceMap::get_distance_from_edge(const amsl_navigation_msgs::NodeEdgeMap& m, const amsl_navigation_msgs::Edge& e, double x, double y)
@@ -97,7 +101,11 @@ double DistanceMap::get_min_distance_from_edge(double x, double y)
     const unsigned int ix = (x - min_x_ + margin_2_) * grid_per_meter_;
     const unsigned int iy = (y - min_y_ + margin_2_) * grid_per_meter_;
     const unsigned int index = iy * x_size_ + ix;
-    return map_[index].distance_;
+    if(0 <= index && index < map_size_){
+        return map_[index].distance_;
+    }else{
+        return 1e6;
+    }
 }
 
 unsigned int DistanceMap::get_nearest_edge_index(double x, double y)
@@ -105,7 +113,11 @@ unsigned int DistanceMap::get_nearest_edge_index(double x, double y)
     const unsigned int ix = (x - min_x_ + margin_2_) * grid_per_meter_;
     const unsigned int iy = (y - min_y_ + margin_2_) * grid_per_meter_;
     const unsigned int index = iy * x_size_ + ix;
-    return map_[index].nearest_edge_index_;
+    if(0 <= index && index < map_size_){
+        return map_[index].nearest_edge_index_;
+    }else{
+        return edge_num_;
+    }
 }
 
 std::tuple<std::vector<EdgeIndexWithDistance>, double, double, double, double> DistanceMap::get_data(void) const
