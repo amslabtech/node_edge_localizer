@@ -184,9 +184,9 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
         const double x = (i % msg->info.width) * msg->info.resolution + msg->info.origin.position.x;
         const double y = floor(i / msg->info.width) * msg->info.resolution + msg->info.origin.position.y;
         const Eigen::Vector2d v(x, y);
-        if(msg->data[i] == 0){
+        if(0 <= msg->data[i] && msg->data[i] < 20){
             free_vectors.emplace_back(v); 
-        }else{
+        }else if(80 <= msg->data[i]){
             obstacle_vectors.emplace_back(v);
         }
     }
