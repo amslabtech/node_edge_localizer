@@ -39,7 +39,7 @@ Localizer::Localizer(void)
     local_nh_.param<double>("init_sigma_xy", init_sigma_xy_, 0.5);
     local_nh_.param<double>("init_sigma_yaw", init_sigma_yaw_, 0.2);
     local_nh_.param<double>("sigma_xy", sigma_xy_, 0.1);
-    local_nh_.param<double>("simga_yaw", sigma_yaw_, 0.1);
+    local_nh_.param<double>("sigma_yaw", sigma_yaw_, 0.1);
     local_nh_.param<double>("distance_map/resolution", dm_resolution_, 0.1);
     local_nh_.param<double>("resampling_threshold", resampling_threshold_, particle_num_ * 0.5);
     local_nh_.param<double>("observation_distance_offset", observation_distance_offset_, 2.0);
