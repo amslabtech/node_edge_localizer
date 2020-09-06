@@ -146,6 +146,13 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
 {
     std::cout << ros::this_node::getName() << ": map_callback" << std::endl;
     map_ = *msg;
+    std::cout << "remove duplicated edges" << std::endl;
+    std::cout << "edge num: " << map_.edges.size() << std::endl;
+    remove_reversed_edges_from_map(map_);
+    std::cout << "after edge num: " << map_.edges.size() << std::endl;
+    for(const auto& e : map_.edges){
+        std::cout << e.node0_id << " -> " << e.node1_id << std::endl;
+    }
     nemi_.set_map(map_);
     auto start = std::chrono::system_clock::now();
     dm_.make_distance_map(map_, dm_resolution_);
@@ -563,6 +570,21 @@ double Localizer::compute_average_particle_wight(void)
     }
     w_avg /= particles_.size();
     return w_avg;
+}
+
+void Localizer::remove_reversed_edges_from_map(amsl_navigation_msgs::NodeEdgeMap& map)
+{
+    for(auto it=map.edges.begin();it!=map.edges.end();){
+        for(auto it2=it;it2!=map.edges.end();){
+            if(!((it->node0_id == it2->node1_id) && (it->node1_id == it2->node0_id))){
+                ++it2;
+            }else{
+                it2 = map.edges.erase(it2);
+                break;
+            }
+        }
+        ++it;
+    }
 }
 
 void Localizer::process(void)

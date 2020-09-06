@@ -70,6 +70,7 @@ public:
     void publish_distance_map(const DistanceMap& dm, const std::string& frame_id, const ros::Time& stamp);
     void compute_particle_likelihood(const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors);
     double compute_average_particle_wight(void);
+    void remove_reversed_edges_from_map(amsl_navigation_msgs::NodeEdgeMap& map);
     void process(void);
 protected:
     bool enable_tf_;
