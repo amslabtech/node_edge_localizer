@@ -111,6 +111,7 @@ protected:
     std::shared_ptr<tf2_ros::TransformListener> tfl_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tfb_;
     Pose estimated_pose_;
+    amsl_navigation_msgs::NodeEdgeMap map_;
     NodeEdgeMapInterface nemi_;
     bool map_received_;
     double last_odom_timestamp_;

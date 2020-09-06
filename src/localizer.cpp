@@ -145,10 +145,10 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
 {
     std::cout << ros::this_node::getName() << ": map_callback" << std::endl;
-    amsl_navigation_msgs::NodeEdgeMap map = *msg;
-    nemi_.set_map(map);
+    map_ = *msg;
+    nemi_.set_map(map_);
     auto start = std::chrono::system_clock::now();
-    dm_.make_distance_map(map, dm_resolution_);
+    dm_.make_distance_map(map_, dm_resolution_);
     auto end = std::chrono::system_clock::now();
     map_received_ = true;
     std::cout << "distance map was computed in: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "[ms]" << std::endl;
