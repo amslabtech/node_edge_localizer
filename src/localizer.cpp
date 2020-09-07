@@ -558,7 +558,7 @@ void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& 
             // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
             const double d = std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
             const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
-            if(o_index == p_edge_index){
+            if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
                 o_w += d; 
             }
         }
