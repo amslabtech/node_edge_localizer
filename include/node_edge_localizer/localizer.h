@@ -71,6 +71,8 @@ public:
     void compute_particle_likelihood(const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors);
     double compute_average_particle_wight(void);
     void remove_reversed_edges_from_map(amsl_navigation_msgs::NodeEdgeMap& map);
+    std::vector<unsigned int> get_near_edge_indices(unsigned int edge_index);
+    std::vector<std::vector<unsigned int>> get_connected_edge_indices(void);
     void process(void);
 protected:
     bool enable_tf_;
@@ -126,6 +128,7 @@ protected:
     std::string robot_frame_;
     double w_fast_;
     double w_slow_;
+    std::vector<std::vector<unsigned int>> connected_edge_indices_;
 };
 }// namespace node_edge_localizer
 

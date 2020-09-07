@@ -153,6 +153,16 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     for(const auto& e : map_.edges){
         std::cout << e.node0_id << " -> " << e.node1_id << std::endl;
     }
+    connected_edge_indices_ = get_connected_edge_indices();
+    const unsigned edge_num = map_.edges.size();
+    for(unsigned int i=0;i<edge_num;++i){
+        std::cout << "edge index: " << i << std::endl;
+        std::cout << map_.edges[i].node0_id << " -> " << map_.edges[i].node1_id << std::endl;
+        const unsigned int connected_edges_num = connected_edge_indices_[i].size();
+        for(unsigned int j=0;j<connected_edges_num;++j){
+            std::cout << "\t" << map_.edges[connected_edge_indices_[i][j]].node0_id << " -> " << map_.edges[connected_edge_indices_[i][j]].node1_id << std::endl;
+        }
+    }
     nemi_.set_map(map_);
     auto start = std::chrono::system_clock::now();
     dm_.make_distance_map(map_, dm_resolution_);
@@ -585,6 +595,37 @@ void Localizer::remove_reversed_edges_from_map(amsl_navigation_msgs::NodeEdgeMap
         }
         ++it;
     }
+}
+
+std::vector<unsigned int> Localizer::get_near_edge_indices(unsigned int edge_index)
+{
+    std::vector<unsigned int> near_edge_indices;
+    // get node 0 and 1
+    const unsigned int n0 = map_.edges[edge_index].node0_id;
+    const unsigned int n1 = map_.edges[edge_index].node1_id;
+    // get edges connected to node 0 and 1
+    const unsigned int edge_num = map_.edges.size();
+    for(unsigned int i=0;i<edge_num;++i){
+        if(edge_index != i){
+            if((n0 == map_.edges[i].node0_id) ||
+               (n0 == map_.edges[i].node1_id) ||
+               (n1 == map_.edges[i].node0_id) ||
+               (n1 == map_.edges[i].node1_id)){
+                near_edge_indices.emplace_back(i);
+            }
+        }
+    }
+    return near_edge_indices;
+}
+
+std::vector<std::vector<unsigned int>> Localizer::get_connected_edge_indices(void)
+{
+    std::vector<std::vector<unsigned int>> connected_edge_indices;
+    const unsigned edge_num = map_.edges.size();
+    for(unsigned int i=0;i<edge_num;++i){
+        connected_edge_indices.emplace_back(get_near_edge_indices(i));
+    }
+    return connected_edge_indices;
 }
 
 void Localizer::process(void)
