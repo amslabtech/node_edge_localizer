@@ -45,6 +45,10 @@ Localizer::Localizer(void)
     local_nh_.param<double>("observation_distance_offset", observation_distance_offset_, 2.0);
     local_nh_.param<double>("alpha_slow", alpha_slow_, 0.001);
     local_nh_.param<double>("alpha_fast", alpha_fast_, 0.1);
+    local_nh_.param<double>("obstacle_ratio", obstacle_ratio_, 0.5);
+    int input_point_num; 
+    local_nh_.param<int>("input_point_num", input_point_num, 1000);
+    input_point_num_ = static_cast<unsigned int>(input_point_num);
 
     ROS_INFO_STREAM("enable_tf: " << enable_tf_);
     ROS_INFO_STREAM("enable_odom_tf: " << enable_odom_tf_);
@@ -635,6 +639,32 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     // std::cout << "w: " << p.weight_ << std::endl;
     // std::cout << p.pose_.position_(0) << ", " << p.pose_.position_(1) << ", " << p.pose_.yaw_ << " >> " << p.weight_ << std::endl;
     return likelihood;
+}
+
+void Localizer::subsample_observed_points(std::vector<Eigen::Vector2d>& free_vectors, std::vector<Eigen::Vector2d>& obstacle_vectors)
+{
+    const unsigned int n_f = free_vectors.size();
+    const unsigned int n_o = obstacle_vectors.size();
+    const unsigned int target_n_f = input_point_num_ * (1 - obstacle_ratio_);
+    const unsigned int target_n_o = input_point_num_ * obstacle_ratio_;
+    if(n_f > target_n_f){
+        std::uniform_int_distribution<> dist_n_f(0, target_n_f-1);
+        std::vector<Eigen::Vector2d> new_f(target_n_f);
+        for(unsigned int i=0;i<target_n_f;++i){
+            const unsigned int index = dist_n_f(engine_);
+            new_f[index] = free_vectors[index];
+        }
+        free_vectors = new_f;
+    }
+    if(n_o > target_n_o){
+        std::uniform_int_distribution<> dist_n_o(0, target_n_o-1);
+        std::vector<Eigen::Vector2d> new_o(target_n_o);
+        for(unsigned int i=0;i<target_n_o;++i){
+            const unsigned int index = dist_n_o(engine_);
+            new_o[index] = obstacle_vectors[index];
+        }
+        obstacle_vectors = new_o;
+    }
 }
 
 void Localizer::process(void)
