@@ -19,7 +19,7 @@ Localizer::Localizer(void)
 {
     particles_pub_ = nh_.advertise<geometry_msgs::PoseArray>("estimated_pose/particles", 1);
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
-    distance_map_pub_ = local_nh_.advertise<nav_msgs::OccupancyGrid>("distance_map", 1);
+    distance_map_pub_ = local_nh_.advertise<nav_msgs::OccupancyGrid>("distance_map", 1, true);
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     initial_pose_sub_ = nh_.subscribe("initialpose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
