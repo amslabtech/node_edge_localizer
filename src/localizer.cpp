@@ -531,47 +531,7 @@ void Localizer::publish_distance_map(const DistanceMap& dm, const std::string& f
 void Localizer::compute_particle_likelihood(const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors)
 {
     for(auto& p : particles_){
-        const unsigned int p_edge_index = dm_.get_nearest_edge_index(p.pose_.position_(0), p.pose_.position_(1));
-        // std::cout << "p at " << p.pose_.position_.segment(0, 2).transpose() << ", " << p.pose_.yaw_ << ", " << p_edge_index << std::endl;
-        // transform observed points to each particle frame
-        const Eigen::Translation2d trans(p.pose_.position_(0), p.pose_.position_(1));
-        Eigen::Matrix2d rot;
-        rot << cos(p.pose_.yaw_), -sin(p.pose_.yaw_),
-               sin(p.pose_.yaw_),  cos(p.pose_.yaw_);
-        const Eigen::Affine2d affine = rot * trans;
-        double f_w = 0.0;
-        double o_w = 0.0;
-        int c = 0;
-        for(const auto& f : free_vectors){
-            const Eigen::Vector2d v = affine * f;
-            // TODO: to be updated
-            // if free(road) area is near edges, the likelihood should be higher
-            // f_w += 1.0 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_); 
-            const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
-            const unsigned int f_index = dm_.get_nearest_edge_index(v(0), v(1));
-            if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), f_index) != connected_edge_indices_[p_edge_index].end()){
-                f_w += d;
-            }
-        }
-        p.weight_ *= f_w;
-        // std::cout << "f_w: " << f_w << std::endl;
-        for(const auto& o : obstacle_vectors){
-            const Eigen::Vector2d v = affine * o;
-            // TODO: to be updated
-            // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
-            const double d = std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
-            const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
-            if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
-                o_w += d; 
-            }
-        }
-        p.weight_ *= o_w;
-        if(p.weight_ < 1e-6){
-            p.weight_ = 1e-6;
-        }
-        // std::cout << "o_w: " << o_w << std::endl;
-        // std::cout << "w: " << p.weight_ << std::endl;
-        // std::cout << p.pose_.position_(0) << ", " << p.pose_.position_(1) << ", " << p.pose_.yaw_ << " >> " << p.weight_ << std::endl;
+        p.weight_ = compute_likelihood(p.pose_, free_vectors, obstacle_vectors, p.weight_);
     }
 }
 
@@ -629,6 +589,52 @@ std::vector<std::vector<unsigned int>> Localizer::get_connected_edge_indices(voi
         connected_edge_indices.emplace_back(get_near_edge_indices(i));
     }
     return connected_edge_indices;
+}
+
+double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors, const double weight)
+{
+    double likelihood = weight;
+    const unsigned int p_edge_index = dm_.get_nearest_edge_index(pose.position_(0), pose.position_(1));
+    // std::cout << "p at " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << ", " << p_edge_index << std::endl;
+    // transform observed points to each particle frame
+    const Eigen::Translation2d trans(pose.position_(0), pose.position_(1));
+    Eigen::Matrix2d rot;
+    rot << cos(pose.yaw_), -sin(pose.yaw_),
+           sin(pose.yaw_),  cos(pose.yaw_);
+    const Eigen::Affine2d affine = rot * trans;
+    double f_w = 0.0;
+    double o_w = 0.0;
+    for(const auto& f : free_vectors){
+        const Eigen::Vector2d v = affine * f;
+        // TODO: to be updated
+        // if free(road) area is near edges, the likelihood should be higher
+        // f_w += 1.0 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_); 
+        const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
+        const unsigned int f_index = dm_.get_nearest_edge_index(v(0), v(1));
+        if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), f_index) != connected_edge_indices_[p_edge_index].end()){
+            f_w += d;
+        }
+    }
+    likelihood *= f_w;
+    // std::cout << "f_w: " << f_w << std::endl;
+    for(const auto& o : obstacle_vectors){
+        const Eigen::Vector2d v = affine * o;
+        // TODO: to be updated
+        // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
+        const double d = std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
+        const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
+        if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
+            o_w += d; 
+        }
+    }
+    likelihood *= o_w;
+    if(likelihood < 1e-6){
+        likelihood = 1e-6;
+    }
+    // std::cout << "o_w: " << o_w << std::endl;
+    // std::cout << "w: " << p.weight_ << std::endl;
+    // std::cout << p.pose_.position_(0) << ", " << p.pose_.position_(1) << ", " << p.pose_.yaw_ << " >> " << p.weight_ << std::endl;
+    return likelihood;
 }
 
 void Localizer::process(void)

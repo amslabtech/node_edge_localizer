@@ -73,6 +73,7 @@ public:
     void remove_reversed_edges_from_map(amsl_navigation_msgs::NodeEdgeMap& map);
     std::vector<unsigned int> get_near_edge_indices(unsigned int edge_index);
     std::vector<std::vector<unsigned int>> get_connected_edge_indices(void);
+    double compute_likelihood(const Pose& pose, const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors, const double weight);
     void process(void);
 protected:
     bool enable_tf_;
