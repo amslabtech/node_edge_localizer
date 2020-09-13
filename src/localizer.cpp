@@ -665,6 +665,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     double likelihood = weight;
     const unsigned int p_edge_index = dm_.get_nearest_edge_index(pose.position_(0), pose.position_(1));
     // std::cout << "p at " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << ", " << p_edge_index << std::endl;
+    // std::cout << "p at: " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << ", edge: " << map_.edges[p_edge_index].node0_id << " -> " << map_.edges[p_edge_index].node1_id << std::endl;
     // transform observed points to each particle frame
     const Eigen::Translation2d trans(pose.position_(0), pose.position_(1));
     Eigen::Matrix2d rot;
@@ -687,19 +688,22 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     // std::cout << "f_w: " << f_w << std::endl;
     for(const auto& o : obstacle_vectors){
         const Eigen::Vector2d v = affine * o;
+        // std::cout << o.transpose() << "->" << v.transpose() << std::endl;
         // TODO: to be updated
         // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
         const double d = std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
         const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
         if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
+            // std::cout << "v: " << v.transpose() << ", oi: " << map_.edges[o_index].node0_id << " -> " << map_.edges[o_index].node1_id << ", d: " << d << std::endl;
             o_w += d; 
         }
     }
     likelihood += o_w;
+    if(likelihood < 1e-12){
+        likelihood = 1e-12;
     }
     // std::cout << "o_w: " << o_w << std::endl;
-    // std::cout << "w: " << p.weight_ << std::endl;
-    // std::cout << p.pose_.position_(0) << ", " << p.pose_.position_(1) << ", " << p.pose_.yaw_ << " >> " << p.weight_ << std::endl;
+    // std::cout << pose.position_(0) << ", " << pose.position_(1) << ", " << pose.yaw_ << " >> " << likelihood << std::endl;
     return likelihood;
 }
 
