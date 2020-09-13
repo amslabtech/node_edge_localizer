@@ -677,7 +677,6 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
         const Eigen::Vector2d v = affine * f;
         // TODO: to be updated
         // if free(road) area is near edges, the likelihood should be higher
-        // f_w += 1.0 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_); 
         const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
         const unsigned int f_index = dm_.get_nearest_edge_index(v(0), v(1));
         if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), f_index) != connected_edge_indices_[p_edge_index].end()){
