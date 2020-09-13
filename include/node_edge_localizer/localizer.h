@@ -102,6 +102,9 @@ protected:
     double observation_distance_offset_;
     double alpha_fast_;
     double alpha_slow_;
+    // \in [0, 1]
+    double obstacle_ratio_;
+    unsigned int input_point_num_;
 
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;

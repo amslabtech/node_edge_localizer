@@ -65,6 +65,8 @@ Localizer::Localizer(void)
     ROS_INFO_STREAM("observation_distance_offset: " << observation_distance_offset_);
     ROS_INFO_STREAM("alpha_slow: " << alpha_slow_);
     ROS_INFO_STREAM("alpha_fast: " << alpha_fast_);
+    ROS_INFO_STREAM("obstacle_ratio: " << obstacle_ratio_);
+    ROS_INFO_STREAM("input_point_num: " << input_point_num_);
 
     initialize();
 }
@@ -211,6 +213,7 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
             obstacle_vectors.emplace_back(v);
         }
     }
+    // subsample_observed_points(free_vectors, obstacle_vectors);
     std::cout << "observed free points: " << free_vectors.size() << std::endl;
     std::cout << "observed obstacle points: " << obstacle_vectors.size() << std::endl;
     compute_particle_likelihood(free_vectors, obstacle_vectors);
