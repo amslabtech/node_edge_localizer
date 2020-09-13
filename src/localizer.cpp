@@ -683,10 +683,10 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
         const unsigned int f_index = dm_.get_nearest_edge_index(v(0), v(1));
         if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), f_index) != connected_edge_indices_[p_edge_index].end()){
             const double distance = dm_.get_min_distance_from_edge(v(0), v(1));
-            double l = 1 - std::min(1.0, l / observation_distance_offset_);
             if(distance < 0.0){
-                l = 0.0;
+                continue;
             }
+            const double l = 1 - std::min(1.0, distance / observation_distance_offset_);
             f_w += l;
         }
     }
@@ -701,10 +701,10 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
         if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
             // std::cout << "v: " << v.transpose() << ", oi: " << map_.edges[o_index].node0_id << " -> " << map_.edges[o_index].node1_id << ", d: " << d << std::endl;
             const double distance = dm_.get_min_distance_from_edge(v(0), v(1));
-            double l = std::min(1.0, l / observation_distance_offset_);
             if(distance < 0.0){
-                l = 0.0;
+                continue;
             }
+            const double l = std::min(1.0, distance / observation_distance_offset_);
             o_w += l; 
         }
     }
