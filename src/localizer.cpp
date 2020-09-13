@@ -41,7 +41,9 @@ Localizer::Localizer(void)
     local_nh_.param<double>("sigma_xy", sigma_xy_, 0.1);
     local_nh_.param<double>("sigma_yaw", sigma_yaw_, 0.1);
     local_nh_.param<double>("distance_map/resolution", dm_resolution_, 0.1);
-    local_nh_.param<double>("resampling_threshold", resampling_threshold_, particle_num_ * 0.5);
+    double resampling_ratio;
+    local_nh_.param<double>("resampling_ratio", resampling_ratio, 0.5);
+    resampling_threshold_ = particle_num_ * resampling_ratio;
     local_nh_.param<double>("observation_distance_offset", observation_distance_offset_, 2.0);
     local_nh_.param<double>("alpha_slow", alpha_slow_, 0.001);
     local_nh_.param<double>("alpha_fast", alpha_fast_, 0.1);
