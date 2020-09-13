@@ -185,15 +185,15 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
     std::cout << "observation_map_callback" << std::endl;
     const auto start = std::chrono::system_clock::now();
     if(!map_received_){
-        std::cout << ros::this_node::getName() << ": map is not received" << std::endl;
+        ROS_WARN_STREAM(ros::this_node::getName() << ": map is not received");
         return;
     }
     if(robot_frame_.empty()){
-        std::cout << ros::this_node::getName() << ": robot frame is not set" << std::endl;
+        ROS_WARN_STREAM(ros::this_node::getName() << ": robot frame is not set");
         return;
     }
     if(msg->header.frame_id != robot_frame_){
-        std::cout << ros::this_node::getName() << ": observation map must be in the robot frame: " << robot_frame_ << std::endl;
+        ROS_WARN_STREAM(ros::this_node::getName() << ": observation map must be in the robot frame: " << robot_frame_);
         return;
     }
     // get obstacle and free positions from OGM
@@ -316,7 +316,7 @@ void Localizer::publish_map_to_odom_tf(const ros::Time& stamp, const std::string
     try{
         tf_->transform(robot_to_map_pose, odom_to_map_pose, odom_frame_id);
     }catch(tf2::TransformException& ex){
-        std::cout << ex.what() << std::endl;
+        ROS_WARN_STREAM(ex.what());
         return;
     }
     tf2::Transform odom_to_map_tf;
