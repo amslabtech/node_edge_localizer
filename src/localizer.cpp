@@ -684,7 +684,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
             f_w += d;
         }
     }
-    likelihood *= f_w;
+    likelihood += f_w;
     // std::cout << "f_w: " << f_w << std::endl;
     for(const auto& o : obstacle_vectors){
         const Eigen::Vector2d v = affine * o;
@@ -696,9 +696,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
             o_w += d; 
         }
     }
-    likelihood *= o_w;
-    if(likelihood < 1e-6){
-        likelihood = 1e-6;
+    likelihood += o_w;
     }
     // std::cout << "o_w: " << o_w << std::endl;
     // std::cout << "w: " << p.weight_ << std::endl;
