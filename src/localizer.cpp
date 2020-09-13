@@ -85,7 +85,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
                         msg->pose.pose.position.z),
         tf2::getYaw(msg->pose.pose.orientation)
     };
-    double odom_timestamp = msg->header.stamp.toSec();
+    const double odom_timestamp = msg->header.stamp.toSec();
     
     if(first_odom_callback_){
         first_odom_callback_ = false;
@@ -102,22 +102,22 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     p.yaw_ -= first_odom_pose_.yaw_;
     Calculation::pi_2_pi(p.yaw_);
     p.position_ -= first_odom_pose_.position_;
-    Eigen::AngleAxis<double> first_odom_yaw_rotation(-first_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
+    const Eigen::AngleAxis<double> first_odom_yaw_rotation(-first_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
     p.position_ = first_odom_yaw_rotation * p.position_;
     if(enable_odom_tf_){
         publish_odom_to_robot_tf(msg->header.stamp, msg->header.frame_id, msg->child_frame_id, p);
     }
 
     // get robot motion
-    double dt = odom_timestamp - last_odom_timestamp_;
+    const double dt = odom_timestamp - last_odom_timestamp_;
     if(dt == 0.0){
         std::cout << "error: dt must be > 0" << std::endl;
         return;
     }
     Eigen::Vector3d velocity = (p.position_ - last_odom_pose_.position_) / dt;
-    Eigen::AngleAxis<double> last_yaw_rotation(-last_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
+    const Eigen::AngleAxis<double> last_yaw_rotation(-last_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
     velocity = last_yaw_rotation * velocity; 
-    double yawrate = Calculation::pi_2_pi(p.yaw_ - last_odom_pose_.yaw_) / dt;
+    const double yawrate = Calculation::pi_2_pi(p.yaw_ - last_odom_pose_.yaw_) / dt;
 
     move_particles(velocity, yawrate, dt);
 
@@ -172,9 +172,9 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
         }
     }
     nemi_.set_map(map_);
-    auto start = std::chrono::system_clock::now();
+    const auto start = std::chrono::system_clock::now();
     dm_.make_distance_map(map_, dm_resolution_);
-    auto end = std::chrono::system_clock::now();
+    const auto end = std::chrono::system_clock::now();
     map_received_ = true;
     std::cout << "distance map was computed in: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "[ms]" << std::endl;
     publish_distance_map(dm_, msg->header.frame_id, msg->header.stamp);
@@ -183,7 +183,7 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
 void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& msg)
 {
     std::cout << "observation_map_callback" << std::endl;
-    auto start = std::chrono::system_clock::now();
+    const auto start = std::chrono::system_clock::now();
     if(!map_received_){
         std::cout << ros::this_node::getName() << ": map is not received" << std::endl;
         return;
@@ -220,7 +220,7 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
     std::cout << "observed obstacle points: " << obstacle_vectors.size() << std::endl;
     compute_particle_likelihood(free_vectors, obstacle_vectors);
     resample_particles();
-    auto end = std::chrono::system_clock::now();
+    const auto end = std::chrono::system_clock::now();
     std::cout << "observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]" << std::endl;
 }
 
@@ -279,7 +279,7 @@ void Localizer::initialize_particles_uniform(double x, double y, double yaw)
     for(unsigned int i=0;i<10;++i){
         for(unsigned int j=0;j<10;++j){
             for(unsigned int k=0;k<12;++k){
-                Particle p{
+                const Particle p{
                     Pose{
                         Eigen::Vector3d(x + delta_p * i + begin_p, y + delta_p * j + begin_p, 0),
                         yaw + delta_yaw * k - M_PI 
@@ -349,10 +349,10 @@ void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yaw
     std::normal_distribution<> noise_xy(0.0, sigma_xy_);
     std::normal_distribution<> noise_yaw(0.0, sigma_yaw_);
     for(auto& particle : particles_){
-        double dx = (velocity(0) + noise_xy(engine_)) * dt;
-        double dy = (velocity(1) + noise_xy(engine_)) * dt;
-        double dyaw = (yawrate + noise_yaw(engine_)) * dt;
-        Eigen::Vector3d t(dx, dy, 0.0);
+        const double dx = (velocity(0) + noise_xy(engine_)) * dt;
+        const double dy = (velocity(1) + noise_xy(engine_)) * dt;
+        const double dyaw = (yawrate + noise_yaw(engine_)) * dt;
+        const Eigen::Vector3d t(dx, dy, 0.0);
         Eigen::Matrix3d r;
         r = Eigen::AngleAxisd(particle.pose_.yaw_, Eigen::Vector3d::UnitZ());
         particle.pose_.position_ = r * t + particle.pose_.position_;
@@ -536,7 +536,7 @@ void Localizer::resample_particles(void)
     for(unsigned int i=0;i<n;i++){
         if(dist(engine_) > w_diff){
             // sample from existing particles
-            double r = dist_for_sample(engine_);
+            const double r = dist_for_sample(engine_);
             for(unsigned int j=0;j<n;j++){
                 if((c[j] <= r) && (r < c[j+1])){
                     new_particles[i] = particles_[j];
@@ -546,7 +546,7 @@ void Localizer::resample_particles(void)
         }
         }else{
             // random sampling
-            Particle p{
+            const Particle p{
                 Pose{
                     Eigen::Vector3d(estimated_pose_.position_(0) + noise_xy(engine_), estimated_pose_.position_(1) + noise_xy(engine_), 0),
                     estimated_pose_.yaw_ + noise_yaw(engine_)
