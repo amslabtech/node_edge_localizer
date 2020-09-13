@@ -670,7 +670,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     Eigen::Matrix2d rot;
     rot << cos(pose.yaw_), -sin(pose.yaw_),
            sin(pose.yaw_),  cos(pose.yaw_);
-    const Eigen::Affine2d affine = rot * trans;
+    const Eigen::Affine2d affine = trans * rot;
     double f_w = 0.0;
     double o_w = 0.0;
     for(const auto& f : free_vectors){
