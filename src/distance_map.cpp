@@ -104,7 +104,7 @@ double DistanceMap::get_min_distance_from_edge(double x, double y)
     if(0 <= index && index < map_size_){
         return map_[index].distance_;
     }else{
-        return 1e6;
+        return -1;
     }
 }
 

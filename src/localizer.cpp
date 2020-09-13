@@ -681,7 +681,12 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
         const double d = 1 - std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
         const unsigned int f_index = dm_.get_nearest_edge_index(v(0), v(1));
         if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), f_index) != connected_edge_indices_[p_edge_index].end()){
-            f_w += d;
+            const double distance = dm_.get_min_distance_from_edge(v(0), v(1));
+            double l = 1 - std::min(1.0, l / observation_distance_offset_);
+            if(distance < 0.0){
+                l = 0.0;
+            }
+            f_w += l;
         }
     }
     likelihood += f_w;
@@ -691,11 +696,15 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
         // std::cout << o.transpose() << "->" << v.transpose() << std::endl;
         // TODO: to be updated
         // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
-        const double d = std::min(1.0, dm_.get_min_distance_from_edge(v(0), v(1)) / observation_distance_offset_);
         const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
         if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
             // std::cout << "v: " << v.transpose() << ", oi: " << map_.edges[o_index].node0_id << " -> " << map_.edges[o_index].node1_id << ", d: " << d << std::endl;
-            o_w += d; 
+            const double distance = dm_.get_min_distance_from_edge(v(0), v(1));
+            double l = std::min(1.0, l / observation_distance_offset_);
+            if(distance < 0.0){
+                l = 0.0;
+            }
+            o_w += l; 
         }
     }
     likelihood += o_w;
