@@ -62,6 +62,7 @@ public:
     void move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt);
     void publish_particles(const ros::Time& stamp, const std::string& frame_id);
     std::tuple<Pose, std::vector<double>> get_estimation_result_from_particles(void);
+    std::tuple<Pose, std::vector<double>> get_estimation_result_from_particles_max_weight(void);
     void print_pose(const geometry_msgs::Pose& pose);
     void normalize_particles_weight(void);
     geometry_msgs::Quaternion get_quaternion_msg_from_yaw(const double yaw);

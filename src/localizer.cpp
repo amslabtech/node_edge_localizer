@@ -409,6 +409,46 @@ std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_part
     return std::forward_as_tuple(p, cov);
 }
 
+std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_particles_max_weight(void)
+{
+    Pose p{
+        Eigen::Vector3d::Zero(),
+        0.0
+    };
+    std::vector<double> cov(36);
+    double direction_x = 0;
+    double direction_y = 0;
+    const unsigned int num = particles_.size();
+    // calculate mean
+    for(const auto& particle : particles_){
+        p.position_ += particle.weight_ * particle.pose_.position_;
+        direction_x += particle.weight_ * cos(particle.pose_.yaw_);
+        direction_y += particle.weight_ * sin(particle.pose_.yaw_);
+    }
+    p.yaw_ = atan2(direction_y, direction_x);
+    // calculate covariance
+    for(const auto& particle : particles_){
+        cov[0 * 6 + 0] += Calculation::square(p.position_(0) - particle.pose_.position_(0));
+        cov[0 * 6 + 1] += (p.position_(0) - particle.pose_.position_(0)) * (p.position_(1) - particle.pose_.position_(1));
+        cov[1 * 6 + 1] += Calculation::square(p.position_(1) - particle.pose_.position_(1));
+    }
+    cov[1 * 6 + 0] = cov[0 * 6 + 1];
+    // TODO: angle covariance
+    for(auto& c : cov){
+        c /= (double)num;
+    }
+    // search particle with max weight
+    Particle max_w_p;
+    max_w_p = particles_[0];
+    for(const auto& particle : particles_){
+        if(max_w_p.weight_ < particle.weight_){
+            max_w_p = particle;
+        }
+    }
+    p = max_w_p.pose_;
+    return std::forward_as_tuple(p, cov);
+}
+
 void Localizer::print_pose(const geometry_msgs::Pose& pose)
 {
     std::cout << "(" << pose.position.x << ", " 
