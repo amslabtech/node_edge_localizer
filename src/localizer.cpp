@@ -268,6 +268,28 @@ void Localizer::initialize_particles(double x, double y, double yaw)
     }
 }
 
+void Localizer::initialize_particles_uniform(double x, double y, double yaw)
+{
+    particles_.clear();
+    const double delta_p = 1.0;
+    const double delta_yaw = M_PI / 6.0;
+    const double begin_p = -5.0;
+    for(unsigned int i=0;i<10;++i){
+        for(unsigned int j=0;j<10;++j){
+            for(unsigned int k=0;k<12;++k){
+                Particle p{
+                    Pose{
+                        Eigen::Vector3d(x + delta_p * i + begin_p, y + delta_p * j + begin_p, 0),
+                        yaw + delta_yaw * k - M_PI 
+                    },
+                    1.0 / (double)(particle_num_)
+                };
+                particles_.push_back(p);
+            }
+        }
+    }
+}
+
 nav_msgs::Odometry Localizer::convert_pose_to_msg(const Pose& p)
 {
     nav_msgs::Odometry o;
