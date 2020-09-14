@@ -357,7 +357,7 @@ void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yaw
         r = Eigen::AngleAxisd(particle.pose_.yaw_, Eigen::Vector3d::UnitZ());
         particle.pose_.position_ = r * t + particle.pose_.position_;
         particle.pose_.yaw_ = Calculation::pi_2_pi(particle.pose_.yaw_ + dyaw);
-        particle.weight_ *= compute_particle_likelihood_from_motion(dp_r, dyaw_r, t, dyaw);
+        // particle.weight_ *= compute_particle_likelihood_from_motion(dp_r, dyaw_r, t, dyaw);
     }
 }
 
