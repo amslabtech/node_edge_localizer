@@ -32,7 +32,9 @@ Localizer::Localizer(void)
 
     local_nh_.param<bool>("enable_tf", enable_tf_, true);
     local_nh_.param<bool>("enable_odom_tf", enable_odom_tf_, false);
-    local_nh_.param<int>("particle_num", particle_num_, 100);
+    int particle_num;
+    local_nh_.param<int>("particle_num", particle_num, 100);
+    particle_num_ = static_cast<unsigned int>(particle_num);
     local_nh_.param<double>("init_x", init_x_, 0.0);
     local_nh_.param<double>("init_y", init_y_, 0.0);
     local_nh_.param<double>("init_yaw", init_yaw_, 0.0);

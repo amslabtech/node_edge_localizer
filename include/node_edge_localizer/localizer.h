@@ -81,7 +81,7 @@ public:
 protected:
     bool enable_tf_;
     bool enable_odom_tf_;
-    int particle_num_;
+    unsigned int particle_num_;
     /// initial position x
     double init_x_;
     /// initial position y
