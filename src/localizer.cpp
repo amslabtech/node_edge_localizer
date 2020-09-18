@@ -32,9 +32,12 @@ Localizer::Localizer(void)
 
     local_nh_.param<bool>("enable_tf", enable_tf_, true);
     local_nh_.param<bool>("enable_odom_tf", enable_odom_tf_, false);
-    int particle_num;
-    local_nh_.param<int>("particle_num", particle_num, 100);
-    particle_num_ = static_cast<unsigned int>(particle_num);
+    int max_particle_num;
+    local_nh_.param<int>("max_particle_num", max_particle_num, 500);
+    max_particle_num_ = static_cast<unsigned int>(max_particle_num);
+    int min_particle_num;
+    local_nh_.param<int>("min_particle_num", min_particle_num, 10);
+    min_particle_num_ = static_cast<unsigned int>(min_particle_num);
     local_nh_.param<double>("init_x", init_x_, 0.0);
     local_nh_.param<double>("init_y", init_y_, 0.0);
     local_nh_.param<double>("init_yaw", init_yaw_, 0.0);
@@ -43,9 +46,7 @@ Localizer::Localizer(void)
     local_nh_.param<double>("sigma_xy", sigma_xy_, 0.1);
     local_nh_.param<double>("sigma_yaw", sigma_yaw_, 0.1);
     local_nh_.param<double>("distance_map/resolution", dm_resolution_, 0.1);
-    double resampling_ratio;
-    local_nh_.param<double>("resampling_ratio", resampling_ratio, 0.5);
-    resampling_threshold_ = particle_num_ * resampling_ratio;
+    local_nh_.param<double>("resampling_ratio", resampling_ratio_, 0.5);
     local_nh_.param<double>("observation_distance_offset", observation_distance_offset_, 2.0);
     local_nh_.param<double>("alpha_slow", alpha_slow_, 0.001);
     local_nh_.param<double>("alpha_fast", alpha_fast_, 0.1);
@@ -53,10 +54,12 @@ Localizer::Localizer(void)
     int input_point_num; 
     local_nh_.param<int>("input_point_num", input_point_num, 1000);
     input_point_num_ = static_cast<unsigned int>(input_point_num);
+    local_nh_.param<double>("kld_z", kld_z_, 0.99);
+    local_nh_.param<double>("kld_error", kld_error_, 0.05);
 
     ROS_INFO_STREAM("enable_tf: " << enable_tf_);
     ROS_INFO_STREAM("enable_odom_tf: " << enable_odom_tf_);
-    ROS_INFO_STREAM("particle_num: " << particle_num_);
+    ROS_INFO_STREAM("max_particle_num: " << max_particle_num_);
     ROS_INFO_STREAM("init_x: " << init_x_);
     ROS_INFO_STREAM("init_y: " << init_y_);
     ROS_INFO_STREAM("init_yaw: " << init_yaw_);
@@ -65,12 +68,14 @@ Localizer::Localizer(void)
     ROS_INFO_STREAM("sigma_xy: " << sigma_xy_);
     ROS_INFO_STREAM("sigma_yaw: " << sigma_yaw_);
     ROS_INFO_STREAM("dm_resolution: " << dm_resolution_);
-    ROS_INFO_STREAM("resampling_threshold: " << resampling_threshold_);
+    ROS_INFO_STREAM("resampling_ratio: " << resampling_ratio_);
     ROS_INFO_STREAM("observation_distance_offset: " << observation_distance_offset_);
     ROS_INFO_STREAM("alpha_slow: " << alpha_slow_);
     ROS_INFO_STREAM("alpha_fast: " << alpha_fast_);
     ROS_INFO_STREAM("obstacle_ratio: " << obstacle_ratio_);
     ROS_INFO_STREAM("input_point_num: " << input_point_num_);
+    ROS_INFO_STREAM("kld_z: " << kld_z_);
+    ROS_INFO_STREAM("kld_error: " << kld_error_);
 
     initialize();
 }
@@ -222,6 +227,7 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
     std::cout << "observed obstacle points: " << obstacle_vectors.size() << std::endl;
     compute_particle_likelihood(free_vectors, obstacle_vectors);
     resample_particles();
+    ROS_INFO_STREAM("particle num: " << particles_.size());
     const auto end = std::chrono::system_clock::now();
     std::cout << "observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]" << std::endl;
 }
@@ -260,13 +266,13 @@ void Localizer::initialize_particles(double x, double y, double yaw)
     particles_.clear();
     std::normal_distribution<> noise_xy(0.0, init_sigma_xy_);
     std::normal_distribution<> noise_yaw(0.0, init_sigma_yaw_);
-    for(int i=0;i<particle_num_;i++){
+    for(unsigned int i=0;i<max_particle_num_;i++){
         Particle p{
             Pose{
                 Eigen::Vector3d(x + noise_xy(engine_), y + noise_xy(engine_), 0),
                 yaw + noise_yaw(engine_)
             },
-            1.0 / (double)(particle_num_)
+            1.0 / static_cast<double>(max_particle_num_)
         };
         particles_.push_back(p);
     }
@@ -286,7 +292,7 @@ void Localizer::initialize_particles_uniform(double x, double y, double yaw)
                         Eigen::Vector3d(x + delta_p * i + begin_p, y + delta_p * j + begin_p, 0),
                         yaw + delta_yaw * k - M_PI 
                     },
-                    1.0 / (double)(particle_num_)
+                    1.0 / static_cast<double>(max_particle_num_)
                 };
                 particles_.push_back(p);
             }
@@ -513,7 +519,9 @@ void Localizer::resample_particles(void)
     normalize_particles_weight();
     const double effective_num_of_particles = compute_num_of_effective_particles();
     std::cout << "n_e: " << effective_num_of_particles << std::endl;
-    if(!(effective_num_of_particles < resampling_threshold_)){
+    const double resampling_threshold = resampling_ratio_ * particles_.size();
+    ROS_INFO_STREAM("resampling threshold: " << resampling_threshold);
+    if(!(effective_num_of_particles < resampling_threshold)){
         return;
     }
 
@@ -521,7 +529,8 @@ void Localizer::resample_particles(void)
     const unsigned int n = particles_.size();
 
     std::uniform_real_distribution<> dist(0.0, 1.0);
-    std::vector<Particle> new_particles(n);
+    std::vector<Particle> new_particles;
+    new_particles.reserve(max_particle_num_);
 
     // noise for random sampling
     std::normal_distribution<> noise_xy(0.0, init_sigma_xy_);
@@ -535,17 +544,21 @@ void Localizer::resample_particles(void)
     }
     std::uniform_real_distribution<> dist_for_sample(0.0, c.back());
 
-    for(unsigned int i=0;i<n;i++){
+    bins_.clear();
+    unsigned int bin_num = bins_.size();
+    for(unsigned int i=0;i<max_particle_num_;i++){
         if(dist(engine_) > w_diff){
             // sample from existing particles
             const double r = dist_for_sample(engine_);
             for(unsigned int j=0;j<n;j++){
                 if((c[j] <= r) && (r < c[j+1])){
-                    new_particles[i] = particles_[j];
-                    new_particles[i].weight_ = 1.0;
-                break;
+                    const auto& p = particles_[j];
+                    bins_[std::make_tuple(p.pose_.position_(0) / 0.5, p.pose_.position_(1) / 0.5, p.pose_.yaw_ / (M_PI / 12.0))] = 0;
+                    new_particles.emplace_back(p);
+                    new_particles.back().weight_ = 1.0;
+                    break;
+                }
             }
-        }
         }else{
             // random sampling
             const Particle p{
@@ -555,7 +568,11 @@ void Localizer::resample_particles(void)
                 },
                 1.0
             };
-            new_particles[i] = p;
+            new_particles.emplace_back(p);
+        }
+        const unsigned int n = compute_particle_num_from_bin_num(bins_.size());
+        if(i > n){
+            break;
         }
     }
     particles_ = new_particles;
@@ -743,6 +760,18 @@ void Localizer::subsample_observed_points(std::vector<Eigen::Vector2d>& free_vec
         }
         obstacle_vectors = new_o;
     }
+}
+
+unsigned int Localizer::compute_particle_num_from_bin_num(unsigned int k)
+{
+    if(k < 2){
+        return max_particle_num_;
+    }
+    // ref: https://github.com/ros-planning/navigation/blob/noetic-devel/amcl/src/amcl/pf/pf.c#L540
+    const double val = 1 - 2.0 / (9.0 * (k - 1)) + sqrt(2.0 / (9.0 * (k - 1))) * kld_z_;
+    unsigned int n = static_cast<unsigned int>(std::ceil((k - 1) / (2 * kld_error_) * val * val * val));
+    n = std::max(min_particle_num_, std::min(n, max_particle_num_));
+    return n;
 }
 
 void Localizer::process(void)

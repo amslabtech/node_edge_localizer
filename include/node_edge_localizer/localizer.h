@@ -77,11 +77,13 @@ public:
     std::vector<std::vector<unsigned int>> get_connected_edge_indices(void);
     double compute_likelihood(const Pose& pose, const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors, const double weight);
     void subsample_observed_points(std::vector<Eigen::Vector2d>& free_vectors, std::vector<Eigen::Vector2d>& obstacle_vectors);
+    unsigned int compute_particle_num_from_bin_num(unsigned int k);
     void process(void);
 protected:
     bool enable_tf_;
     bool enable_odom_tf_;
-    unsigned int particle_num_;
+    unsigned int max_particle_num_;
+    unsigned int min_particle_num_;
     /// initial position x
     double init_x_;
     /// initial position y
@@ -99,7 +101,7 @@ protected:
     /// resolution of DistanceMap [m/cell]
     double dm_resolution_;
     /// threshold for reciprocal of sum of squares of particles weight
-    double resampling_threshold_;
+    double resampling_ratio_;
     /// parameter for tuning likelihood
     double observation_distance_offset_;
     double alpha_fast_;
@@ -107,6 +109,10 @@ protected:
     // \in [0, 1]
     double obstacle_ratio_;
     unsigned int input_point_num_;
+    double kld_z_;
+    double kld_error_;
+    // (x, y, yaw), num
+    std::map<std::tuple<int, int, int>, unsigned int> bins_;
 
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;
