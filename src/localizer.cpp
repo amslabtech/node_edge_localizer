@@ -352,8 +352,6 @@ void Localizer::publish_odom_to_robot_tf(const ros::Time& stamp, const std::stri
 
 void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt)
 {
-    const Eigen::Vector3d dp_r = velocity * dt;
-    const double dyaw_r = yawrate * dt;
     std::normal_distribution<> noise_xy(0.0, sigma_xy_);
     std::normal_distribution<> noise_yaw(0.0, sigma_yaw_);
     for(auto& particle : particles_){
@@ -545,7 +543,6 @@ void Localizer::resample_particles(void)
     std::uniform_real_distribution<> dist_for_sample(0.0, c.back());
 
     bins_.clear();
-    unsigned int bin_num = bins_.size();
     for(unsigned int i=0;i<max_particle_num_;i++){
         if(dist(engine_) > w_diff){
             // sample from existing particles
