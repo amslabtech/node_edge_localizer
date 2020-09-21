@@ -36,7 +36,7 @@ Localizer::Localizer(void)
     local_nh_.param<int>("max_particle_num", max_particle_num, 500);
     max_particle_num_ = static_cast<unsigned int>(max_particle_num);
     int min_particle_num;
-    local_nh_.param<int>("min_particle_num", min_particle_num, 10);
+    local_nh_.param<int>("min_particle_num", min_particle_num, 50);
     min_particle_num_ = static_cast<unsigned int>(min_particle_num);
     local_nh_.param<double>("init_x", init_x_, 0.0);
     local_nh_.param<double>("init_y", init_y_, 0.0);
