@@ -83,7 +83,7 @@ Localizer::Localizer(void)
 void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
     if(!map_received_){
-        std::cout << ros::this_node::getName() << ": waiting for map..." << std::endl;
+        ROS_INFO_STREAM_THROTTLE(1.0, ros::this_node::getName() << ": waiting for map...");
         return;
     }
     Pose p = {
@@ -102,7 +102,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         if(robot_frame_[0] == '/'){
             robot_frame_.erase(0, 1);
         }
-        std::cout << "robot frame is set to " << robot_frame_ << std::endl;
+        ROS_INFO_STREAM("robot frame is set to " << robot_frame_);
         return;
     }
     // offset odometry
@@ -118,7 +118,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     // get robot motion
     const double dt = odom_timestamp - last_odom_timestamp_;
     if(dt == 0.0){
-        std::cout << "error: dt must be > 0" << std::endl;
+        ROS_WARN("error: dt must be > 0");
         return;
     }
     Eigen::Vector3d velocity = (p.position_ - last_odom_pose_.position_) / dt;
@@ -159,23 +159,23 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
 void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& msg)
 {
-    std::cout << ros::this_node::getName() << ": map_callback" << std::endl;
+    ROS_INFO_STREAM(ros::this_node::getName() << ": map_callback");
     map_ = *msg;
-    std::cout << "remove duplicated edges" << std::endl;
-    std::cout << "edge num: " << map_.edges.size() << std::endl;
+    ROS_INFO("remove duplicated edges");
+    ROS_INFO_STREAM("edge num: " << map_.edges.size());
     remove_reversed_edges_from_map(map_);
-    std::cout << "after edge num: " << map_.edges.size() << std::endl;
+    ROS_INFO_STREAM("after edge num: " << map_.edges.size());
     for(const auto& e : map_.edges){
-        std::cout << e.node0_id << " -> " << e.node1_id << std::endl;
+        ROS_INFO_STREAM(e.node0_id << " -> " << e.node1_id);
     }
     connected_edge_indices_ = get_connected_edge_indices();
     const unsigned edge_num = map_.edges.size();
     for(unsigned int i=0;i<edge_num;++i){
-        std::cout << "edge index: " << i << std::endl;
-        std::cout << map_.edges[i].node0_id << " -> " << map_.edges[i].node1_id << std::endl;
+        ROS_INFO_STREAM("edge index: " << i);
+        ROS_INFO_STREAM(map_.edges[i].node0_id << " -> " << map_.edges[i].node1_id);
         const unsigned int connected_edges_num = connected_edge_indices_[i].size();
         for(unsigned int j=0;j<connected_edges_num;++j){
-            std::cout << "\t" << map_.edges[connected_edge_indices_[i][j]].node0_id << " -> " << map_.edges[connected_edge_indices_[i][j]].node1_id << std::endl;
+            ROS_INFO_STREAM("\t" << map_.edges[connected_edge_indices_[i][j]].node0_id << " -> " << map_.edges[connected_edge_indices_[i][j]].node1_id);
         }
     }
     nemi_.set_map(map_);
@@ -183,13 +183,13 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     dm_.make_distance_map(map_, dm_resolution_);
     const auto end = std::chrono::system_clock::now();
     map_received_ = true;
-    std::cout << "distance map was computed in: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "[ms]" << std::endl;
+    ROS_INFO_STREAM("distance map was computed in: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "[ms]");
     publish_distance_map(dm_, msg->header.frame_id, msg->header.stamp);
 }
 
 void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& msg)
 {
-    std::cout << "observation_map_callback" << std::endl;
+    ROS_DEBUG("observation_map_callback");
     const auto start = std::chrono::system_clock::now();
     if(!map_received_){
         ROS_WARN_STREAM(ros::this_node::getName() << ": map is not received");
@@ -223,22 +223,22 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
         }
     }
     // subsample_observed_points(free_vectors, obstacle_vectors);
-    std::cout << "observed free points: " << free_vectors.size() << std::endl;
-    std::cout << "observed obstacle points: " << obstacle_vectors.size() << std::endl;
+    ROS_INFO_STREAM("observed free points: " << free_vectors.size());
+    ROS_INFO_STREAM("observed obstacle points: " << obstacle_vectors.size());
     compute_particle_likelihood(free_vectors, obstacle_vectors);
     resample_particles();
     ROS_INFO_STREAM("particle num: " << particles_.size());
     const auto end = std::chrono::system_clock::now();
-    std::cout << "observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]" << std::endl;
+    ROS_INFO_STREAM("observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]");
 }
 
 void Localizer::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
 {
     if(msg->header.frame_id != nemi_.get_map_header_frame_id()){
-        std::cout << "Initial pose must be in the global frame: " << nemi_.get_map_header_frame_id() << std::endl;
+        ROS_WARN_STREAM("Initial pose must be in the global frame: " << nemi_.get_map_header_frame_id());
         return;
     }
-    std::cout << "received initial pose: " ;
+    ROS_INFO_STREAM("received initial pose: ");
     print_pose(msg->pose.pose);
     initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
 }
@@ -253,7 +253,7 @@ void Localizer::initialize(double x, double y, double yaw)
     initialize_particles(x, y, yaw);
     std::vector<double> covariance;
     std::tie(estimated_pose_, covariance) = get_estimation_result_from_particles();
-    std::cout << "initialized pose: " << estimated_pose_.position_.transpose() << ", " << estimated_pose_.yaw_ << std::endl;
+    ROS_INFO_STREAM("initialized pose: " << estimated_pose_.position_.transpose() << ", " << estimated_pose_.yaw_);
     first_odom_callback_ = true;
     first_odom_pose_.position_ = Eigen::Vector3d::Zero();
     first_odom_pose_.yaw_ = 0.0;
@@ -459,9 +459,9 @@ std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_part
 
 void Localizer::print_pose(const geometry_msgs::Pose& pose)
 {
-    std::cout << "(" << pose.position.x << ", " 
-              << pose.position.y << ", " 
-              << tf2::getYaw(pose.orientation) << ")" << std::endl;
+    ROS_INFO_STREAM("(" << pose.position.x << ", " 
+                    << pose.position.y << ", " 
+                    << tf2::getYaw(pose.orientation) << ")");
 }
 
 void Localizer::normalize_particles_weight(void)
@@ -494,10 +494,10 @@ double Localizer::compute_num_of_effective_particles(void)
 
 void Localizer::resample_particles(void)
 {
-    std::cout << "preprocess of resampling" << std::endl;
+    // ROS_DEBUG("preprocess of resampling");
     // compute average before normalization
     const double w_avg = compute_average_particle_wight();
-    // std::cout << "w_avg: " << w_avg << std::endl;;
+    // ROS_DEBUG_STREAM("w_avg: " << w_avg);
     if(w_slow_ > 0.0){
         w_slow_ += alpha_slow_ * (w_avg - w_slow_);
     }else{
@@ -508,22 +508,22 @@ void Localizer::resample_particles(void)
     }else{
         w_fast_ = w_avg;
     }
-    // std::cout << "w_fast: " << w_fast_ << std::endl;
-    // std::cout << "w_slow: " << w_slow_ << std::endl;;
+    // ROS_DEBUG_STREAM("w_fast: " << w_fast_);
+    // ROS_DEBUG_STREAM("w_slow: " << w_slow_);
     const double w_diff = std::max(1.0 - w_fast_ / w_slow_, 0.0);
-    // std::cout << "w_diff: " << w_diff << std::endl;;
-    std::cout << w_diff * 100 << " percent of particles will be randomly placed" << std::endl;
+    // ROS_DEBUG_STREAM("w_diff: " << w_diff);
 
     normalize_particles_weight();
     const double effective_num_of_particles = compute_num_of_effective_particles();
-    std::cout << "n_e: " << effective_num_of_particles << std::endl;
+    ROS_INFO_STREAM("effective particle num: " << effective_num_of_particles);
     const double resampling_threshold = resampling_ratio_ * particles_.size();
     ROS_INFO_STREAM("resampling threshold: " << resampling_threshold);
     if(!(effective_num_of_particles < resampling_threshold)){
         return;
     }
 
-    std::cout << "resampling" << std::endl;
+    ROS_INFO("resampling");
+    ROS_INFO_STREAM(w_diff * 100 << " percent of particles will be randomly placed");
     const unsigned int n = particles_.size();
 
     std::uniform_real_distribution<> dist(0.0, 1.0);
@@ -589,15 +589,15 @@ void Localizer::publish_distance_map(const DistanceMap& dm, const std::string& f
     std::vector<EdgeIndexWithDistance> data;
     double min_x, max_x, min_y, max_y;
     std::tie(data, min_x, max_x, min_y, max_y) = dm.get_data();
-    std::cout << "DistanceMap data:" << std::endl;
-    std::cout << "\tmin_x: " << min_x << std::endl;
-    std::cout << "\tmax_x: " << max_x << std::endl;
-    std::cout << "\tmin_y: " << min_y << std::endl;
-    std::cout << "\tmax_y: " << max_y << std::endl;
+    ROS_INFO("DistanceMap data:");
+    ROS_INFO_STREAM("\tmin_x: " << min_x);
+    ROS_INFO_STREAM("\tmax_x: " << max_x);
+    ROS_INFO_STREAM("\tmin_y: " << min_y);
+    ROS_INFO_STREAM("\tmax_y: " << max_y);
     const unsigned int width = (max_x - min_x) / dm_resolution_;
     const unsigned int height = (max_y - min_y) / dm_resolution_;
-    std::cout << "\twidth: " << width << std::endl;
-    std::cout << "\theight: " << height << std::endl;
+    ROS_INFO_STREAM("\twidth: " << width);
+    ROS_INFO_STREAM("\theight: " << height);
     nav_msgs::OccupancyGrid og;
     og.header.frame_id = frame_id;
     og.header.stamp = stamp;
@@ -682,8 +682,9 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
 {
     double likelihood = weight;
     const unsigned int p_edge_index = dm_.get_nearest_edge_index(pose.position_(0), pose.position_(1));
-    // std::cout << "p at " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << ", " << p_edge_index << std::endl;
-    // std::cout << "p at: " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << ", edge: " << map_.edges[p_edge_index].node0_id << " -> " << map_.edges[p_edge_index].node1_id << std::endl;
+    // ROS_DEBUG_STREAM("p at " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << ", " << p_edge_index);
+    ROS_DEBUG_STREAM("p at: " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << 
+                     ", edge: " << map_.edges[p_edge_index].node0_id << " -> " << map_.edges[p_edge_index].node1_id);
     // transform observed points to each particle frame
     const Eigen::Translation2d trans(pose.position_(0), pose.position_(1));
     Eigen::Matrix2d rot;
@@ -707,15 +708,13 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
         }
     }
     likelihood += f_w;
-    // std::cout << "f_w: " << f_w << std::endl;
+    // ROS_INFO_STREAM("f_w: " << f_w);
     for(const auto& o : obstacle_vectors){
         const Eigen::Vector2d v = affine * o;
-        // std::cout << o.transpose() << "->" << v.transpose() << std::endl;
         // TODO: to be updated
         // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
         const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
         if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
-            // std::cout << "v: " << v.transpose() << ", oi: " << map_.edges[o_index].node0_id << " -> " << map_.edges[o_index].node1_id << ", d: " << d << std::endl;
             const double distance = dm_.get_min_distance_from_edge(v(0), v(1));
             if(distance < 0.0){
                 continue;
@@ -728,8 +727,8 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     if(likelihood < 1e-12){
         likelihood = 1e-12;
     }
-    // std::cout << "o_w: " << o_w << std::endl;
-    // std::cout << pose.position_(0) << ", " << pose.position_(1) << ", " << pose.yaw_ << " >> " << likelihood << std::endl;
+    // ROS_INFO_STREAM("o_w: " << o_w);
+    // ROS_INFO_STREAM(pose.position_(0) << ", " << pose.position_(1) << ", " << pose.yaw_ << " >> " << likelihood);
     return likelihood;
 }
 
