@@ -95,7 +95,9 @@ protected:
     /// stddev of initial orientation 
     double init_sigma_yaw_;
     /// stddev of position transition
-    double sigma_xy_;
+    double sigma_x_;
+    /// stddev of position transition
+    double sigma_y_;
     /// stddev of orientatoin transition
     double sigma_yaw_;
     /// resolution of DistanceMap [m/cell]

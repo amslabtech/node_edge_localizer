@@ -43,7 +43,8 @@ Localizer::Localizer(void)
     local_nh_.param<double>("init_yaw", init_yaw_, 0.0);
     local_nh_.param<double>("init_sigma_xy", init_sigma_xy_, 0.5);
     local_nh_.param<double>("init_sigma_yaw", init_sigma_yaw_, 0.2);
-    local_nh_.param<double>("sigma_xy", sigma_xy_, 0.1);
+    local_nh_.param<double>("sigma_x", sigma_x_, 0.5);
+    local_nh_.param<double>("sigma_y", sigma_y_, 0.1);
     local_nh_.param<double>("sigma_yaw", sigma_yaw_, 0.1);
     local_nh_.param<double>("distance_map/resolution", dm_resolution_, 0.1);
     local_nh_.param<double>("resampling_ratio", resampling_ratio_, 0.5);
@@ -65,7 +66,8 @@ Localizer::Localizer(void)
     ROS_INFO_STREAM("init_yaw: " << init_yaw_);
     ROS_INFO_STREAM("init_sigma_xy: " << init_sigma_xy_);
     ROS_INFO_STREAM("init_sigma_yaw: " << init_sigma_yaw_);
-    ROS_INFO_STREAM("sigma_xy: " << sigma_xy_);
+    ROS_INFO_STREAM("sigma_x: " << sigma_x_);
+    ROS_INFO_STREAM("sigma_y: " << sigma_y_);
     ROS_INFO_STREAM("sigma_yaw: " << sigma_yaw_);
     ROS_INFO_STREAM("dm_resolution: " << dm_resolution_);
     ROS_INFO_STREAM("resampling_ratio: " << resampling_ratio_);
@@ -352,11 +354,12 @@ void Localizer::publish_odom_to_robot_tf(const ros::Time& stamp, const std::stri
 
 void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt)
 {
-    std::normal_distribution<> noise_xy(0.0, sigma_xy_);
+    std::normal_distribution<> noise_x(0.0, sigma_x_);
+    std::normal_distribution<> noise_y(0.0, sigma_y_);
     std::normal_distribution<> noise_yaw(0.0, sigma_yaw_);
     for(auto& particle : particles_){
-        const double dx = (velocity(0) + noise_xy(engine_)) * dt;
-        const double dy = (velocity(1) + noise_xy(engine_)) * dt;
+        const double dx = (velocity(0) + noise_x(engine_)) * dt;
+        const double dy = (velocity(1) + noise_y(engine_)) * dt;
         const double dyaw = (yawrate + noise_yaw(engine_)) * dt;
         const Eigen::Vector3d t(dx, dy, 0.0);
         Eigen::Matrix3d r;
