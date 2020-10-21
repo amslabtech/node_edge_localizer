@@ -78,6 +78,7 @@ public:
     double compute_likelihood(const Pose& pose, const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors, const double weight);
     void subsample_observed_points(std::vector<Eigen::Vector2d>& free_vectors, std::vector<Eigen::Vector2d>& obstacle_vectors);
     unsigned int compute_particle_num_from_bin_num(unsigned int k);
+    void publish_observed_points(const std_msgs::Header& header, const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors);
     void process(void);
 protected:
     bool enable_tf_;

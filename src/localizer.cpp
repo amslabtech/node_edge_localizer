@@ -20,6 +20,7 @@ Localizer::Localizer(void)
     particles_pub_ = nh_.advertise<geometry_msgs::PoseArray>("estimated_pose/particles", 1);
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
     distance_map_pub_ = local_nh_.advertise<nav_msgs::OccupancyGrid>("distance_map", 1, true);
+    observed_points_pub_ = local_nh_.advertise<visualization_msgs::Marker>("observed_points", 1, true);
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     initial_pose_sub_ = nh_.subscribe("initialpose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
@@ -224,6 +225,7 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
         }else if(80 <= msg->data[i]){
             obstacle_vectors.emplace_back(v);
         }
+        publish_observed_points(msg->header, free_vectors, obstacle_vectors);
     }
     // subsample_observed_points(free_vectors, obstacle_vectors);
     ROS_INFO_STREAM("observed free points: " << free_vectors.size());
@@ -772,6 +774,71 @@ unsigned int Localizer::compute_particle_num_from_bin_num(unsigned int k)
     unsigned int n = static_cast<unsigned int>(std::ceil((k - 1) / (2 * kld_error_) * val * val * val));
     n = std::max(min_particle_num_, std::min(n, max_particle_num_));
     return n;
+}
+
+void Localizer::publish_observed_points(const std_msgs::Header& header, const std::vector<Eigen::Vector2d>& free_vectors, const std::vector<Eigen::Vector2d>& obstacle_vectors)
+{
+    if(observed_points_pub_.getNumSubscribers() == 0){
+        return;
+    }
+    const Eigen::Translation2d trans(estimated_pose_.position_(0), estimated_pose_.position_(1));
+    Eigen::Matrix2d rot;
+    rot << cos(estimated_pose_.yaw_), -sin(estimated_pose_.yaw_),
+           sin(estimated_pose_.yaw_),  cos(estimated_pose_.yaw_);
+    const Eigen::Affine2d affine = trans * rot;
+    visualization_msgs::Marker m;
+    m.header = header;
+    m.ns = "observed_points";
+    m.id = 0;
+    m.type = visualization_msgs::Marker::POINTS;
+    m.action = visualization_msgs::Marker::ADD;
+    tf2::Quaternion q;
+    q.setRPY(0, 0, 0);
+    m.pose.orientation = tf2::toMsg(q);
+    m.scale.x = 0.1;
+    m.lifetime = ros::Duration();
+    m.frame_locked = true;
+    m.points.reserve(free_vectors.size() + obstacle_vectors.size());
+    m.colors.reserve(free_vectors.size() + obstacle_vectors.size());
+    double sum_l = 0.0;
+    for(const auto& f : free_vectors){
+        const Eigen::Vector2d v = affine * f;
+        const double d = dm_.get_min_distance_from_edge(v(0), v(1));
+        const double l = 1 - std::min(1.0, d / observation_distance_offset_);
+        geometry_msgs::Point p;
+        p.x = f(0);
+        p.y = f(1);
+        p.z = l;
+        m.points.emplace_back(p);
+        std_msgs::ColorRGBA c;
+        c.a = 1.0;
+        c.b = 1.0;
+        m.colors.emplace_back(c);
+        sum_l += l;
+    }
+    for(const auto& o : obstacle_vectors){
+        const Eigen::Vector2d v = affine * o;
+        const double d = dm_.get_min_distance_from_edge(v(0), v(1));
+        const double l = std::min(1.0, d / observation_distance_offset_);
+        geometry_msgs::Point p;
+        p.x = o(0);
+        p.y = o(1);
+        p.z = l;
+        m.points.emplace_back(p);
+        std_msgs::ColorRGBA c;
+        c.a = 1.0;
+        c.r = 1.0;
+        m.colors.emplace_back(c);
+        sum_l += l;
+    }
+    geometry_msgs::Point p;
+    p.z = sum_l;
+    m.points.emplace_back(p);
+    std_msgs::ColorRGBA c;
+    c.a = 1.0;
+    c.g = 1.0;
+    m.colors.emplace_back(c);
+    observed_points_pub_.publish(m);
 }
 
 void Localizer::process(void)
