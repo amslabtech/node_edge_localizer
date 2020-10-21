@@ -5,6 +5,8 @@
 #ifndef __NODE_EDGE_LOCALIZER_DISTANCE_MAP_H
 #define __NODE_EDGE_LOCALIZER_DISTANCE_MAP_H
 
+#include <omp.h>
+
 #include "amsl_navigation_msgs/NodeEdgeMap.h"
 
 namespace node_edge_localizer
