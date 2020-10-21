@@ -798,7 +798,7 @@ void Localizer::publish_observed_points(const std_msgs::Header& header, const st
     q.setRPY(0, 0, 0);
     m.pose.orientation = tf2::toMsg(q);
     m.scale.x = 0.1;
-    m.lifetime = ros::Duration();
+    m.lifetime = ros::Duration(0);
     m.frame_locked = true;
     m.points.reserve(free_vectors.size() + obstacle_vectors.size());
     m.colors.reserve(free_vectors.size() + obstacle_vectors.size());
