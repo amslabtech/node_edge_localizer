@@ -48,6 +48,7 @@ void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map
     map_size_ = x_size_ * y_size_;
     map_.resize(map_size_);
     const unsigned int EDGE_NUM = map.edges.size();
+    #pragma omp parallel for
     for(unsigned int  ix=0;ix<x_size_;ix++){
         for(unsigned int iy=0;iy<y_size_;iy++){
             const unsigned int grid_index = iy * x_size_ + ix;
