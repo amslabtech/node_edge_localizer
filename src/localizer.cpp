@@ -704,7 +704,8 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
         // TODO: to be updated
         // if free(road) area is near edges, the likelihood should be higher
         const unsigned int f_index = dm_.get_nearest_edge_index(v(0), v(1));
-        if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), f_index) != connected_edge_indices_[p_edge_index].end()){
+        if(p_edge_index == f_index ||
+           std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), f_index) != connected_edge_indices_[p_edge_index].end()){
             const double distance = dm_.get_min_distance_from_edge(v(0), v(1));
             if(distance < 0.0){
                 continue;
@@ -720,7 +721,8 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
         // TODO: to be updated
         // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
         const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
-        if(std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
+        if(p_edge_index == o_index ||
+           std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
             const double distance = dm_.get_min_distance_from_edge(v(0), v(1));
             if(distance < 0.0){
                 continue;
