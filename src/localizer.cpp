@@ -182,6 +182,7 @@ void Localizer::map_callback(const amsl_navigation_msgs::NodeEdgeMapConstPtr& ms
     }
     nemi_.set_map(map_);
     const auto start = std::chrono::system_clock::now();
+    ROS_INFO_STREAM("computing distance map...");
     dm_.make_distance_map(map_, dm_resolution_);
     const auto end = std::chrono::system_clock::now();
     map_received_ = true;
