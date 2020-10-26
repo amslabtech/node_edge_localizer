@@ -114,6 +114,8 @@ protected:
     unsigned int input_point_num_;
     double kld_z_;
     double kld_error_;
+    // points in this range is used 
+    double obstacle_range_;
     // (x, y, yaw), num
     std::map<std::tuple<int, int, int>, unsigned int> bins_;
 

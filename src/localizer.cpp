@@ -58,6 +58,7 @@ Localizer::Localizer(void)
     input_point_num_ = static_cast<unsigned int>(input_point_num);
     local_nh_.param<double>("kld_z", kld_z_, 0.99);
     local_nh_.param<double>("kld_error", kld_error_, 0.05);
+    local_nh_.param<double>("obstacle_range", obstacle_range_, 20.0);
 
     ROS_INFO_STREAM("enable_tf: " << enable_tf_);
     ROS_INFO_STREAM("enable_odom_tf: " << enable_odom_tf_);
@@ -220,6 +221,9 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
         const double x = (i % msg->info.width) * msg->info.resolution + msg->info.origin.position.x;
         const double y = floor(i / msg->info.width) * msg->info.resolution + msg->info.origin.position.y;
         const Eigen::Vector2d v(x, y);
+        if(v.norm() > obstacle_range_){
+            continue;
+        }
         if(0 <= msg->data[i] && msg->data[i] < 20){
             free_vectors.emplace_back(v); 
         }else if(80 <= msg->data[i]){
