@@ -4,6 +4,7 @@ project(node_edge_localizer)
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
+add_compile_options(-Wall)
 
 find_package(catkin REQUIRED COMPONENTS
   amsl_navigation_msgs
