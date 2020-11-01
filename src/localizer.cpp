@@ -741,7 +741,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     }
     // ROS_INFO_STREAM("o_w: " << o_w);
     // ROS_INFO_STREAM(pose.position_(0) << ", " << pose.position_(1) << ", " << pose.yaw_ << " >> " << likelihood);
-    return likelihood;
+    return likelihood * likelihood * likelihood;
 }
 
 void Localizer::subsample_observed_points(std::vector<Eigen::Vector2d>& free_vectors, std::vector<Eigen::Vector2d>& obstacle_vectors)
