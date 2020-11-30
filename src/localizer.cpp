@@ -1,6 +1,6 @@
 /**
- * @file localizer.cpp 
- * @author amsl 
+ * @file localizer.cpp
+ * @author amsl
  */
 
 #include "node_edge_localizer/localizer.h"
@@ -53,7 +53,7 @@ Localizer::Localizer(void)
     local_nh_.param<double>("alpha_slow", alpha_slow_, 0.001);
     local_nh_.param<double>("alpha_fast", alpha_fast_, 0.1);
     local_nh_.param<double>("obstacle_ratio", obstacle_ratio_, 0.5);
-    int input_point_num; 
+    int input_point_num;
     local_nh_.param<int>("input_point_num", input_point_num, 1000);
     input_point_num_ = static_cast<unsigned int>(input_point_num);
     local_nh_.param<double>("kld_z", kld_z_, 0.99);
@@ -97,7 +97,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         tf2::getYaw(msg->pose.pose.orientation)
     };
     const double odom_timestamp = msg->header.stamp.toSec();
-    
+
     if(first_odom_callback_){
         first_odom_callback_ = false;
         first_odom_pose_ = p;
@@ -127,7 +127,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     }
     Eigen::Vector3d velocity = (p.position_ - last_odom_pose_.position_) / dt;
     const Eigen::AngleAxis<double> last_yaw_rotation(-last_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
-    velocity = last_yaw_rotation * velocity; 
+    velocity = last_yaw_rotation * velocity;
     const double yawrate = Calculation::pi_2_pi(p.yaw_ - last_odom_pose_.yaw_) / dt;
 
     move_particles(velocity, yawrate, dt);
@@ -151,9 +151,9 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 
     // publish tf from map to odom
     if(enable_tf_){
-        publish_map_to_odom_tf(msg->header.stamp, 
-                               msg->header.frame_id, 
-                               msg->child_frame_id, 
+        publish_map_to_odom_tf(msg->header.stamp,
+                               msg->header.frame_id,
+                               msg->child_frame_id,
                                estimated_pose.pose.pose);
     }
 
@@ -225,7 +225,7 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
             continue;
         }
         if(0 <= msg->data[i] && msg->data[i] < 20){
-            free_vectors.emplace_back(v); 
+            free_vectors.emplace_back(v);
         }else if(80 <= msg->data[i]){
             obstacle_vectors.emplace_back(v);
         }
@@ -299,7 +299,7 @@ void Localizer::initialize_particles_uniform(double x, double y, double yaw)
                 const Particle p{
                     Pose{
                         Eigen::Vector3d(x + delta_p * i + begin_p, y + delta_p * j + begin_p, 0),
-                        yaw + delta_yaw * k - M_PI 
+                        yaw + delta_yaw * k - M_PI
                     },
                     1.0 / static_cast<double>(max_particle_num_)
                 };
@@ -355,7 +355,7 @@ void Localizer::publish_odom_to_robot_tf(const ros::Time& stamp, const std::stri
     odom_to_robot_tf.transform.translation.x = pose.position_(0);
     odom_to_robot_tf.transform.translation.y = pose.position_(1);
     odom_to_robot_tf.transform.translation.z = pose.position_(2);
-    odom_to_robot_tf.transform.rotation = get_quaternion_msg_from_yaw(pose.yaw_); 
+    odom_to_robot_tf.transform.rotation = get_quaternion_msg_from_yaw(pose.yaw_);
     tfb_->sendTransform(odom_to_robot_tf);
 }
 
@@ -469,8 +469,8 @@ std::tuple<Pose, std::vector<double>> Localizer::get_estimation_result_from_part
 
 void Localizer::print_pose(const geometry_msgs::Pose& pose)
 {
-    ROS_INFO_STREAM("(" << pose.position.x << ", " 
-                    << pose.position.y << ", " 
+    ROS_INFO_STREAM("(" << pose.position.x << ", "
+                    << pose.position.y << ", "
                     << tf2::getYaw(pose.orientation) << ")");
 }
 
@@ -693,7 +693,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     double likelihood = weight;
     const unsigned int p_edge_index = dm_.get_nearest_edge_index(pose.position_(0), pose.position_(1));
     // ROS_DEBUG_STREAM("p at " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << ", " << p_edge_index);
-    ROS_DEBUG_STREAM("p at: " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ << 
+    ROS_DEBUG_STREAM("p at: " << pose.position_.segment(0, 2).transpose() << ", " << pose.yaw_ <<
                      ", edge: " << map_.edges[p_edge_index].node0_id << " -> " << map_.edges[p_edge_index].node1_id);
     // transform observed points to each particle frame
     const Eigen::Translation2d trans(pose.position_(0), pose.position_(1));
@@ -723,7 +723,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     for(const auto& o : obstacle_vectors){
         const Eigen::Vector2d v = affine * o;
         // TODO: to be updated
-        // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower 
+        // if obstacle(wall, grass,...) area is near edges, the likelihood should be lower
         const unsigned int o_index = dm_.get_nearest_edge_index(v(0), v(1));
         if(p_edge_index == o_index ||
            std::find(connected_edge_indices_[p_edge_index].begin(), connected_edge_indices_[p_edge_index].end(), o_index) != connected_edge_indices_[p_edge_index].end()){
@@ -732,7 +732,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
                 continue;
             }
             const double l = std::min(1.0, distance / observation_distance_offset_);
-            o_w += l; 
+            o_w += l;
         }
     }
     likelihood += o_w;
