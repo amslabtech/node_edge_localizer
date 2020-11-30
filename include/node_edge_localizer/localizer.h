@@ -125,6 +125,7 @@ protected:
     ros::Publisher particles_pub_;
     ros::Publisher distance_map_pub_;
     ros::Publisher observed_points_pub_;
+    ros::Publisher edge_pub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber map_sub_;
     ros::Subscriber initial_pose_sub_;

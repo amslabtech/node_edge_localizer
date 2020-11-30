@@ -21,6 +21,7 @@ Localizer::Localizer(void)
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
     distance_map_pub_ = local_nh_.advertise<nav_msgs::OccupancyGrid>("distance_map", 1, true);
     observed_points_pub_ = local_nh_.advertise<visualization_msgs::Marker>("observed_points", 1, true);
+    edge_pub_ = local_nh_.advertise<amsl_navigation_msgs::Edge>("estimated_pose/edge", 1, true);
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     initial_pose_sub_ = nh_.subscribe("initialpose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
@@ -146,6 +147,16 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         estimated_pose.pose.covariance[i] = covariance[i];
     }
     estimated_pose_pub_.publish(estimated_pose);
+    
+    //publish estimated edge
+    const unsigned int nearest_edge_index = dm_.get_nearest_edge_index(estimated_pose_.position_(0), estimated_pose_.position_(1));
+    amsl_navigation_msgs::Edge nearest_edge = nemi_.get_edge_from_index(nearest_edge_index);
+    double d_theta = estimated_pose_.yaw_ - nearest_edge.direction;
+    d_theta = atan2(sin(d_theta), cos(d_theta));
+    if(d_theta > M_PI * 0.5){
+        nearest_edge = nemi_.get_edge_from_index(nemi_.get_reversed_edge_index_from_edge_index(nearest_edge_index));
+    }
+    edge_pub_.publish(nearest_edge);
 
     publish_particles(estimated_pose.header.stamp, estimated_pose.header.frame_id);
 
