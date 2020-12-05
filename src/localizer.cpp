@@ -83,6 +83,7 @@ Localizer::Localizer(void)
     ROS_INFO_STREAM("kld_error: " << kld_error_);
 
     initialize();
+    // initialize_particles_uniform(init_x_, init_y_, init_yaw_);
 }
 
 void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
@@ -149,14 +150,8 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     estimated_pose_pub_.publish(estimated_pose);
     
     //publish estimated edge
-    const unsigned int nearest_edge_index = dm_.get_nearest_edge_index(estimated_pose_.position_(0), estimated_pose_.position_(1));
-    amsl_navigation_msgs::Edge nearest_edge = nemi_.get_edge_from_index(nearest_edge_index);
-    double d_theta = estimated_pose_.yaw_ - nearest_edge.direction;
-    d_theta = atan2(sin(d_theta), cos(d_theta));
-    if(d_theta > M_PI * 0.5){
-        nearest_edge = nemi_.get_edge_from_index(nemi_.get_reversed_edge_index_from_edge_index(nearest_edge_index));
-    }
-    edge_pub_.publish(nearest_edge);
+    const amsl_navigation_msgs::Edge estimated_edge = get_estimated_edge();
+    edge_pub_.publish(estimated_edge);
 
     publish_particles(estimated_pose.header.stamp, estimated_pose.header.frame_id);
 
@@ -249,6 +244,7 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
     resample_particles();
     ROS_INFO_STREAM("particle num: " << particles_.size());
     const auto end = std::chrono::system_clock::now();
+    ROS_INFO_STREAM("estimated pose: " << estimated_pose_.position_(0) << ", " << estimated_pose_.position_(1) << ", " << estimated_pose_.yaw_);
     ROS_INFO_STREAM("observation_map_callback time: " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "[us]");
 }
 
@@ -399,6 +395,7 @@ void Localizer::publish_particles(const ros::Time& stamp, const std::string& fra
         geometry_msgs::Pose p;
         p.position.x = particles_[i].pose_.position_(0);
         p.position.y = particles_[i].pose_.position_(1);
+        // p.position.z = particles_[i].weight_ * size;
         tf2::Quaternion q;
         q.setRPY(0, 0, particles_[i].pose_.yaw_);
         p.orientation = tf2::toMsg(q);
@@ -752,6 +749,7 @@ double Localizer::compute_likelihood(const Pose& pose, const std::vector<Eigen::
     }
     // ROS_INFO_STREAM("o_w: " << o_w);
     // ROS_INFO_STREAM(pose.position_(0) << ", " << pose.position_(1) << ", " << pose.yaw_ << " >> " << likelihood);
+    // ROS_INFO_STREAM(pose.position_(0) << ", " << pose.position_(1) << ", " << pose.yaw_ << " >> " << o_w << ", " << f_w << ", " << likelihood);
     return likelihood * likelihood * likelihood;
 }
 
@@ -856,6 +854,22 @@ void Localizer::publish_observed_points(const std_msgs::Header& header, const st
     c.g = 1.0;
     m.colors.emplace_back(c);
     observed_points_pub_.publish(m);
+}
+
+amsl_navigation_msgs::Edge Localizer::get_estimated_edge(void)
+{
+    const unsigned int nearest_edge_index = dm_.get_nearest_edge_index(estimated_pose_.position_(0), estimated_pose_.position_(1));
+    amsl_navigation_msgs::Edge nearest_edge = nemi_.get_edge_from_index(nearest_edge_index);
+    double d_theta = estimated_pose_.yaw_ - nearest_edge.direction;
+    d_theta = atan2(sin(d_theta), cos(d_theta));
+    if(d_theta > M_PI * 0.5){
+        nearest_edge = nemi_.get_edge_from_index(nemi_.get_reversed_edge_index_from_edge_index(nearest_edge_index));
+    }
+    amsl_navigation_msgs::Node n;
+    nemi_.get_node_from_id(nearest_edge.node0_id, n);
+    const double distance = sqrt(Calculation::square(n.point.x - estimated_pose_.position_(0)) + Calculation::square(n.point.y - estimated_pose_.position_(1)));
+    nearest_edge.progress = distance / nearest_edge.distance;
+    return nearest_edge;
 }
 
 void Localizer::process(void)
