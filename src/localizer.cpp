@@ -21,7 +21,7 @@ Localizer::Localizer(void)
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
     distance_map_pub_ = local_nh_.advertise<nav_msgs::OccupancyGrid>("distance_map", 1, true);
     observed_points_pub_ = local_nh_.advertise<visualization_msgs::Marker>("observed_points", 1, true);
-    edge_pub_ = local_nh_.advertise<amsl_navigation_msgs::Edge>("estimated_pose/edge", 1, true);
+    edge_pub_ = nh_.advertise<amsl_navigation_msgs::Edge>("estimated_pose/edge", 1, true);
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     initial_pose_sub_ = nh_.subscribe("initialpose", 1, &Localizer::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
