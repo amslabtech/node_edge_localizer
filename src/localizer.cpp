@@ -340,7 +340,7 @@ void Localizer::publish_map_to_odom_tf(const ros::Time& stamp, const std::string
     try{
         tf_->transform(robot_to_map_pose, odom_to_map_pose, odom_frame_id);
     }catch(tf2::TransformException& ex){
-        ROS_WARN_STREAM(ex.what());
+        ROS_WARN_STREAM_THROTTLE(3.0, ex.what());
         return;
     }
     tf2::Transform odom_to_map_tf;
