@@ -148,7 +148,7 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
         estimated_pose.pose.covariance[i] = covariance[i];
     }
     estimated_pose_pub_.publish(estimated_pose);
-    
+
     //publish estimated edge
     const amsl_navigation_msgs::Edge estimated_edge = get_estimated_edge();
     edge_pub_.publish(estimated_edge);
