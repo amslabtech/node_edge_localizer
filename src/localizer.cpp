@@ -21,6 +21,7 @@ Localizer::Localizer(void)
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
     distance_map_pub_ = local_nh_.advertise<nav_msgs::OccupancyGrid>("distance_map", 1, true);
     observed_points_pub_ = local_nh_.advertise<visualization_msgs::Marker>("observed_points", 1, true);
+    odom_pub_ = local_nh_.advertise<nav_msgs::Odometry>("odom", 1, true);
     edge_pub_ = nh_.advertise<amsl_navigation_msgs::Edge>("estimated_pose/edge", 1, true);
     odom_sub_ = nh_.subscribe("odom", 1, &Localizer::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
     map_sub_ = nh_.subscribe("node_edge_map/map", 1, &Localizer::map_callback, this, ros::TransportHints().reliable().tcpNoDelay(true));
@@ -119,6 +120,9 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     p.position_ = first_odom_yaw_rotation * p.position_;
     if(enable_odom_tf_){
         publish_odom_to_robot_tf(msg->header.stamp, msg->header.frame_id, msg->child_frame_id, p);
+    }
+    if(odom_pub_.getNumSubscribers() > 0){
+        publish_odom_msg(msg->header.stamp, nemi_.get_map_header_frame_id(), msg->child_frame_id, p);
     }
 
     // get robot motion
@@ -364,6 +368,19 @@ void Localizer::publish_odom_to_robot_tf(const ros::Time& stamp, const std::stri
     odom_to_robot_tf.transform.translation.z = pose.position_(2);
     odom_to_robot_tf.transform.rotation = get_quaternion_msg_from_yaw(pose.yaw_);
     tfb_->sendTransform(odom_to_robot_tf);
+}
+
+void Localizer::publish_odom_msg(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& robot_frame_id, const Pose& pose)
+{
+    nav_msgs::Odometry odom;
+    odom.header.stamp = stamp;
+    odom.header.frame_id = odom_frame_id;
+    odom.child_frame_id = robot_frame_id;
+    const Eigen::Vector3d transformed = Eigen::AngleAxisd(init_yaw_, Eigen::Vector3d::UnitZ()).toRotationMatrix() * pose.position_;
+    odom.pose.pose.position.x = transformed(0) + init_x_;
+    odom.pose.pose.position.y = transformed(1) + init_y_;
+    odom.pose.pose.orientation = get_quaternion_msg_from_yaw(pose.yaw_ + init_yaw_);
+    odom_pub_.publish(odom);
 }
 
 void Localizer::move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt)

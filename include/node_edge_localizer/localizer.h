@@ -59,6 +59,7 @@ public:
     nav_msgs::Odometry convert_pose_to_msg(const Pose& p);
     void publish_map_to_odom_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& robot_frame_id, const geometry_msgs::Pose& pose);
     void publish_odom_to_robot_tf(const ros::Time& stamp, const std::string& odom_frame_id, const std::string& robot_frame_id, const Pose& pose);
+    void publish_odom_msg(const ros::Time& stamp, const std::string& frame_id, const std::string& robot_frame_id, const Pose& pose);
     void move_particles(const Eigen::Vector3d& velocity, const double yawrate, const double dt);
     void publish_particles(const ros::Time& stamp, const std::string& frame_id);
     std::tuple<Pose, std::vector<double>> get_estimation_result_from_particles(void);
@@ -126,6 +127,7 @@ protected:
     ros::Publisher particles_pub_;
     ros::Publisher distance_map_pub_;
     ros::Publisher observed_points_pub_;
+    ros::Publisher odom_pub_;
     ros::Publisher edge_pub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber map_sub_;
