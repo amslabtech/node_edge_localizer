@@ -95,7 +95,7 @@ protected:
     double init_yaw_;
     /// stddev of initial position
     double init_sigma_xy_;
-    /// stddev of initial orientation 
+    /// stddev of initial orientation
     double init_sigma_yaw_;
     /// stddev of position transition
     double sigma_x_;
@@ -116,7 +116,7 @@ protected:
     unsigned int input_point_num_;
     double kld_z_;
     double kld_error_;
-    // points in this range is used 
+    // points in this range is used
     double obstacle_range_;
     // (x, y, yaw), num
     std::map<std::tuple<int, int, int>, unsigned int> bins_;
