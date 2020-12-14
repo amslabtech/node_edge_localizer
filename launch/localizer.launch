@@ -14,8 +14,8 @@
         <param name="init_sigma_xy" value="0.5"/>
         <param name="init_sigma_yaw" value="0.2"/>
         <param name="sigma_x" value="0.5"/>
-        <param name="sigma_y" value="0.01"/>
-        <param name="sigma_yaw" value="0.1"/>
+        <param name="sigma_y" value="0.0"/>
+        <param name="sigma_yaw" value="0.01"/>
         <param name="resampling_ratio" value="0.95"/>
         <param name="resampling_threshold" value="95"/>
         <param name="input_point_num" value="500"/>
