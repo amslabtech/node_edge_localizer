@@ -16,6 +16,7 @@ Localizer::Localizer(void)
 , robot_frame_("")
 , w_fast_(0.0)
 , w_slow_(0.0)
+, mileage_(0.0)
 {
     particles_pub_ = nh_.advertise<geometry_msgs::PoseArray>("estimated_pose/particles", 1);
     estimated_pose_pub_ = nh_.advertise<nav_msgs::Odometry>("estimated_pose/pose", 1);
@@ -134,6 +135,8 @@ void Localizer::odom_callback(const nav_msgs::OdometryConstPtr& msg)
     Eigen::Vector3d velocity = (p.position_ - last_odom_pose_.position_) / dt;
     const Eigen::AngleAxis<double> last_yaw_rotation(-last_odom_pose_.yaw_, Eigen::Vector3d::UnitZ());
     velocity = last_yaw_rotation * velocity;
+    mileage_ += velocity(0) * dt;
+    ROS_INFO_STREAM_THROTTLE(3.0, "mileage: " << mileage_ << "[m]");
     const double yawrate = Calculation::pi_2_pi(p.yaw_ - last_odom_pose_.yaw_) / dt;
 
     move_particles(velocity, yawrate, dt);

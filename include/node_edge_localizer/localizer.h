@@ -152,6 +152,7 @@ protected:
     double w_fast_;
     double w_slow_;
     std::vector<std::vector<unsigned int>> connected_edge_indices_;
+    double mileage_;
 };
 }// namespace node_edge_localizer
 
