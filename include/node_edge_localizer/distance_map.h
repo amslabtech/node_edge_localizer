@@ -1,5 +1,5 @@
 /**
- * @file distance_map.h 
+ * @file distance_map.h
  * @author amsl
  */
 #ifndef __NODE_EDGE_LOCALIZER_DISTANCE_MAP_H
