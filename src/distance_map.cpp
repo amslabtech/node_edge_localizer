@@ -9,12 +9,12 @@ namespace node_edge_localizer
 DistanceMap::DistanceMap(void)
 : margin_(20.0)
 , margin_2_(margin_ / 2.0)
-, x_size_(0) 
-, y_size_(0) 
-, min_x_(0) 
-, max_x_(0) 
-, min_y_(0) 
-, max_y_(0) 
+, x_size_(0)
+, y_size_(0)
+, min_x_(0)
+, max_x_(0)
+, min_y_(0)
+, max_y_(0)
 , resolution_(0.1)
 , grid_per_meter_(1.0 / resolution_)
 , map_size_(0)
@@ -84,12 +84,12 @@ double DistanceMap::get_distance_from_edge(const amsl_navigation_msgs::NodeEdgeM
     // ref: https://boiledorange73.qrunch.io/entries/mir1mmohtOz9qkgq
     const double a = n1.point.x - n0.point.x;
     const double b = n1.point.y - n0.point.y;
-    const double t = -(a * (n0.point.x - x) + b * (n0.point.y - y)); 
+    const double t = -(a * (n0.point.x - x) + b * (n0.point.y - y));
     const double a_b_squared_sum = a * a + b * b;
     if(t < 0){
-        return sqrt(get_squared_distance(n0.point.x, n0.point.y, x, y)); 
+        return sqrt(get_squared_distance(n0.point.x, n0.point.y, x, y));
     }else if(t > a_b_squared_sum){
-        return sqrt(get_squared_distance(n1.point.x, n1.point.y, x, y)); 
+        return sqrt(get_squared_distance(n1.point.x, n1.point.y, x, y));
     }else{
         // intersection is on the edge
         const double f = a * (n0.point.y - y) - b * (n0.point.x - x);
