@@ -49,6 +49,8 @@ protected:
     std::vector<EdgeIndexWithDistance> map_;
     unsigned int map_size_;
     unsigned int edge_num_;
+
+    std::map<int, amsl_navigation_msgs::Node> id_to_node_;
 };
 }
 #endif// __NODE_EDGE_LOCALIZER_DISTANCE_MAP_H

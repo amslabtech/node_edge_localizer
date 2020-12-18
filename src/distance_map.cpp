@@ -25,6 +25,9 @@ DistanceMap::DistanceMap(void)
 
 void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map, double resolution)
 {
+    for(const auto& n : map.nodes){
+        id_to_node_[n.id] = n;
+    }
     resolution_ = resolution;
     grid_per_meter_ = 1.0 / resolution_;
     margin_2_ = margin_ / 2.0;
@@ -73,14 +76,8 @@ void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map
 double DistanceMap::get_distance_from_edge(const amsl_navigation_msgs::NodeEdgeMap& m, const amsl_navigation_msgs::Edge& e, double x, double y)
 {
     amsl_navigation_msgs::Node n0, n1;
-    for(const auto& n : m.nodes){
-        if(n.id == e.node0_id){
-            n0 = n;
-        }
-        if(n.id == e.node1_id){
-            n1 = n;
-        }
-    }
+    n0 = id_to_node_[e.node0_id];
+    n1 = id_to_node_[e.node1_id];
     // ref: https://boiledorange73.qrunch.io/entries/mir1mmohtOz9qkgq
     const double a = n1.point.x - n0.point.x;
     const double b = n1.point.y - n0.point.y;
