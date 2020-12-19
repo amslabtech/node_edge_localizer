@@ -22,7 +22,26 @@ class DistanceMap
 public:
     DistanceMap(void);
     void make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map, double resolution);
-    double get_distance_from_edge(const amsl_navigation_msgs::NodeEdgeMap& map, const amsl_navigation_msgs::Edge& e, double x, double y);
+    double get_distance_from_edge(const amsl_navigation_msgs::NodeEdgeMap& m, const amsl_navigation_msgs::Edge& e, double x, double y)
+    {
+        amsl_navigation_msgs::Node n0, n1;
+        n0 = id_to_node_[e.node0_id];
+        n1 = id_to_node_[e.node1_id];
+        // ref: https://boiledorange73.qrunch.io/entries/mir1mmohtOz9qkgq
+        const double a = n1.point.x - n0.point.x;
+        const double b = n1.point.y - n0.point.y;
+        const double t = -(a * (n0.point.x - x) + b * (n0.point.y - y));
+        const double a_b_squared_sum = a * a + b * b;
+        if(t < 0){
+            return sqrt(get_squared_distance(n0.point.x, n0.point.y, x, y));
+        }else if(t > a_b_squared_sum){
+            return sqrt(get_squared_distance(n1.point.x, n1.point.y, x, y));
+        }else{
+            // intersection is on the edge
+            const double f = a * (n0.point.y - y) - b * (n0.point.x - x);
+            return sqrt((f * f) / a_b_squared_sum);
+        }
+    }
     /**
      * @brief Get distance from nearest edge
      * @param[in] x x position in (estimated) map frame
