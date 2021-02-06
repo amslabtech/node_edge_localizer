@@ -686,7 +686,7 @@ void NodeEdgeLocalizer::publish_pose(void)
 {
     nav_msgs::Odometry odom;
     odom.header.frame_id = nemm.get_map_header_frame_id();
-    odom.header.stamp = ros::Time::now();
+    odom.header.stamp = odom_time;
     odom.child_frame_id = robot_frame_id;
     odom.pose.pose.position.x = estimated_pose(0);
     odom.pose.pose.position.y = estimated_pose(1);
@@ -736,7 +736,7 @@ void NodeEdgeLocalizer::publish_particles(void)
     static geometry_msgs::PoseArray _particles;
     _particles.poses.resize(PARTICLES_NUM);
     _particles.header.frame_id = nemm.get_map_header_frame_id();
-    _particles.header.stamp = ros::Time::now();
+    _particles.header.stamp = odom_time;
     for(int i=0;i<PARTICLES_NUM;i++){
         geometry_msgs::Pose p;
         p.position.x = particles[i].x;
@@ -1076,7 +1076,6 @@ void NodeEdgeLocalizer::publish_odom_tf(Eigen::Vector3d& odom, double yaw)
     tf::Quaternion q;
     q.setRPY(0, 0, yaw);
     transform.setRotation(q);
-    odom_time = ros::Time::now();
     tf::StampedTransform odom_tf(transform, odom_time, odom_frame_id, robot_frame_id);
     broadcaster.sendTransform(odom_tf);
 }
