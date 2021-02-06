@@ -3,6 +3,9 @@
  * @author amsl
  */
 #include "node_edge_localizer/distance_map.h"
+#include <chrono>
+
+#include "node_edge_localizer/kdtree.h"
 
 namespace node_edge_localizer
 {
@@ -25,6 +28,9 @@ DistanceMap::DistanceMap(void)
 
 void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map, double resolution)
 {
+    kdtree::KDTree kdtree;
+    kdtree.set_data(map);
+    const auto start = std::chrono::system_clock::now();
     for(const auto& n : map.nodes){
         id_to_node_[n.id] = n;
     }
@@ -51,7 +57,9 @@ void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map
     map_size_ = x_size_ * y_size_;
     map_.resize(map_size_);
     const unsigned int EDGE_NUM = map.edges.size();
-    #pragma omp parallel for
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start).count() << "[ms]" << std::endl;
+    int count = 0;
+    #pragma omp parallel for reduction(+:count)
     for(unsigned int  ix=0;ix<x_size_;ix++){
         for(unsigned int iy=0;iy<y_size_;iy++){
             const unsigned int grid_index = iy * x_size_ + ix;
@@ -59,18 +67,32 @@ void DistanceMap::make_distance_map(const amsl_navigation_msgs::NodeEdgeMap& map
             const double y = iy * resolution + min_y_ - margin_2_;
             double min_distance = 1e6;
             unsigned int min_index = 0;
+            const int nearest_node_id = map.nodes[kdtree.find_nearest(Eigen::Vector2d(x, y))].id;
+            if(nearest_node_id < 0){
+                ROS_INFO_STREAM("nearest node of " << x << ", " << y << " not found");
+            }
             for(unsigned int j=0;j<EDGE_NUM;j++){
+                if((map.edges[j].node0_id != nearest_node_id) && (map.edges[j].node1_id != nearest_node_id)){
+                    continue;
+                }
                 const double d = get_distance_from_edge(map, map.edges[j], x, y);
                 if(d < min_distance){
                     min_distance = d;
                     min_index = j;
                 }
+                ++count;
             }
             const EdgeIndexWithDistance ei = {min_index, min_distance};
             map_[grid_index] = ei;
         }
     }
     edge_num_ = map.edges.size();
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start).count() << "[ms]" << std::endl;
+    std::cout << "edge num: " << EDGE_NUM << std::endl;
+    std::cout << "x_size: " << x_size_ << std::endl;
+    std::cout << "y_size: " << y_size_ << std::endl;
+    std::cout << "loop num: " << EDGE_NUM * x_size_ * y_size_ << std::endl;
+    std::cout << "loop count: " << count << std::endl;
 }
 
 double DistanceMap::get_min_distance_from_edge(double x, double y)
