@@ -242,8 +242,8 @@ void Localizer::observation_map_callback(const nav_msgs::OccupancyGridConstPtr& 
         }else if(80 <= msg->data[i]){
             obstacle_vectors.emplace_back(v);
         }
-        publish_observed_points(msg->header, free_vectors, obstacle_vectors);
     }
+    publish_observed_points(msg->header, free_vectors, obstacle_vectors);
     // subsample_observed_points(free_vectors, obstacle_vectors);
     ROS_INFO_STREAM("observed free points: " << free_vectors.size());
     ROS_INFO_STREAM("observed obstacle points: " << obstacle_vectors.size());
